@@ -68,54 +68,47 @@ final public class DNSClient: Sendable {
         
         let (query, id) = dnsCoder.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: Class))
         
-        logger.trace("[sendTCP] Sending query for \(host) with id: 0x\(String(format:"%02x", id))")
-        
         // TCP has a 2-byte prefix with the length because it is a stram of data and it needs to know how long all of it is
         // In UDP, the whole packet is a single request. In TCP (and TLS) the data can go over multiple packets/frames
         let lengthPrefix = UInt16(query.count)
         
         let data: Data = Data(withUnsafeBytes(of: lengthPrefix.bigEndian, Array.init)) + query
         
-        logger.trace("[sendTCP] Data being sent: \(data.hexEncodedString())")
+        logger.trace("[sendTCP] Sending query", metadata: ["host": "\(host)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
         
         connection.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                self.logger.trace("[sendTCP] Connection ready, sending data...")
+                self.logger.debug("[sendTCP] Connection ready, sending data...")
                 // Send DNS query
                 connection.send(content: data, completion: .contentProcessed { sendError in
                     if let error = sendError {
-                        // print("sendTCP] Error sending data: \(error.localizedDescription)")
                         completion(.failure(DNSError.connectionFailed(error)))
                         return
                     }
                     
                     connection.receive(minimumIncompleteLength: 2, maximumLength: 2) { lengthData, _, _, error in
                         if let error = error {
-                            self.logger.error("[sendTCP] Error receiving lengthData: \(error.localizedDescription)")
                             completion(.failure(DNSError.connectionFailed(error)))
                             return
                         }
                         
                         guard let lengthData = lengthData else {
-                            self.logger.error("[sendTCP] Received nil lengthData response")
                             completion(.failure(DNSError.noDataReceived))
                             return
                         }
                         
                         if lengthData.count != 2 {
-                            self.logger.error("[sendTCP] Received invalid lengthData response: \(lengthData.hexEncodedString())")
+                            self.logger.trace("[sendTCP] Received invalid lengthData", metadata: ["response": "\(lengthData.hexEncodedString())"])
                             completion(.failure(DNSError.invalidData))
                             return
                         }
                         
                         let length = Int(lengthData.withUnsafeBytes { $0.load(as: UInt16.self).bigEndian })
-                        self.logger.trace("[sendTCP] Received length: \(length)")
                         
                         // Get the actual data
                         connection.receive(minimumIncompleteLength: length, maximumLength: length) { data, _, _, error in
                             if let error = error {
-                                self.logger.error("[sendTLS] Error receiving data: \(error.localizedDescription)")
                                 completion(.failure(DNSError.connectionFailed(error)))
                                 return
                             }
@@ -125,7 +118,7 @@ final public class DNSClient: Sendable {
                                 return
                             }
                             
-                            self.logger.trace("[sendTCP] Received DNS response: \(data.hexEncodedString())")
+                            self.logger.trace("[sendTCP] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
                             
                             do {
                                 let result = try self.dnsCoder.parseDNSResponse(data)
@@ -137,21 +130,19 @@ final public class DNSClient: Sendable {
                     }
                 })
             case .failed(let error):
-                self.logger.error("[sendTCP] Connection failed: \(error.localizedDescription)")
                 completion(.failure(DNSError.connectionFailed(error)))
                 return
             case .waiting(let error):
-                self.logger.debug("[sendTCP] Connection waiting: \(error.localizedDescription)")
+                self.logger.info("[sendTCP] Connection waiting", metadata: ["error": "\(error.localizedDescription)"])
             case .preparing:
                 self.logger.debug("[sendTCP] Connection preparing...")
             default:
-                self.logger.error("[sendTCP] Unknown connection state")
-                completion(.failure(DNSError.unknownState))
+                completion(.failure(DNSError.unknownState(state)))
                 break
             }
         }
         
-        logger.trace("[sendTCP] Starting connection...")
+        logger.debug("[sendTCP] Starting connection...")
         connection.start(queue: .global())
     }
     
@@ -169,33 +160,31 @@ final public class DNSClient: Sendable {
         let header = DNSHeader(id: id, flags: flags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0).toData()
         let question = QuestionSection(host: host, type: type, CLASS: Class).toData()
         
-        logger.trace("[sendUDP] Sending query for \(host) with id: 0x\(String(format:"%02x", id))")
-        
         let data: Data = header + question
+        
+        logger.trace("[sendUDP] Sending query", metadata: ["host": "\(host)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
         
         connection.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                self.logger.trace("[sendUDP] Connection ready, sending data...")
+                self.logger.debug("[sendUDP] Connection ready, sending data...")
                 
                 // Send DNS query
                 connection.send(content: data, completion: .contentProcessed { sendError in
                     if let error = sendError {
-                        print("[sendUDP] Error sending data: \(error.localizedDescription)")
+                        completion(.failure(DNSError.connectionFailed(error)))
                         return
                     }
                 })
             case .failed(let error):
-                self.logger.error("[sendUDP] Connection failed: \(error.localizedDescription)")
                 completion(.failure(DNSError.connectionFailed(error)))
                 return
             case .waiting(let error):
-                self.logger.debug("[sendUDP] Connection waiting: \(error.localizedDescription)")
+                self.logger.info("[sendUDP] Connection waiting", metadata: ["error": "\(error.localizedDescription)"])
             case .preparing:
                 self.logger.debug("[sendUDP] Connection preparing...")
             default:
-                self.logger.error("[sendUDP] Unknown connection state")
-                completion(.failure(DNSError.unknownState))
+                completion(.failure(DNSError.unknownState(state)))
                 break
             }
         }
@@ -204,18 +193,16 @@ final public class DNSClient: Sendable {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 512) { data, context, isComplete, error in
             do {
                 if let error = error {
-                    self.logger.error("[sendUDP] Error receiving data: \(error.localizedDescription)")
                     completion(.failure(DNSError.connectionFailed(error)))
                     return
                 }
                 if let data = data {
-                    self.logger.trace("[sendUDP] Received DNS response: \(data.hexEncodedString())")
+                    self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
                     
                     let result = try self.dnsCoder.parseDNSResponse(data)
                     completion(.success(result))
                 }
             } catch {
-                print("[sendUDP] Error parsing DNS response: \(error.localizedDescription)")
                 completion(.failure(DNSError.parsingError(error)))
             }
         }
@@ -234,8 +221,7 @@ final public class DNSClient: Sendable {
         
         let (data, id) = dnsCoder.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: .internet))
         
-        logger.trace("[sendHTTPS] Sending query for \(host) with id: 0x\(String(format:"%02x", id))")
-        // print("[sendHTTPS] Sending: \(data.hexEncodedString())")
+        logger.trace("[sendHTTPS] Sending query", metadata: ["host": "\(host)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -250,10 +236,8 @@ final public class DNSClient: Sendable {
             
             do {
                 let status = (response as! HTTPURLResponse).statusCode
-                self.logger.debug("[sendHTTPS] Status: \(status), mime: \(response?.mimeType ?? "<nil>")")
-                
-                // print("[sendHTTPS] Received DNS response: \(responseData.hexEncodedString())")
-                // print("[sendHTTPS] response header: \(responseHeader.description())")
+                self.logger.debug("[sendHTTPS] HTTP Response", metadata: ["status": "\(status)", "mime": "\(response?.mimeType ?? "<nil>")"])
+                self.logger.trace("[sendHTTPS] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
                 
                 let result = try self.dnsCoder.parseDNSResponse(responseData)
                 completion(.success(result))
@@ -266,9 +250,8 @@ final public class DNSClient: Sendable {
         /*
         let (responseData, response) = try await URLSession.shared.data(for: request)
         let status = (response as! HTTPURLResponse).statusCode
-         self.logger.debug("[sendHTTPS] Status: \(status), mime: \(response.mimeType ?? "<nil>")")
-        
-        // print("[sendHTTPS] Received DNS response: \(responseData.hexEncodedString())")
+        self.logger.debug("[sendHTTPS] Status: \(status), mime: \(response.mimeType ?? "<nil>")")
+        self.logger.trace("[sendHTTPS] Received DNS response: \(responseData.hexEncodedString())")
         // print("[sendHTTPS] response header: \(responseHeader.description())")
         
         return try self.dnsCoder.parseDNSResponse(responseData)

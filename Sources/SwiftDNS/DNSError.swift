@@ -6,14 +6,14 @@
 // 
 
 import Foundation
+import Network
 
 public enum DNSError: Error, Equatable {
     case noAnswer
     case noDataReceived
     case connectionFailed(Error)
-    case unknownState
+    case unknownState(NWConnection.State?)
     case outOfBounds
-    // case invalidResponse
     case parsingError(Error?)
     case invalidServerAddress
     case connectionIsNil
@@ -29,7 +29,13 @@ public enum DNSError: Error, Equatable {
             } else {
                 return lhsE == nil && rhsE == nil
             }
-        case (.noAnswer, .noAnswer), (.noDataReceived, .noDataReceived), (.unknownState, .unknownState), (.invalidData, .invalidData):
+        case (.unknownState(let lhsE), .unknownState(let rhsE)):
+            if let lhsE = lhsE, let rhsE = rhsE {
+                return lhsE == rhsE
+            } else {
+                return lhsE == nil && rhsE == nil
+            }
+        case (.noAnswer, .noAnswer), (.noDataReceived, .noDataReceived), (.invalidData, .invalidData):
             return true
         case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil), (.outOfBounds, .outOfBounds):
             return true
