@@ -14,10 +14,12 @@ extension Data {
         return map { String(format: "%02hhx", $0) }.joined()
     }
     
-    /// Reads a UInt16 at the index as a Big Endian
+    /// Reads a UInt16 as Big Endian
+    /// - Parameter index: The index to read the UInt16 at. Note: index + 1 should should be less than the lengtth of the data.
+    /// - Returns: The UInt16 read.
     func readUInt16(at index: Int) throws -> UInt16 {
         guard index + 1 < self.count else {
-            throw NSError(domain: "Data out of bounds", code: 2, userInfo: nil)
+            throw DNSError.outOfBounds
         }
         let high = UInt16(self[index]) << 8
         let low = UInt16(self[index + 1])

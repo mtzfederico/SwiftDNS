@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// The DNS Class as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2)
 public enum DNSClass: UInt16, Decodable, Equatable, Sendable {
     case internet = 1
     case chaos = 3
@@ -22,6 +23,7 @@ public enum DNSClass: UInt16, Decodable, Equatable, Sendable {
         self.init(rawValue: type)!
     }
     
+    /// A short string that represents the class
     public var displayName: String {
         switch self {
         case .internet:

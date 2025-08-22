@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// The Question section of a DNS packet
 public struct QuestionSection: Sendable {
     /// a domain name represented as a sequence of labels, where each label consists of a length octet followed by that number of octets.  The domain name terminates with the zero length octet for the null label of the root.  Note that this field may be an odd number of octets; no padding is used.
     public var QNAME: String
@@ -23,7 +24,7 @@ public struct QuestionSection: Sendable {
     }
     
     public init(data: Data, offset: inout Int) throws {
-        let (domainName, domainLength) = DNSCoder.parseDomainName(data: data, offset: offset)
+        let (domainName, domainLength) = DNSClient.parseDomainName(data: data, offset: offset)
         // print("[decodeQuestion] domain name: \(domainName), length: \(domainLength)")
         offset += domainLength
         
@@ -52,6 +53,8 @@ public struct QuestionSection: Sendable {
         self.QCLASS = Class
     }
     
+    /// Encodes a Question into data
+    /// - Returns: The QuestionSection as Data
     public func toData() -> Data {
         var bytes = Data()
         

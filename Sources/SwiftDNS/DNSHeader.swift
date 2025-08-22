@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// The Hedaer section of a DNS packet
 public struct DNSHeader: Sendable {
     /// A 16 bit identifier assigned to the query.  This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries.
     public let id: UInt16
@@ -64,7 +65,7 @@ public struct DNSHeader: Sendable {
         return lhs.id == rhs.id && lhs.flags == rhs.flags && lhs.QDCOUNT == rhs.QDCOUNT && lhs.ANCOUNT == rhs.ANCOUNT && lhs.NSCOUNT == rhs.NSCOUNT && lhs.ARCOUNT == rhs.ARCOUNT
     }
     
-    /// Represents the Flags in the header
+    /// The Flags in the DNS header
     public struct DNSFlags: Sendable {
         /// A one bit field that specifies whether this message is a query (0), or a response (1).
         public var qr: UInt16 = 0
@@ -181,6 +182,7 @@ public enum DNSResponseCode: UInt16, Decodable, Equatable, Sendable {
     case BADCOOKIE = 23
     case unknown
     
+    /// A short string that represents the RCode
     public var displayName: String {
         switch self {
         case .NoError:
@@ -228,6 +230,7 @@ public enum DNSResponseCode: UInt16, Decodable, Equatable, Sendable {
         }
     }
     
+    /// A short user-friendly string that describes the RCode
     public var description: String {
         switch self {
         case .NoError:

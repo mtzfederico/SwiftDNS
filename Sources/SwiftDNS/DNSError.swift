@@ -8,6 +8,7 @@
 import Foundation
 import Network
 
+/// The errors used by SwiftDNS
 public enum DNSError: Error, Equatable {
     case noAnswer
     case noDataReceived

@@ -32,7 +32,8 @@ public enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible
         
         self.init(rawValue: type)!
     }
-
+    
+    /// /// A short user-friendly string that describes the Record Type
     public var description: String {
         switch self {
         case .A: return "A"

@@ -9,6 +9,7 @@ import Foundation
 import Network
 import Logging
 
+/// The connection type used to send DNS requests
 public enum DNSConnectionType: Sendable {
     case dnsOverTLS
     case dnsOverHTTPS
@@ -17,12 +18,20 @@ public enum DNSConnectionType: Sendable {
 }
 
 final public class DNSClient: Sendable {
-    let logger: Logger
-    private let dnsCoder = DNSCoder()
+    /// The logger used
+    private let logger: Logger
+    /// The NWConnection used to send UDP, TCP, and TLS queries. HTTP queries use URLSession.shared
     private let connection: NWConnection?
+    /// The connection type used to send the request
     private let connectionType: DNSConnectionType
+    /// The server used to send the query to
     private let server: String
     
+    /// DNSClass Initialiser
+    /// - Parameters:
+    ///   - server: The server to send the query to. For UDP and TCP, it can be an IP or a domain. For TLS it should be a domain name (Ex: "dns.quad9.net" or "one.one.one.one"), and for HTTPS it sould be a URL (Ex: "https://cloudflare-dns.com/dns-query" or "https://dns.quad9.net/dns-query")
+    ///   - connectionType: The DNS conecction type to use. UDP, TCP, TLS, or HTTPS
+    ///   - logger: The logger used
     public init(server: String, connectionType: DNSConnectionType, logger: Logger = Logger(label: "com.mtzfederico.SwiftDNS")) {
         self.logger = logger
         self.server = server
@@ -40,6 +49,12 @@ final public class DNSClient: Sendable {
         }
     }
     
+    /// Sends a DNS request to the server using the connection type of the DNSClient
+    /// - Parameters:
+    ///   - host: The host to query, the QNAME.
+    ///   - type: The DNS recoord type to query for
+    ///   - Class: The class to query
+    /// - Returns: The DNS response
     @available(macOS 10.15, iOS 13.0, *)
     public func query(host: String, type: DNSRecordType, Class: DNSClass) async throws -> QueryResult {
         return try await withCheckedThrowingContinuation { continuation in
@@ -49,6 +64,12 @@ final public class DNSClient: Sendable {
         }
     }
     
+    /// Sends a DNS request to the server using the connection type of the DNSClient
+    /// - Parameters:
+    ///   - host: The host to query, the QNAME.
+    ///   - type: The DNS recoord type to query for
+    ///   - Class: The class to query
+    ///   - completion: The DNS response or an Error
     public func query(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
         switch connectionType {
         case .dnsOverTLS, .dnsOverTCP:
@@ -60,13 +81,19 @@ final public class DNSClient: Sendable {
         }
     }
     
+    /// Sends a DNS request to the server using TCP
+    /// - Parameters:
+    ///   - host: The host to query, the QNAME.
+    ///   - type: The DNS recoord type to query for
+    ///   - Class: The class to query
+    ///   - completion: The DNS response or an Error
     private func sendTCP(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
         }
         
-        let (query, id) = dnsCoder.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: Class))
+        let (query, id) = DNSClient.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: Class))
         
         // TCP has a 2-byte prefix with the length because it is a stram of data and it needs to know how long all of it is
         // In UDP, the whole packet is a single request. In TCP (and TLS) the data can go over multiple packets/frames
@@ -121,7 +148,7 @@ final public class DNSClient: Sendable {
                             self.logger.trace("[sendTCP] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
                             
                             do {
-                                let result = try self.dnsCoder.parseDNSResponse(data)
+                                let result = try DNSClient.parseDNSResponse(data)
                                 completion(.success(result))
                             } catch {
                                 completion(.failure(error))
@@ -146,12 +173,20 @@ final public class DNSClient: Sendable {
         connection.start(queue: .global())
     }
     
+    
+    /// Sends a DNS request to the server using UDP
+    /// - Parameters:
+    ///   - host: The host to query, the QNAME.
+    ///   - type: The DNS recoord type to query for
+    ///   - Class: The class to query
+    ///   - completion: The DNS response or an Error
     private func sendUDP(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
         }
         
+        /*
         let id = UInt16.random(in: 0...UInt16.max)
         let flags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         
@@ -161,6 +196,9 @@ final public class DNSClient: Sendable {
         let question = QuestionSection(host: host, type: type, CLASS: Class).toData()
         
         let data: Data = header + question
+         */
+        
+        let (data, id) = DNSClient.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: .internet))
         
         logger.trace("[sendUDP] Sending query", metadata: ["host": "\(host)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
         
@@ -199,7 +237,7 @@ final public class DNSClient: Sendable {
                 if let data = data {
                     self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
                     
-                    let result = try self.dnsCoder.parseDNSResponse(data)
+                    let result = try DNSClient.parseDNSResponse(data)
                     completion(.success(result))
                 }
             } catch {
@@ -211,15 +249,19 @@ final public class DNSClient: Sendable {
         connection.start(queue: .global())
     }
     
-    // @available(iOS 15.0, *)
+    /// Sends a DNS request to the server using HTTPS
+    /// - Parameters:
+    ///   - host: The host to query, the QNAME.
+    ///   - type: The DNS recoord type to query for
+    ///   - Class: The class to query
+    ///   - completion: The DNS response or an Error
     private func sendHTTPS(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
         guard let url = URL(string: server) else {
             completion(.failure(DNSError.invalidServerAddress))
-            // throw DNSError.invalidServerAddress
             return
         }
         
-        let (data, id) = dnsCoder.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: .internet))
+        let (data, id) = DNSClient.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: .internet))
         
         logger.trace("[sendHTTPS] Sending query", metadata: ["host": "\(host)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
         
@@ -239,7 +281,7 @@ final public class DNSClient: Sendable {
                 self.logger.debug("[sendHTTPS] HTTP Response", metadata: ["status": "\(status)", "mime": "\(response?.mimeType ?? "<nil>")"])
                 self.logger.trace("[sendHTTPS] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
                 
-                let result = try self.dnsCoder.parseDNSResponse(responseData)
+                let result = try DNSClient.parseDNSResponse(responseData)
                 completion(.success(result))
             } catch(let error) {
                 completion(.failure(error))
@@ -254,7 +296,124 @@ final public class DNSClient: Sendable {
         self.logger.trace("[sendHTTPS] Received DNS response: \(responseData.hexEncodedString())")
         // print("[sendHTTPS] response header: \(responseHeader.description())")
         
-        return try self.dnsCoder.parseDNSResponse(responseData)
+        return try self.DNSClient.parseDNSResponse(responseData)
          */
+    }
+    
+    /// Retuns Data for the query and the ID
+    /// - Parameter question: The question to encode to Data
+    /// - Returns: The header and query as Data and the id generated for the query
+    public static func encodeQuery(question: QuestionSection) -> (Data, UInt16) {
+        let id = UInt16.random(in: 0...UInt16.max)
+        let flags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        
+        // print((String(format:"%02x", flags.toRaw())))
+        
+        let header = DNSHeader(id: id, flags: flags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0).toData()
+        // let question = QuestionSection(host: host, type: type, CLASS: .internet).toData()
+        
+        let data: Data = header + question.toData()
+        return (data, id)
+    }
+    
+    /// Parses a domain name in Data
+    /// - Parameters:
+    ///   - data: The data where the domain is
+    ///   - offset: the offset to start parsing the data at
+    /// - Returns: The domain parsed and the length. The offset can be increased by the length to keep parsing the data
+    public static func parseDomainName(data: Data, offset: Int) -> (String, Int) {
+        var labels: [String] = []
+        var currentOffset = offset
+        var consumed = 0
+
+        while currentOffset < data.count {
+            let length = Int(data[currentOffset])
+
+            // Null label
+            if length == 0 {
+                consumed = currentOffset - offset + 1
+                break
+            }
+
+            // Compressed label (pointer: 11xx xxxx)
+            if length & 0xC0 == 0xC0 {
+                if currentOffset + 1 >= data.count { break }
+                let byte2 = Int(data[currentOffset + 1])
+                let pointer = ((length & 0x3F) << 8) | byte2
+                let (jumpedName, _) = parseDomainName(data: data, offset: pointer)
+                labels.append(jumpedName)
+                consumed = currentOffset - offset + 2
+                break
+            } else {
+                let labelStart = currentOffset + 1
+                let labelEnd = labelStart + length
+                guard labelEnd <= data.count else { break }
+                let labelData = data[labelStart..<labelEnd]
+                if let label = String(data: labelData, encoding: .utf8) {
+                    labels.append(label)
+                }
+                currentOffset = labelEnd
+                consumed = currentOffset - offset
+            }
+        }
+
+        return (labels.joined(separator: "."), consumed)
+    }
+    
+    /// Parses a DNS response
+    /// - Parameter data: The data representing the DNS response
+    /// - Returns: The parsed DNS response
+    public static func parseDNSResponse(_ data: Data) throws -> QueryResult {
+        guard data.count > 12 else {
+            // print("[parseDNSResponse] Invalid DNS response. Count over 12")
+            throw DNSError.invalidData
+        }
+        
+        var offset = 0
+        
+        let header: DNSHeader = try DNSHeader(data: data, offset: &offset)
+        
+        // The questions only have QNAME, QTYPE, and QCLASS
+        var questions: [QuestionSection] = []
+        
+        var answers: [ResourceRecord] = []
+        var authority: [ResourceRecord] = []
+        var additional: [ResourceRecord] = []
+        
+        
+        for _ in 0..<header.QDCOUNT {
+            let rr = try QuestionSection(data: data, offset: &offset)
+            questions.append(rr)
+        }
+        
+        for _ in 0..<header.ANCOUNT {
+            let rr = try ResourceRecord(data: data, offset: &offset)
+            answers.append(rr)
+        }
+        
+        for _ in 0..<header.NSCOUNT {
+            let rr = try ResourceRecord(data: data, offset: &offset)
+            authority.append(rr)
+        }
+        
+        for _ in 0..<header.ARCOUNT {
+            let rr = try ResourceRecord(data: data, offset: &offset)
+            additional.append(rr)
+        }
+        
+        /*
+        if answers.count != header.ANCOUNT {
+            print("answers.count != answerCount")
+        }
+        
+        if authority.count != header.NSCOUNT {
+            print("authority.count != nscount")
+        }
+        
+        if additional.count != header.ARCOUNT {
+            print("additional.count != arcount")
+        }*/
+        
+        return QueryResult(header: header, Question: questions, Answer: answers, Authority: authority, Additional: additional)
     }
 }

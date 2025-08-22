@@ -8,7 +8,6 @@
 import Foundation
 
 /// The data format used for the answer, authority, and additional sections of a DNS packet.
-/// To initialize from data use DNSCoder's decodeResourceRecord(data:offset:)
 public struct ResourceRecord: Sendable {
     /*
      The answer, authority, and additional sections share the same format.
@@ -41,8 +40,11 @@ public struct ResourceRecord: Sendable {
     public let name: String
     /// An unsigned integer that specifies the time interval (in seconds) that the resource record may be cached before it should be discarded.  Zero values are interpreted to mean that the RR can only be used for the transaction in progress, and should not be cached.
     public let ttl: UInt32
+    /// The DNS Class of the record
     public let Class: DNSClass
+    /// The DNS type of the record
     public let type: DNSRecordType
+    /// The value of the DNS record
     public let value: String
     
     public init(name: String, ttl: UInt32, Class: DNSClass, type: DNSRecordType, value: String) {
@@ -55,7 +57,7 @@ public struct ResourceRecord: Sendable {
     
     /// Returns the decoded response
     public init(data: Data, offset: inout Int) throws {
-        let (domainName, domainLength) = DNSCoder.parseDomainName(data: data, offset: offset)
+        let (domainName, domainLength) = DNSClient.parseDomainName(data: data, offset: offset)
         // print("[decodeResourceRecord] domain name: \(domainName), length: \(domainLength). at offset: \(offset)")
         offset += domainLength
         
@@ -128,7 +130,7 @@ public struct ResourceRecord: Sendable {
                 $0.load(as: UInt16.self).bigEndian
             }
 
-            let (domain, _) = DNSCoder.parseDomainName(data: data, offset: offset + 2)
+            let (domain, _) = DNSClient.parseDomainName(data: data, offset: offset + 2)
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(preference) \(domain)")
             return
@@ -138,7 +140,7 @@ public struct ResourceRecord: Sendable {
                 offset += Int(rdlength)
                 throw DNSError.parsingError(DNSError.invalidData)
             }
-            let (domain, _) = DNSCoder.parseDomainName(data: data, offset: offset)
+            let (domain, _) = DNSClient.parseDomainName(data: data, offset: offset)
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: domain)
             return
@@ -191,7 +193,7 @@ public struct ResourceRecord: Sendable {
             let port = try data.readUInt16(at: offset)
             offset += 2
 
-            let (target, targetLen) = DNSCoder.parseDomainName(data: data, offset: offset)
+            let (target, targetLen) = DNSClient.parseDomainName(data: data, offset: offset)
             offset += targetLen
 
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(priority) \(weight) \(port) \(target)")
@@ -206,11 +208,11 @@ public struct ResourceRecord: Sendable {
             let start = offset
 
             // Parse MNAME
-            let (mname, mnameLen) = DNSCoder.parseDomainName(data: data, offset: offset)
+            let (mname, mnameLen) = DNSClient.parseDomainName(data: data, offset: offset)
             offset += mnameLen
 
             // Parse RNAME
-            let (rname, rnameLen) = DNSCoder.parseDomainName(data: data, offset: offset)
+            let (rname, rnameLen) = DNSClient.parseDomainName(data: data, offset: offset)
             offset += rnameLen
 
             // Check remaining size

@@ -10,8 +10,6 @@ import Foundation
 @testable import SwiftDNS
 
 struct TestDataExtension {
-    let dnsCoder = DNSCoder()
-    
     @Test func readUInt16() throws {
         let rawFlags: Data = Data([0x01, 0x03, 0x05, 0x07])
         let rawValue = try rawFlags.readUInt16(at: 0)

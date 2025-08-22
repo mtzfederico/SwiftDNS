@@ -1,5 +1,5 @@
 //
-//  TestDNSCoder.swift
+//  TestDNSClient.swift
 //  SwiftDNS
 //
 //  Created by mtzfederico on 2025-08-20
@@ -9,9 +9,7 @@ import Testing
 import Foundation
 @testable import SwiftDNS
 
-struct TestDNSCoder {
-    let dnsCoder = DNSCoder()
-    
+struct TestDNSClient {
     @Test func query_A() throws {
         let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         
@@ -234,7 +232,7 @@ struct TestDNSCoder {
             0xa1, 0x68
         ])
         
-        let parsedAnswer = try dnsCoder.parseDNSResponse(data)
+        let parsedAnswer = try DNSClient.parseDNSResponse(data)
         
         // -------
         
@@ -301,7 +299,7 @@ struct TestDNSCoder {
             0x00                                            // end of name
         ])
         
-        let parsedAnswer = try dnsCoder.parseDNSResponse(data)
+        let parsedAnswer = try DNSClient.parseDNSResponse(data)
         
         // -------
         
@@ -353,7 +351,7 @@ struct TestDNSCoder {
             0x34, 0x35, 0x03, 0x6e, 0x65, 0x74, 0x00
         ])
         
-        let parsedAnswer = try dnsCoder.parseDNSResponse(data)
+        let parsedAnswer = try DNSClient.parseDNSResponse(data)
         
         // -------
         
@@ -402,7 +400,7 @@ struct TestDNSCoder {
             0x65, 0x63, 0x68, 0x00,
         ])
         
-        let parsedAnswer = try dnsCoder.parseDNSResponse(data)
+        let parsedAnswer = try DNSClient.parseDNSResponse(data)
         
         // -------
         
@@ -454,7 +452,7 @@ struct TestDNSCoder {
             0x80, 0x00, 0x00, 0x07, 0x08
         ])
         
-        let parsedAnswer = try dnsCoder.parseDNSResponse(data)
+        let parsedAnswer = try DNSClient.parseDNSResponse(data)
         
         // -------
         
@@ -566,7 +564,7 @@ struct TestDNSCoder {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x30,
         ])
         
-        let parsedAnswer = try dnsCoder.parseDNSResponse(data)
+        let parsedAnswer = try DNSClient.parseDNSResponse(data)
         
         let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x782c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 13, ARCOUNT: 26)
@@ -724,7 +722,7 @@ struct TestDNSCoder {
         ])
         
         #expect(throws: DNSError.invalidData, performing: {
-            let _ = try dnsCoder.parseDNSResponse(data)
+            let _ = try DNSClient.parseDNSResponse(data)
         })
     }
 }
