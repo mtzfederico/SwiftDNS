@@ -38,14 +38,14 @@ public struct ResourceRecord {
      */
     
     /// a domain name to which this resource record pertains
-    let name: String
+    public let name: String
     /// An unsigned integer that specifies the time interval (in seconds) that the resource record may be cached before it should be discarded.  Zero values are interpreted to mean that the RR can only be used for the transaction in progress, and should not be cached.
-    let ttl: UInt32
-    let Class: DNSClass
-    let type: DNSRecordType
-    let value: String
+    public let ttl: UInt32
+    public let Class: DNSClass
+    public let type: DNSRecordType
+    public let value: String
     
-    init(name: String, ttl: UInt32, Class: DNSClass, type: DNSRecordType, value: String) {
+    public init(name: String, ttl: UInt32, Class: DNSClass, type: DNSRecordType, value: String) {
         self.name = name
         self.ttl = ttl
         self.Class = Class
@@ -54,7 +54,7 @@ public struct ResourceRecord {
     }
     
     /// Returns the decoded response
-    init(data: Data, offset: inout Int) throws {
+    public init(data: Data, offset: inout Int) throws {
         let (domainName, domainLength) = DNSCoder.parseDomainName(data: data, offset: offset)
         // print("[decodeResourceRecord] domain name: \(domainName), length: \(domainLength). at offset: \(offset)")
         offset += domainLength
@@ -239,7 +239,7 @@ public struct ResourceRecord {
         }
     }
     
-    static func ==(lhs: ResourceRecord, rhs: ResourceRecord) -> Bool {
+    public static func ==(lhs: ResourceRecord, rhs: ResourceRecord) -> Bool {
         return lhs.name == rhs.name && lhs.ttl == rhs.ttl && lhs.Class == rhs.Class && lhs.type == rhs.type && lhs.value == rhs.value
     }
 }

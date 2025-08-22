@@ -119,14 +119,14 @@ final public class DNSCoder: Sendable {
 /// A DNS response
 public struct QueryResult {
     /// The DNS response headers
-    var header: DNSHeader
+    public var header: DNSHeader
     
     /// The questions sent
-    var Question: [QuestionSection]
+    public var Question: [QuestionSection]
     /// The answers returned
-    var Answer: [ResourceRecord]
+    public var Answer: [ResourceRecord]
     /// The authority records returned
-    var Authority: [ResourceRecord]
+    public var Authority: [ResourceRecord]
     /// The additional records returned
-    var Additional: [ResourceRecord]
+    public var Additional: [ResourceRecord]
 }

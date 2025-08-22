@@ -9,17 +9,17 @@ import Foundation
 
 public struct DNSHeader {
     /// A 16 bit identifier assigned to the query.  This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries.
-    var id: UInt16
+    public let id: UInt16
     /// The dns flags
-    var flags: DNSFlags
+    public let flags: DNSFlags
     /// An unsigned 16 bit integer specifying the number of entries in the question section.
-    var QDCOUNT: UInt16
+    public let QDCOUNT: UInt16
     /// An unsigned 16 bit integer specifying the number of resource records in the answer section.
-    var ANCOUNT: UInt16
+    public let  ANCOUNT: UInt16
     /// An unsigned 16 bit integer specifying the number of name server resource records in the authority records section.
-    var NSCOUNT: UInt16
+    public let  NSCOUNT: UInt16
     /// An unsigned 16 bit integer specifying the number of resource records in the additional records section.
-    var ARCOUNT: UInt16
+    public let  ARCOUNT: UInt16
     
     public init(id: UInt16, flags: DNSFlags, QDCOUNT: UInt16, ANCOUNT: UInt16, NSCOUNT: UInt16, ARCOUNT: UInt16) {
         self.id = id
@@ -67,27 +67,27 @@ public struct DNSHeader {
     /// Represents the Flags in the header
     public struct DNSFlags {
         /// A one bit field that specifies whether this message is a query (0), or a response (1).
-        var qr: UInt16 = 0
+        public var qr: UInt16 = 0
         /// A four bit field that specifies kind of query in this message.  This value is set by the originator of a query and copied into the response.  The values are:
         /// 0               a standard query (QUERY)
         /// 1               an inverse query (IQUERY)
         /// 2               a server status request (STATUS)
         /// 3-15          reserved for future use
-        var opcode: UInt16 = 0
+        public var opcode: UInt16 = 0
         /// Authoritative Answer - this bit is valid in responses, and specifies that the responding name server is an authority for the domain name in question section.
-        var aa: UInt16 = 0
+        public var aa: UInt16 = 0
         /// Truncation - specifies that this message was truncated due to length greater than that permitted on the transmission channel.
-        var tc: UInt16 = 0
+        public var tc: UInt16 = 0
         /// Recursion Desired - this bit may be set in a query and is copied into the response.  If RD is set, it directs the name server to pursue the query recursively. Recursive query support is optional.
-        var rd: UInt16 = 0
+        public var rd: UInt16 = 0
         /// Recursion Available - this be is set or cleared in a response, and denotes whether recursive query support is available in the name server.
-        var ra: UInt16 = 0
+        public var ra: UInt16 = 0
         /// Reserved for future use. 3 bits long.  Must be zero in all queries and responses.
-        var z: UInt16 = 0
+        public var z: UInt16 = 0
         /// Authenticated Data (DNSSEC RFC4035)
-        // var ad: UInt16 = 0
+        // public var ad: UInt16 = 0
         /// Checking Disabled (DNSSEC RFC4035)
-        // var cd: UInt16 = 0
+        // public var cd: UInt16 = 0
         /// Response code - this 4 bit field is set as part of responses.  The values have the following interpretation:
         ///
         /// * 0               No error condition
@@ -98,9 +98,8 @@ public struct DNSHeader {
         /// * 5               Refused - The name server refuses to perform the specified operation for policy reasons. For example, a name server may not wish to provide the information to the particular requester, or a name server
         ///           may not wish to perform a particular operation (e.g., zone transfer) for particular data.
         /// * 6-15          reserved for future use
-        var rcode: UInt16 = 0
+        public var rcode: UInt16 = 0
         
-        // , ad: UInt16, cd: UInt16
         public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16) {
             self.qr = qr
             self.opcode = opcode

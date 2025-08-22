@@ -9,12 +9,12 @@ import Foundation
 
 public struct QuestionSection {
     /// a domain name represented as a sequence of labels, where each label consists of a length octet followed by that number of octets.  The domain name terminates with the zero length octet for the null label of the root.  Note that this field may be an odd number of octets; no padding is used.
-    var QNAME: String
+    public var QNAME: String
     /// a two octet code which specifies the type of the query. The values for this field include all codes valid for a TYPE field, together with some more general codes which can match more than one type of RR.
-    var QTYPE: DNSRecordType
+    public var QTYPE: DNSRecordType
     /// two octets which specify the class of the data in the RDATA field.
     /// a two octet code that specifies the class of the query. For example, the QCLASS field is IN for the Internet.
-    var QCLASS: DNSClass
+    public var QCLASS: DNSClass
     
     public init(host: String, type: DNSRecordType, CLASS: DNSClass = .internet) {
         self.QNAME = host
@@ -72,7 +72,7 @@ public struct QuestionSection {
         return bytes
     }
     
-    static func == (lhs: QuestionSection, rhs: QuestionSection) -> Bool {
+    public static func == (lhs: QuestionSection, rhs: QuestionSection) -> Bool {
         return lhs.QNAME == rhs.QNAME && lhs.QTYPE == rhs.QTYPE && lhs.QCLASS == rhs.QCLASS
     }
 }
