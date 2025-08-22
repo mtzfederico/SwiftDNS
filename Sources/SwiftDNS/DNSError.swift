@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum DNSError: Error, Equatable {
+public enum DNSError: Error, Equatable {
     case noAnswer
     case noDataReceived
     case connectionFailed(Error)
@@ -19,7 +19,7 @@ enum DNSError: Error, Equatable {
     case connectionIsNil
     case invalidData
     
-    static func ==(lhs: DNSError, rhs: DNSError) -> Bool {
+    public static func ==(lhs: DNSError, rhs: DNSError) -> Bool {
         switch (lhs, rhs) {
         case (.connectionFailed(let lhsE), .connectionFailed(let rhsE)):
             return lhsE as NSError == rhsE as NSError

@@ -9,7 +9,7 @@ import Foundation
 
 /// DNS record type
 /// [Defined by iana](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4)
-enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible {
+public enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible {
     case A = 1
     case NS = 2
     case CNAME = 5
@@ -26,14 +26,14 @@ enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible {
     case ANY = 255
     case unknown
     
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let type = try container.decode(UInt16.self)
         
         self.init(rawValue: type)!
     }
 
-    var description: String {
+    public var description: String {
         switch self {
         case .A: return "A"
         case .NS: return "NS"
@@ -53,7 +53,7 @@ enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible {
         }
     }
     
-    static func == (lhs: DNSRecordType, rhs: DNSRecordType) -> Bool {
+    public static func == (lhs: DNSRecordType, rhs: DNSRecordType) -> Bool {
         return lhs.description == rhs.description
     }
 }

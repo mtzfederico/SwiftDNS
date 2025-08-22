@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum DNSClass: UInt16, Decodable, Equatable {
+public enum DNSClass: UInt16, Decodable, Equatable {
     case internet = 1
     case chaos = 3
     case hesiod = 4
@@ -15,14 +15,14 @@ enum DNSClass: UInt16, Decodable, Equatable {
     case any = 255
     case unknown
     
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let type = try container.decode(UInt16.self)
         
         self.init(rawValue: type)!
     }
     
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .internet:
             return "IN"
@@ -39,7 +39,7 @@ enum DNSClass: UInt16, Decodable, Equatable {
         }
     }
     
-    static func ==(lhs: DNSClass, rhs: DNSClass) -> Bool {
+    public static func ==(lhs: DNSClass, rhs: DNSClass) -> Bool {
         return lhs.displayName == rhs.displayName
     }
 }

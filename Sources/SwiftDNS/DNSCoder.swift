@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class DNSCoder: Sendable {
+final public class DNSCoder: Sendable {
     /// Retuns the data for the query and the ID
     public func encodeQuery(question: QuestionSection) -> (Data, UInt16) {
         let id = UInt16.random(in: 0...UInt16.max)
@@ -41,7 +41,6 @@ final class DNSCoder: Sendable {
         
         
         for _ in 0..<header.QDCOUNT {
-            #warning("test this")
             let rr = try QuestionSection(data: data, offset: &offset)
             questions.append(rr)
         }
@@ -118,7 +117,7 @@ final class DNSCoder: Sendable {
 }
 
 /// A DNS response
-struct QueryResult {
+public struct QueryResult {
     /// The DNS response headers
     var header: DNSHeader
     

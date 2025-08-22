@@ -21,7 +21,7 @@ public struct DNSHeader {
     /// An unsigned 16 bit integer specifying the number of resource records in the additional records section.
     var ARCOUNT: UInt16
     
-    init(id: UInt16, flags: DNSFlags, QDCOUNT: UInt16, ANCOUNT: UInt16, NSCOUNT: UInt16, ARCOUNT: UInt16) {
+    public init(id: UInt16, flags: DNSFlags, QDCOUNT: UInt16, ANCOUNT: UInt16, NSCOUNT: UInt16, ARCOUNT: UInt16) {
         self.id = id
         self.flags = flags
         self.QDCOUNT = QDCOUNT
@@ -30,7 +30,7 @@ public struct DNSHeader {
         self.ARCOUNT = ARCOUNT
     }
     
-    init(data: Data, offset: inout Int) throws {
+    public init(data: Data, offset: inout Int) throws {
         // Extracting DNS header fields from the raw data
         self.id = try data.readUInt16(at: 0)
         self.flags =  DNSFlags(from: try data.readUInt16(at: 2))
@@ -42,7 +42,7 @@ public struct DNSHeader {
         offset += 12
     }
     
-    func toData() -> Data {
+    public func toData() -> Data {
         var bytes = Data()
         
         bytes.append(contentsOf: withUnsafeBytes(of: id.bigEndian) { Data($0) })
@@ -56,11 +56,11 @@ public struct DNSHeader {
     }
     
     /// Returns a string describing the DNS Header
-    func description() -> String {
+    public func description() -> String {
         return "ID: 0x\(String(format:"%02x", id)), \(flags), QDCOUNT: \(QDCOUNT), ANCOUNT: \(ANCOUNT), NSCOUNT: \(NSCOUNT), ARCOUNT: \(ARCOUNT)"
     }
     
-    static func == (lhs: DNSHeader, rhs: DNSHeader) -> Bool {
+    public static func == (lhs: DNSHeader, rhs: DNSHeader) -> Bool {
         return lhs.id == rhs.id && lhs.flags == rhs.flags && lhs.QDCOUNT == rhs.QDCOUNT && lhs.ANCOUNT == rhs.ANCOUNT && lhs.NSCOUNT == rhs.NSCOUNT && lhs.ARCOUNT == rhs.ARCOUNT
     }
     
@@ -101,7 +101,7 @@ public struct DNSHeader {
         var rcode: UInt16 = 0
         
         // , ad: UInt16, cd: UInt16
-        init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16) {
+        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16) {
             self.qr = qr
             self.opcode = opcode
             self.aa = aa
@@ -113,7 +113,7 @@ public struct DNSHeader {
             self.rcode = rcode
         }
 
-        init(from raw: UInt16) {
+        public init(from raw: UInt16) {
             /*
                                             1  1  1  1  1  1
               0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
@@ -149,7 +149,7 @@ public struct DNSHeader {
         }
 
         /// Returns the flags as a UInt16
-        func toRaw() -> UInt16 {
+        public func toRaw() -> UInt16 {
             var raw: UInt16 = 0
             raw |= (qr     & 0x1) << 15
             raw |= (opcode & 0xF) << 11
@@ -162,7 +162,7 @@ public struct DNSHeader {
             return raw
         }
         
-        static func ==(lhs: DNSFlags, rhs: DNSFlags) -> Bool {
+        public static func ==(lhs: DNSFlags, rhs: DNSFlags) -> Bool {
             return lhs.qr == rhs.qr && lhs.opcode == rhs.opcode && lhs.aa == rhs.aa && lhs.tc == rhs.tc && lhs.rd == rhs.rd && lhs.ra == rhs.ra && lhs.rcode == rhs.rcode
         }
     }

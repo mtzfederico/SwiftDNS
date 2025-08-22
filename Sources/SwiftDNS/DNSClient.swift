@@ -16,7 +16,7 @@ enum DNSConnectionType {
     case dnsOverTCP
 }
 
-final class DNSClient: Sendable {
+final public class DNSClient: Sendable {
     let logger: Logger
     private let dnsCoder = DNSCoder()
     private let connection: NWConnection?
