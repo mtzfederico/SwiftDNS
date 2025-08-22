@@ -176,6 +176,26 @@ public struct ResourceRecord: Sendable {
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
             return
+        case .SRV:
+            guard rdlength >= 7 && offset + Int(rdlength) <= data.count else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData)
+            }
+
+            let priority = try data.readUInt16(at: offset)
+            offset += 2
+            
+            let weight = try data.readUInt16(at: offset)
+            offset += 2
+            
+            let port = try data.readUInt16(at: offset)
+            offset += 2
+
+            let (target, targetLen) = DNSCoder.parseDomainName(data: data, offset: offset)
+            offset += targetLen
+
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(priority) \(weight) \(port) \(target)")
+            return
         case .SOA:
             guard offset + Int(rdlength) <= data.count else {
                 // print("Failed to parse SOA record: offset out of bounds")

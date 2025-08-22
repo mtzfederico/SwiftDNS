@@ -388,17 +388,54 @@ struct TestDNSCoder {
         // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
     }
     
-    // Response for A record
-    // 764381800001000200000000086173323039323435036e65740000010001c00c000100010000012c000468155ad2c00c000100010000012c0004ac43a168
-    
-    // header: DNSHeader(id: 30275, flags: DoT_test1.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, z: 0, rcode: 0), QDCOUNT: 1, ANCOUNT: 2, NSCOUNT: 0, ARCOUNT: 0)
-    //  [decodeQuestion] domain name: as209245.net, length: 14
-    // Questions:
-    //      as209245.net 1 A
-    // Answers:
-    //      as209245.net 300 internet A 104.21.90.210
-    //      as209245.net 300 internet A 172.67.161.104
-    
+    @Test func srv_response() throws {
+        // 9e16818000010001000000000a5f6d696e656372616674045f74637009666564656d747a363604746563680000210001c00c002100010000012c001c0001000163dc056466772d3109666564656d747a3636047465636800
+
+        let data: Data = Data([
+            0x9e, 0x16, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            0x0a, 0x5f, 0x6d, 0x69, 0x6e, 0x65, 0x63, 0x72, 0x61, 0x66, 0x74, 0x04,
+            0x5f, 0x74, 0x63, 0x70, 0x09, 0x66, 0x65, 0x64, 0x65, 0x6d, 0x74, 0x7a,
+            0x36, 0x36, 0x04, 0x74, 0x65, 0x63, 0x68, 0x00, 0x00, 0x21, 0x00, 0x01,
+            0xc0, 0x0c, 0x00, 0x21, 0x00, 0x01, 0x00, 0x00, 0x01, 0x2c, 0x00, 0x1c,
+            0x00, 0x01, 0x00, 0x01, 0x63, 0xdc, 0x05, 0x64, 0x66, 0x77, 0x2d, 0x31,
+            0x09, 0x66, 0x65, 0x64, 0x65, 0x6d, 0x74, 0x7a, 0x36, 0x36, 0x04, 0x74,
+            0x65, 0x63, 0x68, 0x00,
+        ])
+        
+        let parsedAnswer = try dnsCoder.parseDNSResponse(data)
+        
+        // -------
+        
+        let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x9e16, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 0)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 1)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 0)
+        
+        let expectedQuestion = QuestionSection(host: "_minecraft._tcp.fedemtz66.tech", type: .SRV, CLASS: .internet)
+        
+        // _minecraft._tcp.fedemtz66.tech.    300 IN    SRV    1 1 25564 dfw-1.fedemtz66.tech.
+        let expectedAnswer = ResourceRecord(name: "_minecraft._tcp.fedemtz66.tech", ttl: 300, Class: DNSClass.internet, type: DNSRecordType.SRV, value: "1 1 25564 dfw-1.fedemtz66.tech")
+        
+        guard let firstAnswer = parsedAnswer.Answer.first else {
+            Issue.record("First answer is nil")
+            return
+        }
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstAnswer == expectedAnswer)
+        #expect(firstQuestion == expectedQuestion)
+        
+        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
+    }
     
     @Test func nxDomainResponse() throws {
         let data: Data = Data([
@@ -690,8 +727,4 @@ struct TestDNSCoder {
             let _ = try dnsCoder.parseDNSResponse(data)
         })
     }
-}
-
-@Test func example() async throws {
-    // Write your test here and use APIs like `#expect(...)` to check expected conditions.
 }
