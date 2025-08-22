@@ -19,7 +19,7 @@ struct TestDNSCoder {
         
         // 0 0000 0 0 1 0 000 0000
         let rawFlags: UInt16 = 0x100
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         #expect(parsedFlags == expectedFlags)
         
@@ -73,7 +73,7 @@ struct TestDNSCoder {
         
         // 0 0000 0 0 1 0 000 0000
         let rawFlags: UInt16 = 0x100
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         #expect(parsedFlags == expectedFlags)
         
@@ -113,7 +113,7 @@ struct TestDNSCoder {
         
         // 0 0000 0 0 1 0 000 0000
         let rawFlags: UInt16 = 0x100
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         #expect(parsedFlags == expectedFlags)
         
@@ -151,7 +151,7 @@ struct TestDNSCoder {
         
         // 0 0000 0 0 1 0 000 0000
         let rawFlags: UInt16 = 0x100
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         #expect(parsedFlags == expectedFlags)
         
@@ -185,7 +185,7 @@ struct TestDNSCoder {
         
         // 0 0000 0 0 1 0 000 0000
         let rawFlags: UInt16 = 0x100
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         #expect(parsedFlags == expectedFlags)
         
@@ -686,7 +686,7 @@ struct TestDNSCoder {
             0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e
         ])
         
-        #expect(throws: DNSError.invalidResponse, performing: {
+        #expect(throws: DNSError.invalidData, performing: {
             let _ = try dnsCoder.parseDNSResponse(data)
         })
     }

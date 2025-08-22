@@ -33,7 +33,7 @@ public struct DNSHeader: Sendable {
     public init(data: Data, offset: inout Int) throws {
         // Extracting DNS header fields from the raw data
         self.id = try data.readUInt16(at: 0)
-        self.flags =  DNSFlags(from: try data.readUInt16(at: 2))
+        self.flags =  try DNSFlags(from: try data.readUInt16(at: 2))
         self.QDCOUNT = try data.readUInt16(at: 4)
         self.ANCOUNT = try data.readUInt16(at: 6)
         self.NSCOUNT = try data.readUInt16(at: 8)
@@ -84,21 +84,8 @@ public struct DNSHeader: Sendable {
         public var ra: UInt16 = 0
         /// Reserved for future use. 3 bits long.  Must be zero in all queries and responses.
         public var z: UInt16 = 0
-        /// Authenticated Data (DNSSEC RFC4035)
-        // public var ad: UInt16 = 0
-        /// Checking Disabled (DNSSEC RFC4035)
-        // public var cd: UInt16 = 0
-        /// Response code - this 4 bit field is set as part of responses.  The values have the following interpretation:
-        ///
-        /// * 0               No error condition
-        /// * 1               Format error - The name server was unable to interpret the query.
-        /// * 2               Server failure - The name server wasunable to process this query due to a problem with the name server.
-        /// * 3               Name Error - Meaningful only for responses from an authoritative name server, this code signifies that the domain name referenced in the query does not exist.
-        /// * 4               Not Implemented - The name server does not support the requested kind of query.
-        /// * 5               Refused - The name server refuses to perform the specified operation for policy reasons. For example, a name server may not wish to provide the information to the particular requester, or a name server
-        ///           may not wish to perform a particular operation (e.g., zone transfer) for particular data.
-        /// * 6-15          reserved for future use
-        public var rcode: UInt16 = 0
+        /// Response code - this 4 bit field is set as part of responses.
+        public var rcode: DNSResponseCode = DNSResponseCode(rawValue: 0)!
         
         public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16) {
             self.qr = qr
@@ -109,10 +96,10 @@ public struct DNSHeader: Sendable {
             self.ra = ra
             // self.ad = ad
             // self.cd = cd
-            self.rcode = rcode
+            self.rcode = DNSResponseCode(rawValue: rcode)!
         }
 
-        public init(from raw: UInt16) {
+        public init(from raw: UInt16) throws {
             /*
                                             1  1  1  1  1  1
               0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
@@ -144,7 +131,10 @@ public struct DNSHeader: Sendable {
             z      = (raw & 0x0070) >> 4
             // 4 bit
             // 0000 0000 0000 1111
-            rcode  = (raw & 0x000F)
+            guard let rc = DNSResponseCode(rawValue: (raw & 0x000F)) else {
+                throw DNSError.invalidData
+            }
+            rcode = rc
         }
 
         /// Returns the flags as a UInt16
@@ -157,12 +147,135 @@ public struct DNSHeader: Sendable {
             raw |= (rd     & 0x1) << 8
             raw |= (ra     & 0x1) << 7
             raw |= (z      & 0x7) << 4
-            raw |= (rcode  & 0xF)
+            raw |= (rcode.rawValue  & 0xF)
             return raw
         }
         
         public static func ==(lhs: DNSFlags, rhs: DNSFlags) -> Bool {
             return lhs.qr == rhs.qr && lhs.opcode == rhs.opcode && lhs.aa == rhs.aa && lhs.tc == rhs.tc && lhs.rd == rhs.rd && lhs.ra == rhs.ra && lhs.rcode == rhs.rcode
         }
+    }
+}
+
+/// The DNS RCode as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6)
+public enum DNSResponseCode: UInt16, Decodable, Equatable, Sendable {
+    case NoError = 0
+    case FormErr = 1
+    case ServFail = 2
+    case NXDomain = 3
+    case NotImp = 4
+    case Refused = 5
+    case YXDomain = 6
+    case YXRRSet = 7
+    case NXRRSet = 8
+    case NotAuth = 9
+    case NotZone = 10
+    case DSOTYPENI = 11
+    case BADSIG = 16
+    case BADKEY = 17
+    case BADTIME = 18
+    case BADMODE = 19
+    case BADNAME = 20
+    case BADALG = 21
+    case BADTRUNC = 22
+    case BADCOOKIE = 23
+    case unknown
+    
+    public var displayName: String {
+        switch self {
+        case .NoError:
+            return "NoError"
+        case .FormErr:
+            return "FormErr"
+        case .ServFail:
+            return "ServFail"
+        case .NXDomain:
+            return "NXDomain"
+        case .NotImp:
+            return "NotImp"
+        case .Refused:
+            return "Refused"
+        case .YXDomain:
+            return "YXDomain"
+        case .YXRRSet:
+            return "YXRRSet"
+        case .NXRRSet:
+            return "NXRRSet"
+        case .NotAuth:
+            return "NotAuth"
+        case .NotZone:
+            return "NotZone"
+        case .DSOTYPENI:
+            return "DSOTYPENI"
+        case .BADSIG:
+            return "BADSIG"
+        case .BADKEY:
+            return "BADKEY"
+        case .BADTIME:
+            return "BADTIME"
+        case .BADMODE:
+            return "BADMODE"
+        case .BADNAME:
+            return "BADNAME"
+        case .BADALG:
+            return "BADALG"
+        case .BADTRUNC:
+            return "BADTRUNC"
+        case .BADCOOKIE:
+            return "BADCOOKIE"
+        case .unknown:
+            return "Unkown '\(rawValue)'"
+        }
+    }
+    
+    public var description: String {
+        switch self {
+        case .NoError:
+            return "No Error"
+        case .FormErr:
+            return "Format Error"
+        case .ServFail:
+            return "Server Failure"
+        case .NXDomain:
+            return "Non-Existent Domain"
+        case .NotImp:
+            return "Not Implemented"
+        case .Refused:
+            return "Query Refused"
+        case .YXDomain:
+            return "Name Exists when it should not"
+        case .YXRRSet:
+            return "RR Set Exists when it should not"
+        case .NXRRSet:
+            return "RR Set that should exist does not"
+        case .NotAuth:
+            return "Server Not Authoritative for zone"
+        case .NotZone:
+            return "Name not contained in zone"
+        case .DSOTYPENI:
+            return "DSO-TYPE Not Implemented"
+        case .BADSIG:
+            return "TSIG Signature Failure"
+        case .BADKEY:
+            return "Key not recognized"
+        case .BADTIME:
+            return "Signature out of time window"
+        case .BADMODE:
+            return "Bad TKEY Mode"
+        case .BADNAME:
+            return "Duplicate key name"
+        case .BADALG:
+            return "Algorithm not supported"
+        case .BADTRUNC:
+            return "Bad Truncation"
+        case .BADCOOKIE:
+            return "Bad/missing Server Cookie"
+        case .unknown:
+            return "unknown. Value: '\(rawValue)'"
+        }
+    }
+    
+    public static func ==(lhs: DNSResponseCode, rhs: DNSResponseCode) -> Bool {
+        return lhs.displayName == rhs.displayName && lhs.description == rhs.description
     }
 }

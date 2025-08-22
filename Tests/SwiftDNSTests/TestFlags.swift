@@ -22,7 +22,7 @@ struct TestFlags {
     @Test func testDNSFlags0() throws {
         // 0 0000 0 0 1 1 000 0000
         let rawFlags: UInt16 = 0x180
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         // this is a response for a standard query, it is not authoritative, no truncation, recursion was desired and available, no error from server
         let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
@@ -39,7 +39,7 @@ struct TestFlags {
     @Test func testDNSFlags1() throws {
         // 1 0000 0 0 0 1 000 0000
         let rawFlags: UInt16 = 0x8080
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         // this is a response for an inverse query (rDNS), it is not authoritative, no truncation, recursion was desired and available, no error from server
         let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 0, ra: 1, rcode: 0)
@@ -56,7 +56,7 @@ struct TestFlags {
     @Test func testDNSFlags2() throws {
         // 0 0010 0 0 1 0 000 0000
         let rawFlags: UInt16 = 0x1100
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         // a server status request
         let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 2, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
@@ -76,7 +76,7 @@ struct TestFlags {
         // 0 0000 0 0 1 0 000 0000
         // let rawFlags: UInt16 = 0x100
         let rawFlags: Data = Data([0x01, 0x00])
-        let parsedFlags = DNSHeader.DNSFlags(from: try rawFlags.readUInt16(at: 0))
+        let parsedFlags = try DNSHeader.DNSFlags(from: try rawFlags.readUInt16(at: 0))
         
         // a server status request
         let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
@@ -96,7 +96,7 @@ struct TestFlags {
         // 0 0000 0 0 1 0 000 0011
         // let rawFlags: UInt16 = 0x103
         let rawFlags: Data = Data([0x01, 0x03])
-        let parsedFlags = DNSHeader.DNSFlags(from: try rawFlags.readUInt16(at: 0))
+        let parsedFlags = try DNSHeader.DNSFlags(from: try rawFlags.readUInt16(at: 0))
         
         // a server status request
         let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 3)
@@ -115,7 +115,7 @@ struct TestFlags {
     @Test func testDNSFlags5() throws {
         // 1 0010 1 0 1 1 000 0000
         let rawFlags: UInt16 = 0x9580
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         // a server status request
         let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 2, aa: 1, tc: 0, rd: 1, ra: 1, rcode: 0)
@@ -133,7 +133,7 @@ struct TestFlags {
     @Test func testDNSFlags6() throws {
         // 1 0010 1 1 0 1 000 0000
         let rawFlags: UInt16 = 0x9680
-        let parsedFlags = DNSHeader.DNSFlags(from: rawFlags)
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
         
         // a server status request
         let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 2, aa: 1, tc: 1, rd: 0, ra: 1, rcode: 0)
