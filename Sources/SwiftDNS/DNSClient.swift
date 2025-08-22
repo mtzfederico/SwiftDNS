@@ -9,7 +9,7 @@ import Foundation
 import Network
 import Logging
 
-enum DNSConnectionType {
+public enum DNSConnectionType: Sendable {
     case dnsOverTLS
     case dnsOverHTTPS
     case dnsOverUDP
@@ -23,7 +23,7 @@ final public class DNSClient: Sendable {
     private let connectionType: DNSConnectionType
     private let server: String
     
-    init(server: String, connectionType: DNSConnectionType, logger: Logger = Logger(label: "com.mtzfederico.SwiftDNS")) {
+    public init(server: String, connectionType: DNSConnectionType, logger: Logger = Logger(label: "com.mtzfederico.SwiftDNS")) {
         self.logger = logger
         self.server = server
         self.connectionType = connectionType
