@@ -117,7 +117,7 @@ final public class DNSCoder: Sendable {
 }
 
 /// A DNS response
-public struct QueryResult {
+public struct QueryResult: Sendable {
     /// The DNS response headers
     public var header: DNSHeader
     

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct DNSHeader {
+public struct DNSHeader: Sendable {
     /// A 16 bit identifier assigned to the query.  This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries.
     public let id: UInt16
     /// The dns flags
@@ -65,7 +65,7 @@ public struct DNSHeader {
     }
     
     /// Represents the Flags in the header
-    public struct DNSFlags {
+    public struct DNSFlags: Sendable {
         /// A one bit field that specifies whether this message is a query (0), or a response (1).
         public var qr: UInt16 = 0
         /// A four bit field that specifies kind of query in this message.  This value is set by the originator of a query and copied into the response.  The values are:

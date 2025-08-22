@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum DNSClass: UInt16, Decodable, Equatable {
+public enum DNSClass: UInt16, Decodable, Equatable, Sendable {
     case internet = 1
     case chaos = 3
     case hesiod = 4

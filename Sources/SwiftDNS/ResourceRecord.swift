@@ -9,7 +9,7 @@ import Foundation
 
 /// The data format used for the answer, authority, and additional sections of a DNS packet.
 /// To initialize from data use DNSCoder's decodeResourceRecord(data:offset:)
-public struct ResourceRecord {
+public struct ResourceRecord: Sendable {
     /*
      The answer, authority, and additional sections share the same format.
      There is a variable number of resource records, the number of

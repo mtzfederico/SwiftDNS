@@ -9,7 +9,7 @@ import Foundation
 
 /// DNS record type
 /// [Defined by iana](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4)
-public enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible {
+public enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible, Sendable {
     case A = 1
     case NS = 2
     case CNAME = 5
