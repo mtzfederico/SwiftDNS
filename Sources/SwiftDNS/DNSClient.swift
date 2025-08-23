@@ -49,6 +49,10 @@ final public class DNSClient: Sendable {
         }
     }
     
+    deinit {
+        self.closeConnections()
+    }
+    
     /// Sends a DNS request to the server using the connection type of the DNSClient
     /// - Parameters:
     ///   - host: The host to query, the QNAME.
@@ -79,6 +83,11 @@ final public class DNSClient: Sendable {
         case .dnsOverHTTPS:
             return sendHTTPS(host: host, type: type, Class: Class, completion: completion)
         }
+    }
+    
+    /// Closes all connections  gracefully.
+    public func closeConnections() {
+        self.connection?.cancel()
     }
     
     /// Sends a DNS request to the server using TCP
