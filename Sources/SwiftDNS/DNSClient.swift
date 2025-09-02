@@ -15,9 +15,25 @@ public enum DNSConnectionType: Sendable {
     case dnsOverHTTPS
     case dnsOverUDP
     case dnsOverTCP
+    
+    /// Describes the connection type in a short string
+    /// - Returns: A short string with no spaces that describes the connection type
+    public func displayName() -> String {
+        switch self {
+        case .dnsOverTLS:
+            return "DoT"
+        case .dnsOverHTTPS:
+            return "DoH"
+        case .dnsOverUDP:
+            return "DoUDP"
+        case .dnsOverTCP:
+            return "DoTCP"
+        }
+    }
 }
 
 final public class DNSClient: Sendable {
+    private let dnsQueue: DispatchQueue
     /// The logger used
     private let logger: Logger
     /// The NWConnection used to send UDP, TCP, and TLS queries. HTTP queries use URLSession.shared
@@ -33,6 +49,7 @@ final public class DNSClient: Sendable {
     ///   - connectionType: The DNS conecction type to use. UDP, TCP, TLS, or HTTPS
     ///   - logger: The logger used
     public init(server: String, connectionType: DNSConnectionType, logger: Logger = Logger(label: "com.mtzfederico.SwiftDNS")) {
+        self.dnsQueue = DispatchQueue(label: "DNSClient-\(server.replacingOccurrences(of: " ", with: "_"))_\(connectionType.displayName())", attributes: .concurrent)
         self.logger = logger
         self.server = server
         self.connectionType = connectionType
@@ -179,7 +196,7 @@ final public class DNSClient: Sendable {
         }
         
         logger.debug("[sendTCP] Starting connection...")
-        connection.start(queue: .global())
+        connection.start(queue: dnsQueue)
     }
     
     
@@ -255,7 +272,7 @@ final public class DNSClient: Sendable {
         }
         
         logger.debug("[sendUDP] Starting connection...")
-        connection.start(queue: .global())
+        connection.start(queue: dnsQueue)
     }
     
     /// Sends a DNS request to the server using HTTPS
