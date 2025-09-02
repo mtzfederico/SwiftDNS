@@ -9,7 +9,7 @@ import Foundation
 import Network
 
 /// The errors used by SwiftDNS
-public enum DNSError: Error, Equatable {
+public enum DNSError: Error, Equatable, LocalizedError {
     case noAnswer
     case noDataReceived
     case connectionFailed(Error)
@@ -19,6 +19,31 @@ public enum DNSError: Error, Equatable {
     case invalidServerAddress
     case connectionIsNil
     case invalidData
+    
+    
+    public var errorDescription: String {
+        // TODO: Localize this strings
+        switch self {
+        case .noAnswer:
+            return "No answer received"
+        case .noDataReceived:
+            return "No data received"
+        case .connectionFailed(let error):
+            return "Connection failed: '\(error.localizedDescription)'"
+        case .unknownState(let state):
+            return "Unknown connection state: '\(state.debugDescription)'"
+        case .outOfBounds:
+            return "Reached out of bounds"
+        case .parsingError(let error):
+            return "Failed to parse data: '\(error?.localizedDescription ?? "<Unknown error>")'"
+        case .invalidServerAddress:
+            return "Invalid Server Address"
+        case .connectionIsNil:
+            return "Connection is nil"
+        case .invalidData:
+            return "Received invalid data"
+        }
+    }
     
     public static func ==(lhs: DNSError, rhs: DNSError) -> Bool {
         switch (lhs, rhs) {
