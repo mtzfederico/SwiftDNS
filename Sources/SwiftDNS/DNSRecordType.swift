@@ -19,10 +19,14 @@ public enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible
     case TXT = 16
     case AAAA = 28
     case SRV = 33
+    case DNAME = 39
     case DS = 43
+    case SSHFP = 44
     case RRSIG = 46
+    case NSEC = 47
     case DNSKEY = 48
     case HTTPS = 65
+    case AXFR = 252
     case ANY = 255
     case unknown
     
@@ -45,12 +49,16 @@ public enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible
         case .TXT: return "TXT"
         case .AAAA: return "AAAA"
         case .SRV: return "SRV"
+        case .DNAME: return "DNAME"
         case .DS: return "DS"
+        case .SSHFP: return "SSHFP"
         case .RRSIG: return "RRSIG"
+        case .NSEC: return "NSEC"
         case .DNSKEY: return "DNSKEY"
         case .HTTPS: return "HTTPS"
+        case .AXFR: return "AXFR"
         case .ANY: return "ANY"
-        case .unknown: return "Unkown: \(self.rawValue)"
+        case .unknown: return "Unkown: '\(self.rawValue)'"
         }
     }
     
