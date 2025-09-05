@@ -10,38 +10,46 @@ import Network
 
 /// The errors used by SwiftDNS
 public enum DNSError: Error, Equatable, LocalizedError {
-    case noAnswer
+    /// No data was received from the server
     case noDataReceived
+    /// The conenction failed
     case connectionFailed(Error)
+    /// Unknown connection state
     case unknownState(NWConnection.State?)
+    /// Reached outside of the bounds of the DNS data
     case outOfBounds
+    /// A parsing error occurred when procesing the response
     case parsingError(Error?)
+    /// The DNS server's address is invalid
     case invalidServerAddress
+    /// The connection to the server is nil
     case connectionIsNil
+    /// Received invalid data
     case invalidData
+    /// The ID sent in the query is not the same as the one in the response
+    case IDMismatch
     
     
-    public var errorDescription: String {
-        // TODO: Localize this strings
+    public var errorDescription: String? {
         switch self {
-        case .noAnswer:
-            return "No answer received"
         case .noDataReceived:
-            return "No data received"
+            return NSLocalizedString("DNSError.noDataReceived", comment: "")
         case .connectionFailed(let error):
-            return "Connection failed: '\(error.localizedDescription)'"
+            return String(format: NSLocalizedString("DNSError.connectionFailed", comment: ""), error.localizedDescription)
         case .unknownState(let state):
-            return "Unknown connection state: '\(state.debugDescription)'"
+            return String(format: NSLocalizedString("DNSError.unknownState", comment: ""), state.debugDescription)
         case .outOfBounds:
-            return "Reached out of bounds"
+            return NSLocalizedString("DNSError.outOfBounds", comment: "")
         case .parsingError(let error):
-            return "Failed to parse data: '\(error?.localizedDescription ?? "<Unknown error>")'"
+            return String(format: NSLocalizedString("DNSError.parsingError", comment: ""), error?.localizedDescription ?? "<nil>")
         case .invalidServerAddress:
-            return "Invalid Server Address"
+            return NSLocalizedString("DNSError.invalidServerAddress", comment: "")
         case .connectionIsNil:
-            return "Connection is nil"
+            return NSLocalizedString("DNSError.connectionIsNil", comment: "")
         case .invalidData:
-            return "Received invalid data"
+            return NSLocalizedString("DNSError.invalidData", comment: "")
+        case .IDMismatch:
+            return NSLocalizedString("DNSError.IDMismatch", comment: "")
         }
     }
     
@@ -61,7 +69,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
             } else {
                 return lhsE == nil && rhsE == nil
             }
-        case (.noAnswer, .noAnswer), (.noDataReceived, .noDataReceived), (.invalidData, .invalidData):
+        case (.noDataReceived, .noDataReceived), (.invalidData, .invalidData), (.IDMismatch, .IDMismatch):
             return true
         case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil), (.outOfBounds, .outOfBounds):
             return true
