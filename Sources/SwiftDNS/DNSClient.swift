@@ -186,6 +186,7 @@ final public actor DNSClient: Sendable {
                             }
                             
                             guard let data = data else {
+                                self.logger.trace("[sendTCP] Received data is nil")
                                 completion(.failure(DNSError.invalidData))
                                 return
                             }
@@ -197,6 +198,7 @@ final public actor DNSClient: Sendable {
                                 #warning("Test this")
                                 // check that the id in the response is the same as the one sent in the query
                                 if result.header.id != id {
+                                    self.logger.trace("[sendTCP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
                                     completion(.failure(DNSError.IDMismatch))
                                     return
                                 }
