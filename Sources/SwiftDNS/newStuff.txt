@@ -1,11 +1,0 @@
-//
-//  File.swift
-//  SwiftDNS
-//
-//  Created by FedeMtz on 2025-09-05
-//  Copyright © 2025 FedeMtz. All rights reserved. 
-// 
-
-// in DNSClient
-
-
