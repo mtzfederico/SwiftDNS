@@ -195,14 +195,12 @@ final public actor DNSClient: Sendable {
                             
                             do {
                                 let result = try DNSClient.parseDNSResponse(data)
-                                #warning("Test this")
                                 // check that the id in the response is the same as the one sent in the query
                                 if result.header.id != id {
                                     self.logger.trace("[sendTCP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
                                     completion(.failure(DNSError.IDMismatch))
                                     return
                                 }
-                                
                                 completion(.success(result))
                             } catch {
                                 completion(.failure(error))
@@ -296,6 +294,12 @@ final public actor DNSClient: Sendable {
                     self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
                     
                     let result = try DNSClient.parseDNSResponse(data)
+                    // check that the id in the response is the same as the one sent in the query
+                    if result.header.id != id {
+                        self.logger.trace("[sendUDP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
+                        completion(.failure(DNSError.IDMismatch))
+                        return
+                    }
                     completion(.success(result))
                 }
             } catch {
@@ -340,6 +344,12 @@ final public actor DNSClient: Sendable {
                 self.logger.trace("[sendHTTPS] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
                 
                 let result = try DNSClient.parseDNSResponse(responseData)
+                // check that the id in the response is the same as the one sent in the query
+                if result.header.id != id {
+                    self.logger.trace("[sendHTTPS] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
+                    completion(.failure(DNSError.IDMismatch))
+                    return
+                }
                 completion(.success(result))
             } catch(let error) {
                 completion(.failure(error))
