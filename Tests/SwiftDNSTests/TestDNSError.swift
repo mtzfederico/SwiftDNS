@@ -105,6 +105,10 @@ struct TestDNSError {
         #expect(DNSError.noDataReceived != DNSError.connectionFailed(DNSError.invalidData))
         #expect(DNSError.noDataReceived != DNSError.parsingError(nil))
         #expect(DNSError.noDataReceived != DNSError.parsingError(DNSError.noDataReceived))
+        
+        // print(DNSError.connectionFailed(DNSError.outOfBounds).localizedDescription)
+        // print(DNSError.unknownState(.preparing).localizedDescription)
+        // print(DNSError.parsingError(DNSError.IDMismatch).localizedDescription)
     }
 }
 

@@ -35,13 +35,19 @@ public enum DNSError: Error, Equatable, LocalizedError {
         case .noDataReceived:
             return NSLocalizedString("DNSError.noDataReceived", bundle: .module, comment: "")
         case .connectionFailed(let error):
-            return String(format: NSLocalizedString("DNSError.connectionFailed", bundle: .module, comment: ""), error.localizedDescription)
+            let errorDesc = error.localizedDescription
+            let format = NSLocalizedString("DNSError.connectionFailed %@", bundle: .module, comment: "")
+            return String(format: format, errorDesc)
         case .unknownState(let state):
-            return String(format: NSLocalizedString("DNSError.unknownState", bundle: .module, comment: ""), state.debugDescription)
+            let stateDesc = state.debugDescription
+            let format = NSLocalizedString("DNSError.unknownState %@", bundle: .module, comment: "")
+            return String.localizedStringWithFormat(format, stateDesc)
         case .outOfBounds:
             return NSLocalizedString("DNSError.outOfBounds", bundle: .module, comment: "")
         case .parsingError(let error):
-            return String(format: NSLocalizedString("DNSError.parsingError", bundle: .module, comment: ""), error?.localizedDescription ?? "<nil>")
+            let errorDesc = error?.localizedDescription ?? "<nil>"
+            let format = NSLocalizedString("DNSError.parsingError %@", bundle: .module, comment: "")
+            return String.localizedStringWithFormat(format, errorDesc)
         case .invalidServerAddress:
             return NSLocalizedString("DNSError.invalidServerAddress", bundle: .module, comment: "")
         case .connectionIsNil:

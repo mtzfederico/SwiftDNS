@@ -1,18 +1,18 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "DNSError.connectionFailed" : {
+    "DNSError.connectionFailed %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Connection failed: ‘@d’"
+            "value" : "Connection failed: ‘%@’"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Conexión fallida: ‘@d’"
+            "value" : "Conexión fallida: ‘%@’"
           }
         }
       }
@@ -113,34 +113,34 @@
         }
       }
     },
-    "DNSError.parsingError" : {
+    "DNSError.parsingError %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Failed to parse data: ‘@d’"
+            "value" : "Failed to parse data: ‘%@’"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo procesar la respuesta: ‘@d’"
+            "value" : "No se pudo procesar la respuesta: ‘%@’"
           }
         }
       }
     },
-    "DNSError.unknownState" : {
+    "DNSError.unknownState %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unknown State: ‘@d’"
+            "value" : "Unknown State: ‘%@’"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Estado desconocido: ‘@d’"
+            "value" : "Estado desconocido: ‘%@’"
           }
         }
       }
