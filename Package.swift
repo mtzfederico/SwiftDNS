@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "SwiftDNS",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v10_14), .iOS(.v13), .tvOS(.v12)
     ],

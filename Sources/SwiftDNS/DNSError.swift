@@ -33,23 +33,23 @@ public enum DNSError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .noDataReceived:
-            return NSLocalizedString("DNSError.noDataReceived", comment: "")
+            return NSLocalizedString("DNSError.noDataReceived", bundle: .module, comment: "")
         case .connectionFailed(let error):
-            return String(format: NSLocalizedString("DNSError.connectionFailed", comment: ""), error.localizedDescription)
+            return String(format: NSLocalizedString("DNSError.connectionFailed", bundle: .module, comment: ""), error.localizedDescription)
         case .unknownState(let state):
-            return String(format: NSLocalizedString("DNSError.unknownState", comment: ""), state.debugDescription)
+            return String(format: NSLocalizedString("DNSError.unknownState", bundle: .module, comment: ""), state.debugDescription)
         case .outOfBounds:
-            return NSLocalizedString("DNSError.outOfBounds", comment: "")
+            return NSLocalizedString("DNSError.outOfBounds", bundle: .module, comment: "")
         case .parsingError(let error):
-            return String(format: NSLocalizedString("DNSError.parsingError", comment: ""), error?.localizedDescription ?? "<nil>")
+            return String(format: NSLocalizedString("DNSError.parsingError", bundle: .module, comment: ""), error?.localizedDescription ?? "<nil>")
         case .invalidServerAddress:
-            return NSLocalizedString("DNSError.invalidServerAddress", comment: "")
+            return NSLocalizedString("DNSError.invalidServerAddress", bundle: .module, comment: "")
         case .connectionIsNil:
-            return NSLocalizedString("DNSError.connectionIsNil", comment: "")
+            return NSLocalizedString("DNSError.connectionIsNil", bundle: .module, comment: "")
         case .invalidData:
-            return NSLocalizedString("DNSError.invalidData", comment: "")
+            return NSLocalizedString("DNSError.invalidData", bundle: .module, comment: "")
         case .IDMismatch:
-            return NSLocalizedString("DNSError.IDMismatch", comment: "")
+            return NSLocalizedString("DNSError.IDMismatch", bundle: .module, comment: "")
         }
     }
     
