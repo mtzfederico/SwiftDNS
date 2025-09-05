@@ -32,7 +32,7 @@ public enum DNSConnectionType: Sendable {
     }
 }
 
-final public class DNSClient: Sendable {
+final public actor DNSClient: Sendable {
     private let dnsQueue: DispatchQueue
     /// The logger used
     private let logger: Logger
@@ -42,6 +42,8 @@ final public class DNSClient: Sendable {
     private let connectionType: DNSConnectionType
     /// The server used to send the query to
     private let server: String
+    
+    private var isConnected: Bool = false
     
     /// DNSClass Initialiser
     /// - Parameters:
@@ -56,7 +58,11 @@ final public class DNSClient: Sendable {
         
         switch connectionType {
         case .dnsOverTLS:
-            self.connection = NWConnection(host: .name(server, nil), port: 853, using: .tls)
+            // self.connection = NWConnection(host: .name(server, nil), port: 853, using: .tls)
+            let parameters = NWParameters.tls
+            parameters.serviceClass = .responsiveData
+            parameters.expiredDNSBehavior = .allow
+            self.connection = NWConnection(to: .hostPort(host: .name(server, nil), port: 853), using: parameters)
         case .dnsOverUDP:
             self.connection = NWConnection(host: .name(server, nil), port: 53, using: .udp)
         case .dnsOverTCP:
@@ -67,7 +73,13 @@ final public class DNSClient: Sendable {
     }
     
     deinit {
-        self.closeConnections()
+        Task { [self] in
+            await self.closeConnections()
+        }
+    }
+    
+    private func setConnected(_ value: Bool) {
+        self.isConnected = value
     }
     
     /// Sends a DNS request to the server using the connection type of the DNSClient
@@ -132,10 +144,17 @@ final public class DNSClient: Sendable {
         connection.stateUpdateHandler = { state in
             switch state {
             case .ready:
+                Task {
+                    await self.setConnected(true)
+                }
                 self.logger.debug("[sendTCP] Connection ready, sending data...")
                 // Send DNS query
                 connection.send(content: data, completion: .contentProcessed { sendError in
                     if let error = sendError {
+                        connection.cancel()
+                        Task {
+                            await self.setConnected(false)
+                        }
                         completion(.failure(DNSError.connectionFailed(error)))
                         return
                     }
@@ -175,6 +194,13 @@ final public class DNSClient: Sendable {
                             
                             do {
                                 let result = try DNSClient.parseDNSResponse(data)
+                                #warning("Test this")
+                                // check that the id in the response is the same as the one sent in the query
+                                if result.header.id != id {
+                                    completion(.failure(DNSError.IDMismatch))
+                                    return
+                                }
+                                
                                 completion(.success(result))
                             } catch {
                                 completion(.failure(error))
@@ -183,6 +209,10 @@ final public class DNSClient: Sendable {
                     }
                 })
             case .failed(let error):
+                // _Concurrency/CheckedContinuation.swift:196: Fatal error: SWIFT TASK CONTINUATION MISUSE: query(host:type:Class:) tried to resume its continuation more than once, throwing connectionFailed(POSIXErrorCode(rawValue: 54): Connection reset by peer)!
+
+                // if error  == POSIXErrorCode(rawValue: 54) { }
+                
                 completion(.failure(DNSError.connectionFailed(error)))
                 return
             case .waiting(let error):
