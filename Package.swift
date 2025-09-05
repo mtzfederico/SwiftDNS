@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "SwiftDNS",
     platforms: [
-        .macOS(.v10_14), .iOS(.v12), .tvOS(.v12)
+        .macOS(.v10_14), .iOS(.v13), .tvOS(.v12)
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
