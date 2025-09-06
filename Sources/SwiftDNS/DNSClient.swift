@@ -179,19 +179,19 @@ final public actor DNSClient: Sendable {
                         let length = Int(lengthData.withUnsafeBytes { $0.load(as: UInt16.self).bigEndian })
                         
                         // Get the actual data
-                        connection.receive(minimumIncompleteLength: length, maximumLength: length) { data, _, _, error in
+                        connection.receive(minimumIncompleteLength: length, maximumLength: length) { responseData, _, _, error in
                             if let error = error {
                                 completion(.failure(DNSError.connectionFailed(error)))
                                 return
                             }
                             
-                            guard let data = data else {
+                            guard let responseData = responseData else {
                                 self.logger.trace("[sendTCP] Received data is nil")
                                 completion(.failure(DNSError.invalidData))
                                 return
                             }
                             
-                            self.logger.trace("[sendTCP] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
+                            self.logger.trace("[sendTCP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
                             
                             do {
                                 let result = try DNSClient.parseDNSResponse(data)
@@ -284,16 +284,16 @@ final public actor DNSClient: Sendable {
         }
         
         // Wait for response (asynchronously)
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 512) { data, context, isComplete, error in
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 512) { responseData, context, isComplete, error in
             do {
                 if let error = error {
                     completion(.failure(DNSError.connectionFailed(error)))
                     return
                 }
-                if let data = data {
-                    self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
+                if let responseData = responseData {
+                    self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
                     
-                    let result = try DNSClient.parseDNSResponse(data)
+                    let result = try DNSClient.parseDNSResponse(responseData)
                     // check that the id in the response is the same as the one sent in the query
                     if result.header.id != id {
                         self.logger.trace("[sendUDP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
@@ -341,7 +341,7 @@ final public actor DNSClient: Sendable {
             do {
                 let status = (response as! HTTPURLResponse).statusCode
                 self.logger.debug("[sendHTTPS] HTTP Response", metadata: ["status": "\(status)", "mime": "\(response?.mimeType ?? "<nil>")"])
-                self.logger.trace("[sendHTTPS] Received DNS response", metadata: ["data": "\(data.hexEncodedString())"])
+                self.logger.trace("[sendHTTPS] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
                 
                 let result = try DNSClient.parseDNSResponse(responseData)
                 // check that the id in the response is the same as the one sent in the query
