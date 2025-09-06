@@ -216,7 +216,115 @@ struct TestDNSClient {
         // print("expectedHeader: \(expectedHeader.toData().hexEncodedString())\nexpectedQuestion: \(expectedQuestion.toData().hexEncodedString())\nfullData: \(fullData.hexEncodedString())\ndata: \(data.hexEncodedString())")
     }
     
+    /// Parse a DNS NS query
+    @Test func query_ns() throws {
+        // e1a80100000100000000000006676f6f676c6503636f6d0000020001
+        
+        let data = Data([
+            0xe1, 0xa8, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x02, 0x00, 0x01
+        ])
+        
+        let result = try DNSClient.parseDNSResponse(data)
+        
+        #expect(result.header.id == 0xe1a8)
+        
+        let expectedQuestion = QuestionSection(host: "google.com", type: .NS, CLASS: .internet)
+        
+        #expect(result.header.QDCOUNT == 1)
+        #expect(result.header.ANCOUNT == 0)
+        #expect(result.header.NSCOUNT == 0)
+        #expect(result.header.ARCOUNT == 0)
+        
+        #expect(result.Question.first! == expectedQuestion)
+    }
+    
     // MARK: Responses
+    
+    /// Parse a DNS NS query response
+    @Test func ns_response() throws {
+        // e1a88180000100040000000806676f6f676c6503636f6d0000020001c00c0002000100014f4f0006036e7331c00cc00c0002000100014f4f0006036e7333c00cc00c0002000100014f4f0006036e7334c00cc00c0002000100014f4f0006036e7332c00cc03a0001000100014f4f0004d8ef240ac03a001c000100014f4f00102001486048020036000000000000000ac04c0001000100014f4f0004d8ef260ac04c001c000100014f4f00102001486048020038000000000000000ac05e0001000100014f4f0004d8ef220ac05e001c000100014f4f00102001486048020034000000000000000ac0280001000100014f4f0004d8ef200ac028001c000100014f4f00102001486048020032000000000000000a
+       
+        let data: Data = Data([
+            0xe1, 0xa8, 0x81, 0x80, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x08,
+            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x02, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x02, 0x00, 0x01, 0x00, 0x01,
+            0x4f, 0x4f, 0x00, 0x06, 0x03, 0x6e, 0x73, 0x31, 0xc0, 0x0c, 0xc0, 0x0c,
+            0x00, 0x02, 0x00, 0x01, 0x00, 0x01, 0x4f, 0x4f, 0x00, 0x06, 0x03, 0x6e,
+            0x73, 0x33, 0xc0, 0x0c, 0xc0, 0x0c, 0x00, 0x02, 0x00, 0x01, 0x00, 0x01,
+            0x4f, 0x4f, 0x00, 0x06, 0x03, 0x6e, 0x73, 0x34, 0xc0, 0x0c, 0xc0, 0x0c,
+            0x00, 0x02, 0x00, 0x01, 0x00, 0x01, 0x4f, 0x4f, 0x00, 0x06, 0x03, 0x6e,
+            0x73, 0x32, 0xc0, 0x0c, 0xc0, 0x3a, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
+            0x4f, 0x4f, 0x00, 0x04, 0xd8, 0xef, 0x24, 0x0a, 0xc0, 0x3a, 0x00, 0x1c,
+            0x00, 0x01, 0x00, 0x01, 0x4f, 0x4f, 0x00, 0x10, 0x20, 0x01, 0x48, 0x60,
+            0x48, 0x02, 0x00, 0x36, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a,
+            0xc0, 0x4c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x4f, 0x4f, 0x00, 0x04,
+            0xd8, 0xef, 0x26, 0x0a, 0xc0, 0x4c, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x01,
+            0x4f, 0x4f, 0x00, 0x10, 0x20, 0x01, 0x48, 0x60, 0x48, 0x02, 0x00, 0x38,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0xc0, 0x5e, 0x00, 0x01,
+            0x00, 0x01, 0x00, 0x01, 0x4f, 0x4f, 0x00, 0x04, 0xd8, 0xef, 0x22, 0x0a,
+            0xc0, 0x5e, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x01, 0x4f, 0x4f, 0x00, 0x10,
+            0x20, 0x01, 0x48, 0x60, 0x48, 0x02, 0x00, 0x34, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x0a, 0xc0, 0x28, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
+            0x4f, 0x4f, 0x00, 0x04, 0xd8, 0xef, 0x20, 0x0a, 0xc0, 0x28, 0x00, 0x1c,
+            0x00, 0x01, 0x00, 0x01, 0x4f, 0x4f, 0x00, 0x10, 0x20, 0x01, 0x48, 0x60,
+            0x48, 0x02, 0x00, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a,
+        ])
+        
+        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        
+        #expect(parsedAnswer.header.id == 0xe1a8)
+        
+        let expectedQuestion = QuestionSection(host: "google.com", type: .NS, CLASS: .internet)
+        
+        #expect(parsedAnswer.header.QDCOUNT == 1)
+        #expect(parsedAnswer.header.ANCOUNT == 4)
+        #expect(parsedAnswer.header.NSCOUNT == 0)
+        #expect(parsedAnswer.header.ARCOUNT == 8)
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstQuestion == expectedQuestion)
+        
+        let expectedAnswer1 = ResourceRecord(name: "google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns1.google.com")
+        let expectedAnswer2 = ResourceRecord(name: "google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns3.google.com")
+        let expectedAnswer3 = ResourceRecord(name: "google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns4.google.com")
+        let expectedAnswer4 = ResourceRecord(name: "google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns2.google.com")
+        
+        
+        #expect(parsedAnswer.Answer[0] == expectedAnswer1)
+        #expect(parsedAnswer.Answer[1] == expectedAnswer2)
+        #expect(parsedAnswer.Answer[2] == expectedAnswer3)
+        #expect(parsedAnswer.Answer[3] == expectedAnswer4)
+        
+        let expectedAR0 = ResourceRecord(name: "ns3.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.36.10")
+        let expectedAR1 = ResourceRecord(name: "ns3.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:36:0:0:0:a")
+        
+        let expectedAR2 = ResourceRecord(name: "ns4.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.38.10")
+        let expectedAR3 = ResourceRecord(name: "ns4.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:38:0:0:0:a")
+        
+        let expectedAR4 = ResourceRecord(name: "ns2.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.34.10")
+        let expectedAR5 = ResourceRecord(name: "ns2.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:34:0:0:0:a")
+        
+        let expectedAR6 = ResourceRecord(name: "ns1.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.32.10")
+        let expectedAR7 = ResourceRecord(name: "ns1.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:32:0:0:0:a")
+        
+        #expect(parsedAnswer.Additional[0] == expectedAR0)
+        #expect(parsedAnswer.Additional[1] == expectedAR1)
+        
+        #expect(parsedAnswer.Additional[2] == expectedAR2)
+        #expect(parsedAnswer.Additional[3] == expectedAR3)
+        
+        #expect(parsedAnswer.Additional[4] == expectedAR4)
+        #expect(parsedAnswer.Additional[5] == expectedAR5)
+    
+        #expect(parsedAnswer.Additional[6] == expectedAR6)
+        #expect(parsedAnswer.Additional[7] == expectedAR7)
+    }
     
     @Test func multi_aaaa_response() throws {
         // 42d281800001000200000000086173323039323435036e657400001c0001c00c001c00010000001a001026064700303100000000000068155ad2c00c001c00010000001a0010260647003037000000000000ac43a168
