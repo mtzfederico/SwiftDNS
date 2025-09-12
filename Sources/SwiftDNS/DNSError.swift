@@ -28,6 +28,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
     case invalidData
     /// The ID sent in the query is not the same as the one in the response
     case IDMismatch
+    /// The domain name used in the query is invalid
+    case invalidDomainName
     
     
     public var errorDescription: String? {
@@ -56,6 +58,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return NSLocalizedString("DNSError.invalidData", bundle: .module, comment: "")
         case .IDMismatch:
             return NSLocalizedString("DNSError.IDMismatch", bundle: .module, comment: "")
+        case .invalidDomainName:
+            return NSLocalizedString("DNSError.invalidDomainName", bundle: .module, comment: "")
         }
     }
     
@@ -75,7 +79,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
             } else {
                 return lhsE == nil && rhsE == nil
             }
-        case (.noDataReceived, .noDataReceived), (.invalidData, .invalidData), (.IDMismatch, .IDMismatch):
+        case (.noDataReceived, .noDataReceived), (.invalidData, .invalidData), (.IDMismatch, .IDMismatch), (.invalidDomainName, .invalidDomainName):
             return true
         case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil), (.outOfBounds, .outOfBounds):
             return true

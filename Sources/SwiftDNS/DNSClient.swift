@@ -104,6 +104,11 @@ final public actor DNSClient: Sendable {
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
     public func query(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
+        if host.isEmpty || !host.isDNSSafe {
+            completion(.failure(DNSError.invalidDomainName))
+            return
+        }
+        
         let question = QuestionSection(host: host, type: type, CLASS: Class)
         
         switch connectionType {
