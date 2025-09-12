@@ -104,13 +104,15 @@ final public actor DNSClient: Sendable {
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
     public func query(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
+        let question = QuestionSection(host: host, type: type, CLASS: Class)
+        
         switch connectionType {
         case .dnsOverTLS, .dnsOverTCP:
-            return sendTCP(host: host, type: type, Class: Class, completion: completion)
+            return sendTCP(question: question, completion: completion)
         case .dnsOverUDP:
-            return sendUDP(host: host, type: type, Class: Class, completion: completion)
+            return sendUDP(question: question, completion: completion)
         case .dnsOverHTTPS:
-            return sendHTTPS(host: host, type: type, Class: Class, completion: completion)
+            return sendHTTPS(question: question, completion: completion)
         }
     }
     
@@ -125,13 +127,13 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendTCP(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
+    private func sendTCP(question: QuestionSection, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
         }
         
-        let (query, id) = DNSClient.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: Class))
+        let (query, id) = DNSClient.encodeQuery(question: question)
         
         // TCP has a 2-byte prefix with the length because it is a stram of data and it needs to know how long all of it is
         // In UDP, the whole packet is a single request. In TCP (and TLS) the data can go over multiple packets/frames
@@ -139,7 +141,7 @@ final public actor DNSClient: Sendable {
         
         let data: Data = Data(withUnsafeBytes(of: lengthPrefix.bigEndian, Array.init)) + query
         
-        logger.trace("[sendTCP] Sending query", metadata: ["host": "\(host)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
+        logger.trace("[sendTCP] Sending query", metadata: ["host": "\(question.QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
         
         connection.stateUpdateHandler = { state in
             switch state {
@@ -236,7 +238,7 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendUDP(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
+    private func sendUDP(question: QuestionSection, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
@@ -254,9 +256,9 @@ final public actor DNSClient: Sendable {
         let data: Data = header + question
          */
         
-        let (data, id) = DNSClient.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: .internet))
+        let (data, id) = DNSClient.encodeQuery(question: question)
         
-        logger.trace("[sendUDP] Sending query", metadata: ["host": "\(host)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
+        logger.trace("[sendUDP] Sending query", metadata: ["host": "\(question.QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
         
         connection.stateUpdateHandler = { state in
             switch state {
@@ -317,15 +319,15 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendHTTPS(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
+    private func sendHTTPS(question: QuestionSection, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
         guard let url = URL(string: server) else {
             completion(.failure(DNSError.invalidServerAddress))
             return
         }
         
-        let (data, id) = DNSClient.encodeQuery(question: QuestionSection(host: host, type: type, CLASS: .internet))
+        let (data, id) = DNSClient.encodeQuery(question: question)
         
-        logger.trace("[sendHTTPS] Sending query", metadata: ["host": "\(host)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
+        logger.trace("[sendHTTPS] Sending query", metadata: ["host": "\(question.QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
