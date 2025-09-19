@@ -78,6 +78,13 @@ final public actor DNSClient: Sendable {
         }
     }
     
+    private func startConnection() async throws {
+        #warning("Implement me")
+        // use this to start the connection
+        // keep isConnected state, call it when sending a request.
+        // if not connected, connect. On connection failure restart the connection
+    }
+    
     private func setConnected(_ value: Bool) {
         self.isConnected = value
     }
@@ -124,6 +131,7 @@ final public actor DNSClient: Sendable {
     /// Closes all connections  gracefully.
     public func closeConnections() {
         self.connection?.cancel()
+        setConnected(false)
     }
     
     /// Sends a DNS request to the server using TCP
@@ -158,12 +166,19 @@ final public actor DNSClient: Sendable {
                 // Send DNS query
                 connection.send(content: data, completion: .contentProcessed { sendError in
                     if let error = sendError {
+                        #warning("if the connection fails, it should be restarted. Add some logic to only run this a few times")
                         connection.cancel()
                         Task {
                             await self.setConnected(false)
                         }
-                        completion(.failure(DNSError.connectionFailed(error)))
+                        
+                        self.logger.error("[sendTCP] Connection failed. Restarting...",  metadata: ["error": "\(error.localizedDescription)"])
+                        // restart the connection
+                        self.sendTCP(question: question, completion: completion)
                         return
+                        
+                        // completion(.failure(DNSError.connectionFailed(error)))
+                        // return
                     }
                     
                     connection.receive(minimumIncompleteLength: 2, maximumLength: 2) { lengthData, _, _, error in
@@ -433,6 +448,23 @@ final public actor DNSClient: Sendable {
         }
 
         return (labels.joined(separator: "."), consumed)
+    }
+    
+    /// Encodes a domain name
+    /// - Parameter name: The domain name to encode
+    /// - Returns: The domaiin name encoded
+    public static func encodeDomainName(name: String) -> Data {
+        var bytes = Data()
+        
+        let labels = name.split(separator: ".")
+        for label in labels {
+            let length = UInt8(label.count)
+            bytes.append(length)
+            bytes.append(contentsOf: label.utf8)
+        }
+        
+        bytes.append(0) // End of domain name
+        return bytes
     }
     
     /// Parses a DNS response

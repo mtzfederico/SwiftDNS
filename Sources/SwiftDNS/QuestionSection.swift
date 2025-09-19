@@ -56,16 +56,7 @@ public struct QuestionSection: Sendable {
     /// Encodes a Question into data
     /// - Returns: The QuestionSection as Data
     public func toData() -> Data {
-        var bytes = Data()
-        
-        let labels = QNAME.split(separator: ".")
-        for label in labels {
-            let length = UInt8(label.count)
-            bytes.append(length)
-            bytes.append(contentsOf: label.utf8)
-        }
-        
-        bytes.append(0) // End of domain name
+        var bytes: Data = DNSClient.encodeDomainName(name: QNAME)
         
         var qtype: UInt16 = QTYPE.rawValue.bigEndian
         var qclass: UInt16 = QCLASS.rawValue.bigEndian
