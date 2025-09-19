@@ -20,6 +20,7 @@ public enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible
     case AAAA = 28
     case SRV = 33
     case DNAME = 39
+    case OPT = 41
     case DS = 43
     case SSHFP = 44
     case RRSIG = 46
@@ -50,6 +51,7 @@ public enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible
         case .AAAA: return "AAAA"
         case .SRV: return "SRV"
         case .DNAME: return "DNAME"
+        case .OPT: return "OPT"
         case .DS: return "DS"
         case .SSHFP: return "SSHFP"
         case .RRSIG: return "RRSIG"
@@ -63,6 +65,6 @@ public enum DNSRecordType: UInt16, Decodable, Equatable, CustomStringConvertible
     }
     
     public static func == (lhs: DNSRecordType, rhs: DNSRecordType) -> Bool {
-        return lhs.description == rhs.description
+        return lhs.rawValue == rhs.rawValue
     }
 }
