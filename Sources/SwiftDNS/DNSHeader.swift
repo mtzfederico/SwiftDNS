@@ -16,11 +16,11 @@ public struct DNSHeader: Sendable {
     /// An unsigned 16 bit integer specifying the number of entries in the question section.
     public let QDCOUNT: UInt16
     /// An unsigned 16 bit integer specifying the number of resource records in the answer section.
-    public let  ANCOUNT: UInt16
+    public let ANCOUNT: UInt16
     /// An unsigned 16 bit integer specifying the number of name server resource records in the authority records section.
-    public let  NSCOUNT: UInt16
+    public let NSCOUNT: UInt16
     /// An unsigned 16 bit integer specifying the number of resource records in the additional records section.
-    public let  ARCOUNT: UInt16
+    public let ARCOUNT: UInt16
     
     public init(id: UInt16, flags: DNSFlags, QDCOUNT: UInt16, ANCOUNT: UInt16, NSCOUNT: UInt16, ARCOUNT: UInt16) {
         self.id = id
