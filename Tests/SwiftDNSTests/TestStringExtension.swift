@@ -107,7 +107,7 @@ struct TestStringExtension {
             "&d": false,
             "*e": false,
             "+f": false,
-            "-g": false,
+            "-g": true,
             "=h": false,
             ">i": false,
             "@j": false,

@@ -11,15 +11,6 @@ import Foundation
 
 struct TestDNSClient {
     @Test func query_A() throws {
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
-        
-        let expectedHeader = DNSHeader(id: 0x7643, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
-        
-        // 0 0000 0 0 1 0 000 0000
-        let rawFlags: UInt16 = 0x100
-        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
-        
-        #expect(parsedFlags == expectedFlags)
         
         // 76 43
         // 01 00
@@ -49,31 +40,29 @@ struct TestDNSClient {
             0x00, 0x01   // QCLASS (IN class)
         ])
         
-        
-        var offset = 0
-        let parsedHeader = try DNSHeader(data: data, offset: &offset)
-        
-        #expect(parsedHeader == expectedHeader)
-        
-        // -------
+        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x7643, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "as209245.net", type: .A, CLASS: .internet)
         let fullData = expectedHeader.toData() + expectedQuestion.toData()
         
         #expect(fullData == data)
         
+        let result = try DNSClient.parseDNSResponse(data)
+        #expect(result.header == expectedHeader)
+        #expect(result.header.flags == expectedFlags)
+        
+        #expect(result.header.QDCOUNT == 1)
+        #expect(result.header.ANCOUNT == 0)
+        #expect(result.header.NSCOUNT == 0)
+        #expect(result.header.ARCOUNT == 0)
+        
+        #expect(result.Question.first! == expectedQuestion)
+        
         // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
     }
     
     @Test func query_AAAA() throws {
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
-        let expectedHeader = DNSHeader(id: 0xa17c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
-        
-        // 0 0000 0 0 1 0 000 0000
-        let rawFlags: UInt16 = 0x100
-        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
-        
-        #expect(parsedFlags == expectedFlags)
         
         let data = Data([
             0xa1, 0x7c,  // [0-1]   ID = a17c
@@ -89,31 +78,29 @@ struct TestDNSClient {
             0x00, 0x01                    // [29-30] QCLASS (IN)
         ])
         
-        var offset = 0
-        let parsedHeader = try DNSHeader(data: data, offset: &offset)
-        
-        #expect(parsedHeader == expectedHeader)
-        
-        // -------
+        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0xa17c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "bandaancha.eu", type: .AAAA, CLASS: .internet)
         let fullData = expectedHeader.toData() + expectedQuestion.toData()
         
         #expect(fullData == data)
         
+        let result = try DNSClient.parseDNSResponse(data)
+        #expect(result.header == expectedHeader)
+        #expect(result.header.flags == expectedFlags)
+        
+        #expect(result.header.QDCOUNT == 1)
+        #expect(result.header.ANCOUNT == 0)
+        #expect(result.header.NSCOUNT == 0)
+        #expect(result.header.ARCOUNT == 0)
+        
+        #expect(result.Question.first! == expectedQuestion)
+        
         // print("expectedHeader: \(expectedHeader.toData().hexEncodedString())\nexpectedQuestion: \(expectedQuestion.toData().hexEncodedString())\nfullData: \(fullData.hexEncodedString())\ndata: \(data.hexEncodedString())")
     }
     
     @Test func query_CH_TXT() throws {
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
-        
-        let expectedHeader = DNSHeader(id: 0x5ef4, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
-        
-        // 0 0000 0 0 1 0 000 0000
-        let rawFlags: UInt16 = 0x100
-        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
-        
-        #expect(parsedFlags == expectedFlags)
         
         let data = Data([
             0x5e, 0xf4,   // [0-1]   ID
@@ -128,30 +115,29 @@ struct TestDNSClient {
             0x00, 0x03    // [29-30] QCLASS (CH)
         ])
         
-        var offset = 0
-        let parsedHeader = try DNSHeader(data: data, offset: &offset)
-        
-        #expect(parsedHeader == expectedHeader)
-        
-        // -------
+        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x5ef4, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "id.server", type: .TXT, CLASS: .chaos)
         let fullData = expectedHeader.toData() + expectedQuestion.toData()
         
         #expect(fullData == data)
         
+        let result = try DNSClient.parseDNSResponse(data)
+        #expect(result.header == expectedHeader)
+        #expect(result.header.flags == expectedFlags)
+        
+        #expect(result.header.QDCOUNT == 1)
+        #expect(result.header.ANCOUNT == 0)
+        #expect(result.header.NSCOUNT == 0)
+        #expect(result.header.ARCOUNT == 0)
+        
+        #expect(result.Question.first! == expectedQuestion)
+        
         // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
     }
     
     @Test func ptr0() throws {
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
-        let expectedHeader = DNSHeader(id: 0x8b3a, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
-        
-        // 0 0000 0 0 1 0 000 0000
-        let rawFlags: UInt16 = 0x100
-        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
-        
-        #expect(parsedFlags == expectedFlags)
         
         // 8b3a01000001000000000000023334023438033231300331383907696e2d61646472046172706100000c0001
 
@@ -162,31 +148,31 @@ struct TestDNSClient {
             0x72, 0x70, 0x61, 0x00, 0x00, 0x0c, 0x00, 0x01,
         ])
         
-        var offset = 0
-        let parsedHeader = try DNSHeader(data: data, offset: &offset)
-        
-        #expect(parsedHeader == expectedHeader)
-        
-        // -------
+        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x8b3a, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "34.48.210.189.in-addr.arpa", type: .PTR, CLASS: .internet)
         let fullData = expectedHeader.toData() + expectedQuestion.toData()
         
         #expect(fullData == data)
         
+        // -------
+        
+        let result = try DNSClient.parseDNSResponse(data)
+        #expect(result.header == expectedHeader)
+        #expect(result.header.flags == expectedFlags)
+        
+        #expect(result.header.QDCOUNT == 1)
+        #expect(result.header.ANCOUNT == 0)
+        #expect(result.header.NSCOUNT == 0)
+        #expect(result.header.ARCOUNT == 0)
+        
+        #expect(result.Question.first! == expectedQuestion)
+        
         // print("expectedHeader: \(expectedHeader.toData().hexEncodedString())\nexpectedQuestion: \(expectedQuestion.toData().hexEncodedString())\nfullData: \(fullData.hexEncodedString())\ndata: \(data.hexEncodedString())")
     }
     
     @Test func ptr1() throws {
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
-        let expectedHeader = DNSHeader(id: 0x7d5c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
-        
-        // 0 0000 0 0 1 0 000 0000
-        let rawFlags: UInt16 = 0x100
-        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
-        
-        #expect(parsedFlags == expectedFlags)
-        
         
         // 7d5c010000010000000000000131013001300130013001300130013001300130013001300130013001300130013001300130013001370166016601660130016301320166013101310161013203697036046172706100000c0001
         
@@ -201,17 +187,26 @@ struct TestDNSClient {
             0x61, 0x00, 0x00, 0x0c, 0x00, 0x01
         ])
         
-        var offset = 0
-        let parsedHeader = try DNSHeader(data: data, offset: &offset)
+        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x7d5c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
-        #expect(parsedHeader == expectedHeader)
-        
-        // -------
-        
-        let expectedQuestion = QuestionSection(host: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa.", type: .PTR, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa", type: .PTR, CLASS: .internet)
         let fullData = expectedHeader.toData() + expectedQuestion.toData()
         
         #expect(fullData == data)
+        
+        // -------
+        
+        let result = try DNSClient.parseDNSResponse(data)
+        #expect(result.header == expectedHeader)
+        #expect(result.header.flags == expectedFlags)
+        
+        #expect(result.header.QDCOUNT == 1)
+        #expect(result.header.ANCOUNT == 0)
+        #expect(result.header.NSCOUNT == 0)
+        #expect(result.header.ARCOUNT == 0)
+        
+        #expect(result.Question.first! == expectedQuestion)
         
         // print("expectedHeader: \(expectedHeader.toData().hexEncodedString())\nexpectedQuestion: \(expectedQuestion.toData().hexEncodedString())\nfullData: \(fullData.hexEncodedString())\ndata: \(data.hexEncodedString())")
     }
@@ -369,6 +364,18 @@ struct TestDNSClient {
         #expect(parsedAnswer.Answer[1] == expectedAnswer1)
         
         // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
+        
+        // Encode
+        /*
+        var encodedData: Data = expectedHeader.toData()
+        encodedData.append(contentsOf: expectedQuestion.toData())
+        encodedData.append(contentsOf: try expectedAnswer0.toData())
+        encodedData.append(contentsOf: try expectedAnswer1.toData())
+        
+        #expect(data == encodedData)
+        
+        print("encodedData: \(encodedData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
+        */
     }
     
     @Test func ptr0_response() throws {

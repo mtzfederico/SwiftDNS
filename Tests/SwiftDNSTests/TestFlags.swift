@@ -147,6 +147,22 @@ struct TestFlags {
         
         // print("encodedFlags: \(encodedFlags) --> 0x\(String(format:"%02x", encodedFlags))")
     }
+    
+    @Test func testDNSFlags7() throws {
+        // 0 0000 0 0 1 0 000 0000
+        let rawFlags: UInt16 = 0x100
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
+        
+        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        
+        #expect(parsedFlags == expectedFlags)
+        
+        // -------------
+        
+        let encodedFlags = expectedFlags.toRaw()
+        
+        #expect(rawFlags == encodedFlags)
+    }
 }
 
 
