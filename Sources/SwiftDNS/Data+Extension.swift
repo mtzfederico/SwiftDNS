@@ -19,7 +19,7 @@ extension Data {
     /// - Returns: The UInt16 read.
     func readUInt16(at index: Int) throws -> UInt16 {
         guard index + 1 < self.count else {
-            throw DNSError.outOfBounds
+            throw DNSError.invalidData("Data out of bounds")
         }
         let high = UInt16(self[index]) << 8
         let low = UInt16(self[index + 1])

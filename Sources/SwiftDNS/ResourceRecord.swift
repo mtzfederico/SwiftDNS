@@ -64,20 +64,18 @@ public struct ResourceRecord: Sendable {
         // Read TYPE, CLASS, TTL, RDLENGTH
         guard offset + 10 <= data.count else {
             // print("[decodeResourceRecord] Offset over bounds. offset: \(offset), data.count: \(data.count)")
-            throw DNSError.invalidData
+            throw DNSError.invalidData("Offset over bounds for TYPE, CLASS, TTL, and RDLENGTH")
         }
         
-        guard let type = DNSRecordType(rawValue: UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })) else {
+        let rawType = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+        guard let type = DNSRecordType(rawValue: rawType) else {
             // print("[decodeResourceRecord] Failed to parse TYPE. offset: \(offset)")
-            throw DNSError.parsingError(DNSError.invalidData)
+            throw DNSError.parsingError(DNSError.invalidData("Failed to parse TYPE: '\(rawType)'"))
         }
         
         offset += 2 // type
         
-        guard let Class = DNSClass(rawValue: UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })) else {
-            // print("[decodeResourceRecord] Failed to parse CLASS. offset: \(offset)")
-            throw DNSError.invalidData
-        }
+        let rawClass = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
         
         offset += 2 // class
         let ttl = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
@@ -86,123 +84,11 @@ public struct ResourceRecord: Sendable {
         // print("[decodeResourceRecord] rdlength: \(rdlength). at offset: \(offset)")
         offset += 2 // rdLength
         
-        switch type {
-        case .A:
-            guard rdlength == 4 && offset + 4 <= data.count else {
-                // print("failed to parse A record")
-                offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
-            }
-            
-            let ipBytes = data.subdata(in: offset..<offset+4)
-            let ip = ipBytes.map { String($0) }.joined(separator: ".")
-            offset += Int(rdlength)
-            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: ip)
-            return
-        case .AAAA:
-            guard rdlength == 16 && offset + 16 <= data.count else {
-                // print("failed to parse AAAA record")
-                offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
-            }
-            
-            let ipBytes = data.subdata(in: offset..<offset+16)
-            
-            // Convert every 2 bytes into one 16-bit block
-            var segments: [String] = []
-            for i in stride(from: 0, to: 16, by: 2) {
-                let part = (UInt16(ipBytes[i]) << 8) | UInt16(ipBytes[i + 1])
-                segments.append(String(format: "%x", part))
-            }
-            
-            let ip = segments.joined(separator: ":")
-            offset += Int(rdlength)
-            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: ip)
-            return
-        case .MX:
-            guard rdlength >= 3 && offset + Int(rdlength) <= data.count else {
-                // print("failed to parse MX record")
-                offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
-            }
-
-            let preference = data.subdata(in: offset..<offset+2).withUnsafeBytes {
-                $0.load(as: UInt16.self).bigEndian
-            }
-
-            let (domain, _) = DNSClient.parseDomainName(data: data, offset: offset + 2)
-            offset += Int(rdlength)
-            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(preference) \(domain)")
-            return
-        case .CNAME, .NS, .PTR:
-            guard rdlength >= 3 && offset + Int(rdlength) <= data.count else {
-                // print("failed to parse CNAME record")
-                offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
-            }
-            let (domain, _) = DNSClient.parseDomainName(data: data, offset: offset)
-            offset += Int(rdlength)
-            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: domain)
-            return
-        case .TXT:
-            guard offset + Int(rdlength) <= data.count else {
-                // print("Failed to parse TXT record")
-                offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
-            }
-
-            let txtData = data.subdata(in: offset..<offset+Int(rdlength))
-            var position = 0
-            var strings: [String] = []
-
-            while position < txtData.count {
-                let length = Int(txtData[position])
-                position += 1
-
-                guard position + length <= txtData.count else {
-                    offset += Int(rdlength)
-                    throw DNSError.parsingError(DNSError.invalidData)
-                }
-
-                let stringData = txtData[position..<position+length]
-                if let str = String(data: stringData, encoding: .utf8) {
-                    strings.append(str)
-                } else {
-                    strings.append(stringData.map { String(format: "\\x%02x", $0) }.joined())
-                }
-
-                position += length
-            }
-
-            let value = strings.joined(separator: " ")
-            offset += Int(rdlength)
-            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
-            return
-        case .SRV:
-            guard rdlength >= 7 && offset + Int(rdlength) <= data.count else {
-                offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
-            }
-
-            let priority = try data.readUInt16(at: offset)
-            offset += 2
-            
-            let weight = try data.readUInt16(at: offset)
-            offset += 2
-            
-            let port = try data.readUInt16(at: offset)
-            offset += 2
-
-            let (target, targetLen) = DNSClient.parseDomainName(data: data, offset: offset)
-            offset += targetLen
-
-            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(priority) \(weight) \(port) \(target)")
-            return
-        case .OPT:
+        if type == .OPT {
             guard offset + Int(rdlength) <= data.count else {
                 // print("Failed to parse OPT record: offset out of bounds")
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
+                throw DNSError.parsingError(DNSError.invalidData("Failed to parse OPT record: offset out of bounds"))
             }
 
             let start = offset
@@ -230,7 +116,7 @@ public struct ResourceRecord: Sendable {
             // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
             // 2: | DO|                           Z                            |
             // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-            // 
+            //
             
             /// Forms the upper 8 bits of extended 12-bit RCODE (together with the 4 bits defined in [RFC1035].  Note that EXTENDED-RCODE value 0 indicates that an unextended RCODE is in use (values 0 through 15).
             let extendedRcode = UInt8((ttl & 0xFF00_0000) >> 24)
@@ -267,7 +153,7 @@ public struct ResourceRecord: Sendable {
                 
                 // Check that the data is within the length
                 guard offset + Int(optionLength) <= end else {
-                    throw DNSError.parsingError(DNSError.invalidData)
+                    throw DNSError.parsingError(DNSError.invalidData("edns option length out of bounds"))
                 }
                 
                 // Read OPTION-DATA
@@ -275,7 +161,7 @@ public struct ResourceRecord: Sendable {
                 offset += Int(optionLength)
                 
                 guard let optionCode = EDNSOptionCode(rawValue: rawOptionCode) else {
-                    throw DNSError.invalidData
+                    throw DNSError.invalidData("invalid EDNS option code: '\(rawOptionCode)'")
                 }
                 
                 let decoded = ResourceRecord.decodeEDNSOption(code: optionCode, data: optionData)
@@ -283,20 +169,164 @@ public struct ResourceRecord: Sendable {
                 options.append("\(optionCode.description): \(decoded)")
             }
             
-            let value = """
-            EXT_RCODE=\(extendedRcode), VERSION=\(ednsVersion), DO=\(doBit)
-            OPTIONS:
-            \(options.joined(separator: "\n"))
-            """
+            let value: String = "EXT_RCODE=\(extendedRcode), VERSION=\(ednsVersion), DO=\(doBit)\nOPTIONS: \(options.joined(separator: "\n"))"
             
-            self = ResourceRecord(name: domainName, ttl: 0, Class: Class, type: type, value: value)
+            self = ResourceRecord(name: domainName, ttl: 0, Class: .unknown, type: type, value: value)
+            return
+        } // if type == OPT ends
+        
+        guard let Class = DNSClass(rawValue: rawClass) else {
+            // print("[decodeResourceRecord] Failed to parse CLASS. offset: \(offset)")
+            throw DNSError.invalidData("Failed to parse CLASS: '\(rawClass)'")
+        }
+        
+        switch type {
+        case .A:
+            guard rdlength == 4 else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("invalid rdlength for A record: '\(rdlength)'"))
+            }
+            
+            guard offset + 4 <= data.count else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+            }
+            
+            let ipBytes = data.subdata(in: offset..<offset+4)
+            let ip = ipBytes.map { String($0) }.joined(separator: ".")
+            offset += Int(rdlength)
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: ip)
+            return
+        case .AAAA:
+            guard rdlength == 16 else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("invalid rdlength for AAAA record: '\(rdlength)'"))
+            }
+            
+            guard offset + 16 <= data.count else {
+                // print("failed to parse AAAA record")
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+            }
+            
+            let ipBytes = data.subdata(in: offset..<offset+16)
+            
+            // Convert every 2 bytes into one 16-bit block
+            var segments: [String] = []
+            for i in stride(from: 0, to: 16, by: 2) {
+                let part = (UInt16(ipBytes[i]) << 8) | UInt16(ipBytes[i + 1])
+                segments.append(String(format: "%x", part))
+            }
+            
+            let ip = segments.joined(separator: ":")
+            offset += Int(rdlength)
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: ip)
+            return
+        case .MX:
+            guard rdlength >= 3 else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for MX record: '\(rdlength)'"))
+            }
+            
+            guard offset + Int(rdlength) <= data.count else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+            }
+
+            let preference = data.subdata(in: offset..<offset+2).withUnsafeBytes {
+                $0.load(as: UInt16.self).bigEndian
+            }
+
+            let (domain, _) = DNSClient.parseDomainName(data: data, offset: offset + 2)
+            offset += Int(rdlength)
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(preference) \(domain)")
+            return
+        case .CNAME, .NS, .PTR:
+            guard rdlength >= 3 else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for \(type.description) record: '\(rdlength)'"))
+            }
+            
+            guard offset + Int(rdlength) <= data.count else {
+                // print("failed to parse CNAME record")
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+            }
+            let (domain, _) = DNSClient.parseDomainName(data: data, offset: offset)
+            offset += Int(rdlength)
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: domain)
+            return
+        case .TXT:
+            guard offset + Int(rdlength) <= data.count else {
+                // print("Failed to parse TXT record")
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("txt rdlength out of bounds. '\(rdlength)'"))
+            }
+
+            let txtData = data.subdata(in: offset..<offset+Int(rdlength))
+            var position = 0
+            var strings: [String] = []
+
+            while position < txtData.count {
+                let length = Int(txtData[position])
+                position += 1
+
+                guard position + length <= txtData.count else {
+                    offset += Int(rdlength)
+                    throw DNSError.parsingError(DNSError.invalidData("length of position in txt record out of bounds"))
+                }
+
+                let stringData = txtData[position..<position+length]
+                if let str = String(data: stringData, encoding: .utf8) {
+                    strings.append(str)
+                } else {
+                    strings.append(stringData.map { String(format: "\\x%02x", $0) }.joined())
+                }
+
+                position += length
+            }
+
+            let value = strings.joined(separator: " ")
+            offset += Int(rdlength)
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
+            return
+        case .SRV:
+            guard rdlength >= 7 else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for SRV record: '\(rdlength)'"))
+            }
+            
+            guard offset + Int(rdlength) <= data.count else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+            }
+
+            let priority = try data.readUInt16(at: offset)
+            offset += 2
+            
+            let weight = try data.readUInt16(at: offset)
+            offset += 2
+            
+            let port = try data.readUInt16(at: offset)
+            offset += 2
+
+            let (target, targetLen) = DNSClient.parseDomainName(data: data, offset: offset)
+            offset += targetLen
+
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(priority) \(weight) \(port) \(target)")
             return
             
         case .SOA:
+            /*
+            guard rdlength >= 4 else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for soa record: '\(rdlength)'"))
+            }*/
+            
             guard offset + Int(rdlength) <= data.count else {
                 // print("Failed to parse SOA record: offset out of bounds")
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
             }
 
             let start = offset
@@ -314,7 +344,7 @@ public struct ResourceRecord: Sendable {
             guard remaining >= 20 else {
                 // print("SOA RDATA too short after domain names")
                 offset = start + Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
+                throw DNSError.parsingError(DNSError.invalidData("soa rdata too short after domain names"))
             }
 
             // Parse the 5 UInt32 values
@@ -337,7 +367,7 @@ public struct ResourceRecord: Sendable {
             guard offset + Int(rdlength) <= data.count else {
                 // print("default: failed to read RDATA, skipping. Type: \(type.rawValue), class: \(Class), length: \(rdlength), ttl: \(ttl)")
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
             }
             
             let rdata = data.subdata(in: offset..<offset+Int(rdlength))

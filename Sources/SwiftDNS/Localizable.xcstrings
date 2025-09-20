@@ -49,18 +49,18 @@
         }
       }
     },
-    "DNSError.invalidData" : {
+    "DNSError.invalidData %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Received invalid data"
+            "value" : "Received invalid data: ‘%@’"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Datos inválidos recibidos"
+            "value" : "Datos inválidos recibidos: ‘%@’"
           }
         }
       }
@@ -109,22 +109,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se recibieron datos"
-          }
-        }
-      }
-    },
-    "DNSError.outOfBounds" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Out of bounds"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Índice Fuera de Rango"
           }
         }
       }

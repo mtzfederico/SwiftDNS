@@ -16,8 +16,6 @@ public enum DNSError: Error, Equatable, LocalizedError {
     case connectionFailed(Error)
     /// Unknown connection state
     case unknownState(NWConnection.State?)
-    /// Reached outside of the bounds of the DNS data
-    case outOfBounds
     /// A parsing error occurred when procesing the response
     case parsingError(Error?)
     /// The DNS server's address is invalid
@@ -25,7 +23,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
     /// The connection to the server is nil
     case connectionIsNil
     /// Received invalid data
-    case invalidData
+    case invalidData(String)
     /// The ID sent in the query is not the same as the one in the response
     case IDMismatch
     /// The domain name used in the query is invalid
@@ -44,8 +42,6 @@ public enum DNSError: Error, Equatable, LocalizedError {
             let stateDesc = state.debugDescription
             let format = NSLocalizedString("DNSError.unknownState %@", bundle: .module, comment: "")
             return String.localizedStringWithFormat(format, stateDesc)
-        case .outOfBounds:
-            return NSLocalizedString("DNSError.outOfBounds", bundle: .module, comment: "")
         case .parsingError(let error):
             let errorDesc = error?.localizedDescription ?? "<nil>"
             let format = NSLocalizedString("DNSError.parsingError %@", bundle: .module, comment: "")
@@ -54,8 +50,9 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return NSLocalizedString("DNSError.invalidServerAddress", bundle: .module, comment: "")
         case .connectionIsNil:
             return NSLocalizedString("DNSError.connectionIsNil", bundle: .module, comment: "")
-        case .invalidData:
-            return NSLocalizedString("DNSError.invalidData", bundle: .module, comment: "")
+        case .invalidData(let value):
+            let format = NSLocalizedString("DNSError.invalidData %@", bundle: .module, comment: "")
+            return String(format: format, value)
         case .IDMismatch:
             return NSLocalizedString("DNSError.IDMismatch", bundle: .module, comment: "")
         case .invalidDomainName:
@@ -79,9 +76,11 @@ public enum DNSError: Error, Equatable, LocalizedError {
             } else {
                 return lhsE == nil && rhsE == nil
             }
-        case (.noDataReceived, .noDataReceived), (.invalidData, .invalidData), (.IDMismatch, .IDMismatch), (.invalidDomainName, .invalidDomainName):
+        case (.invalidData(let lhsValue), .invalidData(let rhsValue)):
+            return lhsValue == rhsValue
+        case (.noDataReceived, .noDataReceived), (.IDMismatch, .IDMismatch), (.invalidDomainName, .invalidDomainName):
             return true
-        case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil), (.outOfBounds, .outOfBounds):
+        case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil):
             return true
         default:
             return false

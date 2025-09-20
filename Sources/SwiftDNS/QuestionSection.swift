@@ -28,22 +28,22 @@ public struct QuestionSection: Sendable {
         // print("[decodeQuestion] domain name: \(domainName), length: \(domainLength)")
         offset += domainLength
         
-        // Read TYPE, CLASS, TTL, RDLENGTH
-        guard offset + 4 <= data.count else { // was + 10
+        // Read TYPE and CLASS
+        guard offset + 4 <= data.count else {
             // print("[decodeQuestion] Offset over bounds. offset: \(offset), data.count: \(data.count)")
-            throw DNSError.outOfBounds
+            throw DNSError.invalidData("offset out of bounds for type and class")
         }
         
         guard let type = DNSRecordType(rawValue: try data.readUInt16(at: offset)) else {
             // print("[decodeQuestion] Failed to parse TYPE. offset: \(offset), data.count: \(data.count)")
-            throw DNSError.parsingError(DNSError.invalidData)
+            throw DNSError.parsingError(DNSError.invalidData("failed to parse question TYPE"))
         }
         
         offset += 2 // type
         
         guard let Class = DNSClass(rawValue: try data.readUInt16(at: offset)) else {
             // print("[decodeQuestion] Failed to parse CLASS. offset: \(offset), data.count: \(data.count)")
-            throw DNSError.parsingError(DNSError.invalidData)
+            throw DNSError.parsingError(DNSError.invalidData("failed to parse question CLASS"))
         }
         
         offset += 2 // class

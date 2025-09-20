@@ -88,7 +88,7 @@ public struct DNSHeader: Sendable {
         /// Response code - this 4 bit field is set as part of responses.
         public var rcode: DNSResponseCode = DNSResponseCode(rawValue: 0)!
         
-        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16) {
+        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16) throws {
             self.qr = qr
             self.opcode = opcode
             self.aa = aa
@@ -97,7 +97,30 @@ public struct DNSHeader: Sendable {
             self.ra = ra
             // self.ad = ad
             // self.cd = cd
-            self.rcode = DNSResponseCode(rawValue: rcode)!
+            guard let rc = DNSResponseCode(rawValue: rcode) else {
+                throw DNSError.invalidData("Invalid RCODE: '\(rcode)'")
+            }
+            self.rcode = rc
+        }
+        
+        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, z: UInt16, rcode: UInt16) throws {
+            self.qr = qr
+            self.opcode = opcode
+            self.aa = aa
+            self.tc = tc
+            self.rd = rd
+            self.ra = ra
+            // Z is 3 bits long
+            guard z <= 7 else {
+                throw DNSError.invalidData("z value too big")
+            }
+            self.z = z
+            
+            guard let rc = DNSResponseCode(rawValue: rcode) else {
+                throw DNSError.invalidData("Invalid RCODE: '\(rcode)'")
+            }
+            self.rcode = rc
+            
         }
 
         public init(from raw: UInt16) throws {
@@ -132,8 +155,9 @@ public struct DNSHeader: Sendable {
             z      = (raw & 0x0070) >> 4
             // 4 bit
             // 0000 0000 0000 1111
-            guard let rc = DNSResponseCode(rawValue: (raw & 0x000F)) else {
-                throw DNSError.invalidData
+            let rawRcode: UInt16 = (raw & 0x000F)
+            guard let rc = DNSResponseCode(rawValue: rawRcode) else {
+                throw DNSError.invalidData("Invalid RCODE: '\(raw)'")
             }
             rcode = rc
         }
