@@ -40,7 +40,7 @@ struct TestDNSClient {
             0x00, 0x01   // QCLASS (IN class)
         ])
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x7643, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "as209245.net", type: .A, CLASS: .internet)
@@ -78,7 +78,7 @@ struct TestDNSClient {
             0x00, 0x01                    // [29-30] QCLASS (IN)
         ])
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0xa17c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "bandaancha.eu", type: .AAAA, CLASS: .internet)
@@ -115,7 +115,7 @@ struct TestDNSClient {
             0x00, 0x03    // [29-30] QCLASS (CH)
         ])
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x5ef4, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "id.server", type: .TXT, CLASS: .chaos)
@@ -148,7 +148,7 @@ struct TestDNSClient {
             0x72, 0x70, 0x61, 0x00, 0x00, 0x0c, 0x00, 0x01,
         ])
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x8b3a, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "34.48.210.189.in-addr.arpa", type: .PTR, CLASS: .internet)
@@ -187,7 +187,7 @@ struct TestDNSClient {
             0x61, 0x00, 0x00, 0x0c, 0x00, 0x01
         ])
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x7d5c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa", type: .PTR, CLASS: .internet)
@@ -339,7 +339,7 @@ struct TestDNSClient {
         
         // -------
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x42d2, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 2, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -418,7 +418,7 @@ struct TestDNSClient {
         
         // -------
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x8b3a, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -470,7 +470,7 @@ struct TestDNSClient {
         
         // -------
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x7d5c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -519,7 +519,7 @@ struct TestDNSClient {
         
         // -------
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x9e16, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -571,7 +571,7 @@ struct TestDNSClient {
         
         // -------
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x3EA9, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 1, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -681,7 +681,7 @@ struct TestDNSClient {
         
         let parsedAnswer = try DNSClient.parseDNSResponse(data)
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x782c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 13, ARCOUNT: 26)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -836,8 +836,218 @@ struct TestDNSClient {
             0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e
         ])
         
-        #expect(throws: DNSError.invalidData, performing: {
+        #expect(throws: DNSError.invalidData("Invalid RCODE: '25711'"), performing: {
             let _ = try DNSClient.parseDNSResponse(data)
         })
     }
+    
+    // MARK: EDNS
+    
+    @Test func query_AAAA_edns() throws {
+        // AAAA query with edns data. From dig
+        // ff780120000100000000000106676f6f676c6503636f6d00001c00010000291000000000000000
+
+        let data: Data = Data([
+            0xff, 0x78, 0x01, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x1c, 0x00, 0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00,
+        ])
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, z: 2, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0xff78, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
+        
+        let expectedQuestion = QuestionSection(host: "google.com", type: .AAAA, CLASS: .internet)
+        
+        // let fullData = expectedHeader.toData() + expectedQuestion.toData()
+        // #expect(fullData == data)
+        
+        let result = try DNSClient.parseDNSResponse(data)
+        #expect(result.header == expectedHeader)
+        #expect(result.header.flags == expectedFlags)
+        
+        #expect(result.header.QDCOUNT == 1)
+        #expect(result.header.ANCOUNT == 0)
+        #expect(result.header.NSCOUNT == 0)
+        #expect(result.header.ARCOUNT == 1)
+        
+        // print("\(result.Additional.first?.value ?? "<nil>")")
+        
+        #expect(result.Question.first! == expectedQuestion)
+        
+        // print("expectedHeader: \(expectedHeader.toData().hexEncodedString())\nexpectedQuestion: \(expectedQuestion.toData().hexEncodedString())\nfullData: \(fullData.hexEncodedString())\ndata: \(data.hexEncodedString())")
+    }
+    
+    @Test func aaaa_edns_response() throws {
+        // ff788180000100010000000106676f6f676c6503636f6d00001c0001c00c001c00010000005b00102607f8b04012081d000000000000200e00002904d0000000000000
+
+        let data: Data = Data([
+            0xff, 0x78, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x1c, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x00,
+            0x00, 0x5b, 0x00, 0x10, 0x26, 0x07, 0xf8, 0xb0, 0x40, 0x12, 0x08, 0x1d,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x0e, 0x00, 0x00, 0x29, 0x04,
+            0xd0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ])
+        
+        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0xff78, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 1)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 1)
+        
+        let expectedQuestion = QuestionSection(host: "google.com", type: .AAAA, CLASS: .internet)
+        
+        // google.com.        91    IN    AAAA    2607:f8b0:4012:81d::200e
+        let expectedAnswer = ResourceRecord(name: "google.com", ttl: 91, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2607:f8b0:4012:81d:0:0:0:200e")
+        
+        guard let firstAnswer = parsedAnswer.Answer.first else {
+            Issue.record("First answer is nil")
+            return
+        }
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstAnswer == expectedAnswer)
+        #expect(firstQuestion == expectedQuestion)
+        
+        // print("\(parsedAnswer.Additional.first?.value ?? "<nil>")")
+        
+        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
+    }
+    
+#warning("do this!!!")
+/*
+ A query for www.microsoft.com using dig
+ "c9690120000100000000000103777777096d6963726f736f667403636f6d00000100010000291000000000000000"
+ 
+ Frame 1358: 74 bytes on wire (592 bits), 74 bytes captured (592 bits) on interface 0
+ Raw packet data
+ Internet Protocol Version 4, Src: 10.250.0.2, Dst: 8.8.8.8
+ User Datagram Protocol, Src Port: 61943, Dst Port: 53
+ Domain Name System (query)
+     Transaction ID: 0xc969
+     Flags: 0x0120 Standard query
+         0... .... .... .... = Response: Message is a query
+         .000 0... .... .... = Opcode: Standard query (0)
+         .... ..0. .... .... = Truncated: Message is not truncated
+         .... ...1 .... .... = Recursion desired: Do query recursively
+         .... .... .0.. .... = Z: reserved (0)
+         .... .... ..1. .... = AD bit: Set
+         .... .... ...0 .... = Non-authenticated data: Unacceptable
+     Questions: 1
+     Answer RRs: 0
+     Authority RRs: 0
+     Additional RRs: 1
+     Queries
+         www.microsoft.com: type A, class IN
+             Name: www.microsoft.com
+             [Name Length: 17]
+             [Label Count: 3]
+             Type: A (Host Address) (1)
+             Class: IN (0x0001)
+     Additional records
+         <Root>: type OPT
+             Name: <Root>
+             Type: OPT (41)
+             UDP payload size: 4096
+             Higher bits in extended RCODE: 0x00
+             EDNS0 version: 0
+             Z: 0x0000
+                 0... .... .... .... = DO bit: Cannot handle DNSSEC security RRs
+                 .000 0000 0000 0000 = Reserved: 0x0000
+             Data length: 0
+     [Response In: 1361]
+
+ 
+ // ------------------------------------------------------------------------------------------------------------------------
+ 
+ response:
+ "c9698180000100040000000103777777096d6963726f736f667403636f6d0000010001c00c000500010000060e002303777777096d6963726f736f667407636f6d2d632d3307656467656b6579036e657400c02f0005000100000369003703777777096d6963726f736f667407636f6d2d632d3307656467656b6579036e65740b676c6f62616c726564697206616b61646e73c04dc05e000500010000038400190665313336373804647363620a616b616d616965646765c04dc0a1000100010000000900041731360a0000290200000000000000"
+ 
+ Frame 1361: 241 bytes on wire (1928 bits), 241 bytes captured (1928 bits) on interface 0
+ Raw packet data
+ Internet Protocol Version 4, Src: 8.8.8.8, Dst: 10.250.0.2
+ User Datagram Protocol, Src Port: 53, Dst Port: 61943
+ Domain Name System (response)
+     Transaction ID: 0xc969
+     Flags: 0x8180 Standard query response, No error
+         1... .... .... .... = Response: Message is a response
+         .000 0... .... .... = Opcode: Standard query (0)
+         .... .0.. .... .... = Authoritative: Server is not an authority for domain
+         .... ..0. .... .... = Truncated: Message is not truncated
+         .... ...1 .... .... = Recursion desired: Do query recursively
+         .... .... 1... .... = Recursion available: Server can do recursive queries
+         .... .... .0.. .... = Z: reserved (0)
+         .... .... ..0. .... = Answer authenticated: Answer/authority portion was not authenticated by the server
+         .... .... ...0 .... = Non-authenticated data: Unacceptable
+         .... .... .... 0000 = Reply code: No error (0)
+     Questions: 1
+     Answer RRs: 4
+     Authority RRs: 0
+     Additional RRs: 1
+     Queries
+         www.microsoft.com: type A, class IN
+             Name: www.microsoft.com
+             [Name Length: 17]
+             [Label Count: 3]
+             Type: A (Host Address) (1)
+             Class: IN (0x0001)
+     Answers
+         www.microsoft.com: type CNAME, class IN, cname www.microsoft.com-c-3.edgekey.net
+             Name: www.microsoft.com
+             Type: CNAME (Canonical NAME for an alias) (5)
+             Class: IN (0x0001)
+             Time to live: 1550
+             Data length: 35
+             CNAME: www.microsoft.com-c-3.edgekey.net
+         www.microsoft.com-c-3.edgekey.net: type CNAME, class IN, cname www.microsoft.com-c-3.edgekey.net.globalredir.akadns.net
+             Name: www.microsoft.com-c-3.edgekey.net
+             Type: CNAME (Canonical NAME for an alias) (5)
+             Class: IN (0x0001)
+             Time to live: 873
+             Data length: 55
+             CNAME: www.microsoft.com-c-3.edgekey.net.globalredir.akadns.net
+         www.microsoft.com-c-3.edgekey.net.globalredir.akadns.net: type CNAME, class IN, cname e13678.dscb.akamaiedge.net
+             Name: www.microsoft.com-c-3.edgekey.net.globalredir.akadns.net
+             Type: CNAME (Canonical NAME for an alias) (5)
+             Class: IN (0x0001)
+             Time to live: 900
+             Data length: 25
+             CNAME: e13678.dscb.akamaiedge.net
+         e13678.dscb.akamaiedge.net: type A, class IN, addr 23.49.54.10
+             Name: e13678.dscb.akamaiedge.net
+             Type: A (Host Address) (1)
+             Class: IN (0x0001)
+             Time to live: 9
+             Data length: 4
+             Address: 23.49.54.10
+     Additional records
+         <Root>: type OPT
+             Name: <Root>
+             Type: OPT (41)
+             UDP payload size: 512
+             Higher bits in extended RCODE: 0x00
+             EDNS0 version: 0
+             Z: 0x0000
+                 0... .... .... .... = DO bit: Cannot handle DNSSEC security RRs
+                 .000 0000 0000 0000 = Reserved: 0x0000
+             Data length: 0
+     [Request In: 1358]
+     [Time: 0.118485000 seconds]
+
+ 
+ */
+
 }

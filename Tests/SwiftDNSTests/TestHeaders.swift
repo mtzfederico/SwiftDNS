@@ -18,7 +18,7 @@ struct TestHeaders {
         
         let header = try DNSHeader(data: data, offset: &offset)
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x7Ca1, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(header == expectedHeader)
@@ -46,7 +46,7 @@ struct TestHeaders {
         var offset = 0
         let header = try DNSHeader(data: data, offset: &offset)
         
-        let expectedFlags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x1234, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(header == expectedHeader)
