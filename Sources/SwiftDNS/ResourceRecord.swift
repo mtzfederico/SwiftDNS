@@ -242,7 +242,7 @@ public struct ResourceRecord: Sendable {
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(preference) \(domain)")
             return
         case .CNAME, .NS, .PTR:
-            guard rdlength >= 3 else {
+            guard rdlength >= 2 else { // was 3, but it breaks CNAMES pointing to the root. www.example.net --> example.net
                 offset += Int(rdlength)
                 throw DNSError.parsingError(DNSError.invalidData("rdlength too small for \(type.description) record: '\(rdlength)'"))
             }
@@ -388,7 +388,7 @@ public struct ResourceRecord: Sendable {
     /// Decodes an EDNS Option and returns it as a string
     /// - Parameters:
     ///   - code: The EDNS Option Code
-    ///   - data: The data representing the EDNS Option Code
+    ///   - data: The data representing the EDNS Option Code's data
     /// - Returns: A string with the contents of the EDNS Option Code
     private static func decodeEDNSOption(code: EDNSOptionCode, data: Data) -> String {
         switch code {
@@ -403,6 +403,7 @@ public struct ResourceRecord: Sendable {
             return "Client=\(clientCookie), Server=\(serverCookie)"
         case .ClientSubnet:
             guard data.count >= 4 else { return "Invalid Client Subnet option (too short)" }
+            print("[decodeEDNSOption]: ClientSubnet. data: \(data.hexEncodedString())")
             
             let family = UInt16(bigEndian: data.subdata(in: 0..<2).withUnsafeBytes { $0.load(as: UInt16.self) })
             let sourceMask = data[2]
@@ -411,26 +412,38 @@ public struct ResourceRecord: Sendable {
             let addressBytes = data.subdata(in: 4..<data.count)
             
             let ipString: String
-            if family == 1 && addressBytes.count >= 4 {
+            if family == 1 {
+                
                 // IPv4
-                ipString = addressBytes.prefix(4).map { String($0) }.joined(separator: ".")
-            } else if family == 2 && addressBytes.count >= 16 {
+                // Adds missing octets set to zero to make sure that they are printed
+                let paddedAddress = addressBytes + Data(repeating: 0, count: max(0, 4 - addressBytes.count))
+                ipString = paddedAddress.map { String($0) }.joined(separator: ".")
+                // ipString = addressBytes.prefix(4).map { String($0) }.joined(separator: ".")
+            } else if family == 2 {
                 // IPv6
-                let parts = stride(from: 0, to: 16, by: 2).map {
-                    String(format: "%02x%02x", addressBytes[$0], addressBytes[$0+1])
+                // Adds missing hextets set to zero to make sure that they are printed
+                let paddedAddress = addressBytes + Data(repeating: 0, count: max(0, 16 - addressBytes.count))
+                
+                var segments: [String] = []
+                for i in stride(from: 0, to: paddedAddress.count, by: 2) {
+                    let part = (UInt16(paddedAddress[i]) << 8) | UInt16(paddedAddress[i + 1])
+                    segments.append(String(format: "%x", part))
                 }
-                ipString = parts.joined(separator: ":")
+                
+                ipString = segments.joined(separator: ":")
             } else {
-                ipString = "Invalid or unknown IP family"
+                ipString = "Failed to parse address. '\(addressBytes.hexEncodedString())'"
             }
             
             return "Family=\(family), SourceMask=\(sourceMask), ScopeMask=\(scopeMask), IP=\(ipString)"
         case .KeepAlive:
+            #warning("needs testing")
             guard data.count == 2 else { return "Invalid KEEPALIVE option" }
             
             let timeout = UInt16(bigEndian: data.withUnsafeBytes { $0.load(as: UInt16.self) })
             return "Timeout=\(timeout) ms"
         case .Padding:
+            #warning("needs testing")
             return "Padding (\(data.count) bytes)"
         default:
             if let str = String(data: data, encoding: .utf8), str.isPrintable {
@@ -467,6 +480,10 @@ public struct ResourceRecord: Sendable {
         
         return bytes
     }*/
+    
+    public var description: String {
+        return "\(name) \(ttl) \(Class.displayName) \(type) \(value)"
+    }
     
     public static func ==(lhs: ResourceRecord, rhs: ResourceRecord) -> Bool {
         return lhs.name == rhs.name && lhs.ttl == rhs.ttl && lhs.Class == rhs.Class && lhs.type == rhs.type && lhs.value == rhs.value
