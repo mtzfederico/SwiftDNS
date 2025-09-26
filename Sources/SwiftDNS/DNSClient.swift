@@ -444,6 +444,7 @@ final public actor DNSClient: Sendable {
             }
 
             // Compressed label (pointer: 11xx xxxx)
+            // https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4
             if length & 0xC0 == 0xC0 {
                 if currentOffset + 1 >= data.count { break }
                 let byte2 = Int(data[currentOffset + 1])
@@ -472,6 +473,15 @@ final public actor DNSClient: Sendable {
     /// - Parameter name: The domain name to encode
     /// - Returns: The domaiin name encoded
     public static func encodeDomainName(name: String) -> Data {
+        // labels          63 octets or less
+        // names           255 octets or less
+        //
+        // 4.1.4. Message compression:
+        // In compression, the first two bits are ones.  This allows a pointer to be distinguished
+        // from a label, since the label must begin with two zero bits because
+        // labels are restricted to 63 octets or less.  (The 10 and 01 combinations
+        // are reserved for future use.)
+        
         var bytes = Data()
         
         let labels = name.split(separator: ".")
@@ -489,10 +499,9 @@ final public actor DNSClient: Sendable {
     /// - Parameter data: The data representing the DNS response
     /// - Returns: The parsed DNS response
     public static func parseDNSResponse(_ data: Data) throws -> QueryResult {
-        #warning("Why this?? for UDP??")
+        // Make sure that there is enough data for the header
         guard data.count > 12 else {
-            // print("[parseDNSResponse] Invalid DNS response. Count over 12")
-            throw DNSError.invalidData("Count over 12")
+            throw DNSError.invalidData("DNS data too small. Cannot parse header.")
         }
         
         var offset = 0

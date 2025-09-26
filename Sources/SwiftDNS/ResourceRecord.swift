@@ -80,6 +80,7 @@ public struct ResourceRecord: Sendable {
         offset += 2 // class
         let ttl = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4 // ttl
+        /// The length in octets of the RDATA field
         let rdlength = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
         // print("[decodeResourceRecord] rdlength: \(rdlength). at offset: \(offset)")
         offset += 2 // rdLength
@@ -481,6 +482,7 @@ public struct ResourceRecord: Sendable {
         return bytes
     }*/
     
+    /// Returns a string with the Name, TTL, Class, Type, and Value
     public var description: String {
         return "\(name) \(ttl) \(Class.displayName) \(type) \(value)"
     }
