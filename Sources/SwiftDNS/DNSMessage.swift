@@ -9,13 +9,13 @@ import Foundation
 
 /// A DNS response
 public struct DNSMessage: Sendable {
-    // TODO: make it reusable for sending and receiving.
-    // add a function to encode
-    
     /// The DNS response headers
     public var header: DNSHeader
     
     /// The questions section
+    ///
+    /// This should always contain only one question in normal operations.
+    /// Read [RFC9619](https://datatracker.ietf.org/doc/rfc9619/) for more details
     public var Question: [QuestionSection] = []
     /// The answers section
     public var Answer: [ResourceRecord] = []
@@ -36,7 +36,8 @@ public struct DNSMessage: Sendable {
     /// - Parameter data: The data representing the DNS response
     /// - Returns: The parsed DNS response
     public init(data: Data) throws {
-        // Make sure that there is enough data for the header
+        // Make sure that there is enough data for the header.
+        // 6 sections of 2 bytes (16 bits) = 6 * 2 = 12
         guard data.count > 12 else {
             throw DNSError.invalidData("DNS data too small. Cannot parse header.")
         }
@@ -66,6 +67,18 @@ public struct DNSMessage: Sendable {
             let rr = try ResourceRecord(data: data, offset: &offset)
             self.Additional.append(rr)
         }
+    }
+    
+    /// Encodes the DNSMessage into Data
+    /// - Returns: The DNSMessage as Data
+    public func toData() throws -> Data {
+        #warning("it can only encode the header and the question")
+        guard let question = Question.first else {
+            throw DNSError.invalidData("No question in message")
+        }
+        
+        let data: Data = header.toData() + question.toData()
+        return data
     }
     
     /// Returns a multiline description of the DNS Message.

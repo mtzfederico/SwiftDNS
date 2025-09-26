@@ -78,13 +78,6 @@ final public actor DNSClient: Sendable {
         }
     }
     
-    private func startConnection() async throws {
-        #warning("Implement me")
-        // use this to start the connection
-        // keep isConnected state, call it when sending a request.
-        // if not connected, connect. On connection failure restart the connection
-    }
-    
     private func setConnected(_ value: Bool) {
         self.isConnected = value
     }
@@ -97,8 +90,24 @@ final public actor DNSClient: Sendable {
     /// - Returns: The DNS response
     @available(macOS 10.15, iOS 13.0, *)
     public func query(host: String, type: DNSRecordType, Class: DNSClass) async throws -> DNSMessage {
+        if host.isEmpty || !host.isDNSSafe {
+            throw DNSError.invalidDomainName
+        }
+        
         return try await withCheckedThrowingContinuation { continuation in
             self.query(host: host, type: type, Class: Class, completion: { result in
+                continuation.resume(with: result)
+            })
+        }
+    }
+    
+    /// Sends a DNS request to the server using the connection type of the DNSClient
+    /// - Parameter message: The DNS Message to send
+    /// - Returns: The DNS response
+    @available(macOS 10.15, iOS 13.0, *)
+    public func query(message: DNSMessage) async throws -> DNSMessage {
+        return try await withCheckedThrowingContinuation { continuation in
+            self.query(message: message, completion: { result in
                 continuation.resume(with: result)
             })
         }
@@ -111,21 +120,53 @@ final public actor DNSClient: Sendable {
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
     public func query(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
-        if host.isEmpty || !host.isDNSSafe {
-            completion(.failure(DNSError.invalidDomainName))
-            return
+        do {
+            if host.isEmpty || !host.isDNSSafe {
+                completion(.failure(DNSError.invalidDomainName))
+                return
+            }
+            
+            let id = UInt16.random(in: 0...UInt16.max)
+            let flags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+            let header = DNSHeader(id: id, flags: flags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
+            
+            let question = QuestionSection(host: host, type: type, CLASS: Class)
+            let message = DNSMessage(header: header, Question: [question], Answer: [], Authority: [], Additional: [])
+            
+            return query(message: message, completion: completion)
+        } catch(let error) {
+            completion(.failure(error))
         }
-        
-        let question = QuestionSection(host: host, type: type, CLASS: Class)
-        
+    }
+    
+    /// /// Sends a DNS request to the server using the connection type of the DNSClient
+    /// - Parameters:
+    ///   - message: The DNS Message to send
+    ///   - completion: The DNS response or an Error
+    public func query(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         switch connectionType {
         case .dnsOverTLS, .dnsOverTCP:
-            return sendTCP(question: question, completion: completion)
+            return sendTCP(message: message, completion: completion)
         case .dnsOverUDP:
-            return sendUDP(question: question, completion: completion)
+            return sendUDP(message: message, completion: completion)
         case .dnsOverHTTPS:
-            return sendHTTPS(question: question, completion: completion)
+            return sendHTTPS(message: message, completion: completion)
         }
+    }
+    
+    private func startConnection() throws {
+        if isConnected { return }
+        guard let connection else {
+            throw DNSError.connectionIsNil
+        }
+        
+        connection.start(queue: dnsQueue)
+        setConnected(true)
+        
+        // #warning("Implement me")
+        // use this to start the connection
+        // keep isConnected state, call it when sending a request.
+        // if not connected, connect. On connection failure restart the connection
     }
     
     /// Closes all connections  gracefully.
@@ -140,15 +181,15 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendTCP(question: QuestionSection, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+    private func sendTCP(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
         }
         
         do {
-            let (query, id) = try DNSClient.encodeQuery(question: question)
-            
+            let id = message.header.id
+            let query = try message.toData()
             
             // TCP has a 2-byte prefix with the length because it is a stram of data and it needs to know how long all of it is
             // In UDP, the whole packet is a single request. In TCP (and TLS) the data can go over multiple packets/frames
@@ -156,7 +197,7 @@ final public actor DNSClient: Sendable {
             
             let data: Data = Data(withUnsafeBytes(of: lengthPrefix.bigEndian, Array.init)) + query
             
-            logger.trace("[sendTCP] Sending query", metadata: ["host": "\(question.QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
+            logger.trace("[sendTCP] Sending query", metadata: ["host": "\(message.Question[0].QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
             
             connection.stateUpdateHandler = { state in
                 switch state {
@@ -176,7 +217,7 @@ final public actor DNSClient: Sendable {
                             
                             self.logger.error("[sendTCP] Connection failed. Restarting...",  metadata: ["error": "\(error.localizedDescription)"])
                             // restart the connection
-                            self.sendTCP(question: question, completion: completion)
+                            self.sendTCP(message: message, completion: completion)
                             return
                             
                             // completion(.failure(DNSError.connectionFailed(error)))
@@ -250,13 +291,12 @@ final public actor DNSClient: Sendable {
             }
             
             logger.debug("[sendTCP] Starting connection...")
-            connection.start(queue: dnsQueue)
+            try startConnection()
         } catch(let error) {
             completion(.failure(error))
             return
         }
     }
-    
     
     /// Sends a DNS request to the server using UDP
     /// - Parameters:
@@ -264,29 +304,17 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendUDP(question: QuestionSection, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+    private func sendUDP(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
         }
         
-        /*
-         let id = UInt16.random(in: 0...UInt16.max)
-         let flags = DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
-         
-         // print((String(format:"%02x", flags.toRaw())))
-         
-         let header = DNSHeader(id: id, flags: flags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0).toData()
-         let question = QuestionSection(host: host, type: type, CLASS: Class).toData()
-         
-         let data: Data = header + question
-         */
-        
         do {
+            let id = message.header.id
+            let data = try message.toData()
             
-            let (data, id) = try DNSClient.encodeQuery(question: question)
-            
-            logger.trace("[sendUDP] Sending query", metadata: ["host": "\(question.QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
+            logger.trace("[sendUDP] Sending query", metadata: ["host": "\(message.Question[0].QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
             
             connection.stateUpdateHandler = { state in
                 switch state {
@@ -351,17 +379,17 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendHTTPS(question: QuestionSection, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+    private func sendHTTPS(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         guard let url = URL(string: server) else {
             completion(.failure(DNSError.invalidServerAddress))
             return
         }
         
         do {
+            let id = message.header.id
+            let data = try message.toData()
             
-            let (data, id) = try DNSClient.encodeQuery(question: question)
-            
-            logger.trace("[sendHTTPS] Sending query", metadata: ["host": "\(question.QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
+            logger.trace("[sendHTTPS] Sending query", metadata: ["host": "\(message.Question[0].QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
             
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
@@ -406,22 +434,6 @@ final public actor DNSClient: Sendable {
         
         return try self.DNSClient.parseDNSResponse(responseData)
          */
-    }
-    
-    /// Retuns Data for the query and the ID
-    /// - Parameter question: The question to encode to Data
-    /// - Returns: The header and query as Data and the id generated for the query
-    public static func encodeQuery(question: QuestionSection) throws -> (Data, UInt16) {
-        let id = UInt16.random(in: 0...UInt16.max)
-        let flags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
-        
-        // print((String(format:"%02x", flags.toRaw())))
-        
-        let header = DNSHeader(id: id, flags: flags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0).toData()
-        // let question = QuestionSection(host: host, type: type, CLASS: .internet).toData()
-        
-        let data: Data = header + question.toData()
-        return (data, id)
     }
     
     /// Parses a domain name in Data
