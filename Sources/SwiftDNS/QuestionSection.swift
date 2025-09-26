@@ -66,6 +66,11 @@ public struct QuestionSection: Sendable {
         return bytes
     }
     
+    /// Returns a string with the Name, Class, and Type.
+    public var description: String {
+        return "\(QNAME) \(QCLASS.displayName) \(QTYPE)"
+    }
+    
     public static func == (lhs: QuestionSection, rhs: QuestionSection) -> Bool {
         return lhs.QNAME == rhs.QNAME && lhs.QTYPE == rhs.QTYPE && lhs.QCLASS == rhs.QCLASS
     }
