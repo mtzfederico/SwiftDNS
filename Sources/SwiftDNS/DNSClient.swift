@@ -96,7 +96,7 @@ final public actor DNSClient: Sendable {
     ///   - Class: The class to query
     /// - Returns: The DNS response
     @available(macOS 10.15, iOS 13.0, *)
-    public func query(host: String, type: DNSRecordType, Class: DNSClass) async throws -> QueryResult {
+    public func query(host: String, type: DNSRecordType, Class: DNSClass) async throws -> DNSMessage {
         return try await withCheckedThrowingContinuation { continuation in
             self.query(host: host, type: type, Class: Class, completion: { result in
                 continuation.resume(with: result)
@@ -110,7 +110,7 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    public func query(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
+    public func query(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         if host.isEmpty || !host.isDNSSafe {
             completion(.failure(DNSError.invalidDomainName))
             return
@@ -140,7 +140,7 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendTCP(question: QuestionSection, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
+    private func sendTCP(question: QuestionSection, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
@@ -264,7 +264,7 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendUDP(question: QuestionSection, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
+    private func sendUDP(question: QuestionSection, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
@@ -351,7 +351,7 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendHTTPS(question: QuestionSection, completion: @escaping @Sendable (sending Result<QueryResult, Error>) -> ()) {
+    private func sendHTTPS(question: QuestionSection, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         guard let url = URL(string: server) else {
             completion(.failure(DNSError.invalidServerAddress))
             return
@@ -498,7 +498,7 @@ final public actor DNSClient: Sendable {
     /// Parses a DNS response
     /// - Parameter data: The data representing the DNS response
     /// - Returns: The parsed DNS response
-    public static func parseDNSResponse(_ data: Data) throws -> QueryResult {
+    public static func parseDNSResponse(_ data: Data) throws -> DNSMessage {
         // Make sure that there is enough data for the header
         guard data.count > 12 else {
             throw DNSError.invalidData("DNS data too small. Cannot parse header.")
@@ -552,6 +552,6 @@ final public actor DNSClient: Sendable {
             print("additional.count != arcount")
         }*/
         
-        return QueryResult(header: header, Question: questions, Answer: answers, Authority: authority, Additional: additional)
+        return DNSMessage(header: header, Question: questions, Answer: answers, Authority: authority, Additional: additional)
     }
 }
