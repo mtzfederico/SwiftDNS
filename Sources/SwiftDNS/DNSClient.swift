@@ -218,7 +218,7 @@ final public actor DNSClient: Sendable {
                                 self.logger.trace("[sendTCP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
                                 
                                 do {
-                                    let result = try DNSClient.parseDNSResponse(data)
+                                    let result = try DNSMessage(data: responseData)
                                     // check that the id in the response is the same as the one sent in the query
                                     if result.header.id != id {
                                         self.logger.trace("[sendTCP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
@@ -323,7 +323,7 @@ final public actor DNSClient: Sendable {
                     if let responseData = responseData {
                         self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
                         
-                        let result = try DNSClient.parseDNSResponse(responseData)
+                        let result = try DNSMessage(data: responseData)
                         // check that the id in the response is the same as the one sent in the query
                         if result.header.id != id {
                             self.logger.trace("[sendUDP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
@@ -379,7 +379,7 @@ final public actor DNSClient: Sendable {
                     self.logger.debug("[sendHTTPS] HTTP Response", metadata: ["status": "\(status)", "mime": "\(response?.mimeType ?? "<nil>")"])
                     self.logger.trace("[sendHTTPS] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
                     
-                    let result = try DNSClient.parseDNSResponse(responseData)
+                    let result = try DNSMessage(data: responseData)
                     // check that the id in the response is the same as the one sent in the query
                     if result.header.id != id {
                         self.logger.trace("[sendHTTPS] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
@@ -493,65 +493,5 @@ final public actor DNSClient: Sendable {
         
         bytes.append(0) // End of domain name
         return bytes
-    }
-    
-    /// Parses a DNS response
-    /// - Parameter data: The data representing the DNS response
-    /// - Returns: The parsed DNS response
-    public static func parseDNSResponse(_ data: Data) throws -> DNSMessage {
-        // Make sure that there is enough data for the header
-        guard data.count > 12 else {
-            throw DNSError.invalidData("DNS data too small. Cannot parse header.")
-        }
-        
-        var offset = 0
-        
-        let header: DNSHeader = try DNSHeader(data: data, offset: &offset)
-        
-        // The questions only have QNAME, QTYPE, and QCLASS
-        var questions: [QuestionSection] = []
-        
-        var answers: [ResourceRecord] = []
-        var authority: [ResourceRecord] = []
-        var additional: [ResourceRecord] = []
-        
-        
-        for _ in 0..<header.QDCOUNT {
-            let rr = try QuestionSection(data: data, offset: &offset)
-            questions.append(rr)
-        }
-        
-        for _ in 0..<header.ANCOUNT {
-            let rr = try ResourceRecord(data: data, offset: &offset)
-            answers.append(rr)
-        }
-        
-        for _ in 0..<header.NSCOUNT {
-            let rr = try ResourceRecord(data: data, offset: &offset)
-            authority.append(rr)
-        }
-        
-        for _ in 0..<header.ARCOUNT {
-            let rr = try ResourceRecord(data: data, offset: &offset)
-            // if rr.type == .OPT {
-                // append to edns yaddee yadda
-            // }
-            additional.append(rr)
-        }
-        
-        /*
-        if answers.count != header.ANCOUNT {
-            print("answers.count != answerCount")
-        }
-        
-        if authority.count != header.NSCOUNT {
-            print("authority.count != nscount")
-        }
-        
-        if additional.count != header.ARCOUNT {
-            print("additional.count != arcount")
-        }*/
-        
-        return DNSMessage(header: header, Question: questions, Answer: answers, Authority: authority, Additional: additional)
     }
 }
