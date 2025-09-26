@@ -16,13 +16,13 @@ public struct DNSMessage: Sendable {
     public var header: DNSHeader
     
     /// The questions section
-    public var Question: [QuestionSection]
+    public var Question: [QuestionSection] = []
     /// The answers section
-    public var Answer: [ResourceRecord]
+    public var Answer: [ResourceRecord] = []
     /// The authority records section
-    public var Authority: [ResourceRecord]
+    public var Authority: [ResourceRecord] = []
     /// The additional records section
-    public var Additional: [ResourceRecord]
+    public var Additional: [ResourceRecord] = []
     
     public init(header: DNSHeader, Question: [QuestionSection], Answer: [ResourceRecord], Authority: [ResourceRecord], Additional: [ResourceRecord]) {
         self.header = header
@@ -43,37 +43,29 @@ public struct DNSMessage: Sendable {
         
         var offset = 0
         
-        let header: DNSHeader = try DNSHeader(data: data, offset: &offset)
+        self.header = try DNSHeader(data: data, offset: &offset)
         
         // The questions only have QNAME, QTYPE, and QCLASS
-        var questions: [QuestionSection] = []
-        
-        var answers: [ResourceRecord] = []
-        var authority: [ResourceRecord] = []
-        var additional: [ResourceRecord] = []
-        
         
         for _ in 0..<header.QDCOUNT {
             let rr = try QuestionSection(data: data, offset: &offset)
-            questions.append(rr)
+            self.Question.append(rr)
         }
         
         for _ in 0..<header.ANCOUNT {
             let rr = try ResourceRecord(data: data, offset: &offset)
-            answers.append(rr)
+            self.Answer.append(rr)
         }
         
         for _ in 0..<header.NSCOUNT {
             let rr = try ResourceRecord(data: data, offset: &offset)
-            authority.append(rr)
+            self.Authority.append(rr)
         }
         
         for _ in 0..<header.ARCOUNT {
             let rr = try ResourceRecord(data: data, offset: &offset)
-            additional.append(rr)
+            self.Additional.append(rr)
         }
-        
-        self = DNSMessage(header: header, Question: questions, Answer: answers, Authority: authority, Additional: additional)
     }
     
     /// Returns a multiline description of the DNS Message.
