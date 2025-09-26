@@ -48,7 +48,7 @@ struct TestDNSClient {
         
         #expect(fullData == data)
         
-        let result = try DNSClient.parseDNSResponse(data)
+        let result = try DNSMessage(data: data)
         #expect(result.header == expectedHeader)
         #expect(result.header.flags == expectedFlags)
         
@@ -58,8 +58,6 @@ struct TestDNSClient {
         #expect(result.header.ARCOUNT == 0)
         
         #expect(result.Question.first! == expectedQuestion)
-        
-        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
     }
     
     @Test func query_AAAA() throws {
@@ -86,7 +84,7 @@ struct TestDNSClient {
         
         #expect(fullData == data)
         
-        let result = try DNSClient.parseDNSResponse(data)
+        let result = try DNSMessage(data: data)
         #expect(result.header == expectedHeader)
         #expect(result.header.flags == expectedFlags)
         
@@ -123,7 +121,7 @@ struct TestDNSClient {
         
         #expect(fullData == data)
         
-        let result = try DNSClient.parseDNSResponse(data)
+        let result = try DNSMessage(data: data)
         #expect(result.header == expectedHeader)
         #expect(result.header.flags == expectedFlags)
         
@@ -132,10 +130,7 @@ struct TestDNSClient {
         #expect(result.header.NSCOUNT == 0)
         #expect(result.header.ARCOUNT == 0)
         
-        #expect(result.Question.first! == expectedQuestion)
-        
-        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
-    }
+        #expect(result.Question.first! == expectedQuestion)    }
     
     @Test func ptr0() throws {
         
@@ -158,7 +153,7 @@ struct TestDNSClient {
         
         // -------
         
-        let result = try DNSClient.parseDNSResponse(data)
+        let result = try DNSMessage(data: data)
         #expect(result.header == expectedHeader)
         #expect(result.header.flags == expectedFlags)
         
@@ -197,7 +192,7 @@ struct TestDNSClient {
         
         // -------
         
-        let result = try DNSClient.parseDNSResponse(data)
+        let result = try DNSMessage(data: data)
         #expect(result.header == expectedHeader)
         #expect(result.header.flags == expectedFlags)
         
@@ -221,7 +216,7 @@ struct TestDNSClient {
             0x00, 0x02, 0x00, 0x01
         ])
         
-        let result = try DNSClient.parseDNSResponse(data)
+        let result = try DNSMessage(data: data)
         
         #expect(result.header.id == 0xe1a8)
         
@@ -267,7 +262,7 @@ struct TestDNSClient {
             0x48, 0x02, 0x00, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a,
         ])
         
-        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        let parsedAnswer = try DNSMessage(data: data)
         
         #expect(parsedAnswer.header.id == 0xe1a8)
         
@@ -335,7 +330,7 @@ struct TestDNSClient {
             0xa1, 0x68
         ])
         
-        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        let parsedAnswer = try DNSMessage(data: data)
         
         // -------
         
@@ -414,7 +409,7 @@ struct TestDNSClient {
             0x00                                            // end of name
         ])
         
-        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        let parsedAnswer = try DNSMessage(data: data)
         
         // -------
         
@@ -445,8 +440,6 @@ struct TestDNSClient {
         
         #expect(firstAnswer == expectedAnswer)
         #expect(firstQuestion == expectedQuestion)
-        
-        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
     }
     
     @Test func ptr1_response() throws {
@@ -466,7 +459,7 @@ struct TestDNSClient {
             0x34, 0x35, 0x03, 0x6e, 0x65, 0x74, 0x00
         ])
         
-        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        let parsedAnswer = try DNSMessage(data: data)
         
         // -------
         
@@ -497,8 +490,116 @@ struct TestDNSClient {
         
         #expect(firstAnswer == expectedAnswer)
         #expect(firstQuestion == expectedQuestion)
+    }
+    
+    /// Tests the response of an A query that returns a CNAME
+    @Test func a_cname_response0() throws {
+        // 86fd8180000100040000000003777777056170706c6503636f6d0000010001c00c000500010000012c001a0d7777772d6170706c652d636f6d0176076161706c696d67c016c02b000500010000012c001b03777777056170706c6503636f6d07656467656b6579036e657400c051000500010000012c00190565363835380564736365390a616b616d616965646765c067c0780001000100000014000468518d2c
+
+        let data: Data = Data([
+            0x86, 0xfd, 0x81, 0x80, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
+            0x03, 0x77, 0x77, 0x77, 0x05, 0x61, 0x70, 0x70, 0x6c, 0x65, 0x03, 0x63,
+            0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x05, 0x00,
+            0x01, 0x00, 0x00, 0x01, 0x2c, 0x00, 0x1a, 0x0d, 0x77, 0x77, 0x77, 0x2d,
+            0x61, 0x70, 0x70, 0x6c, 0x65, 0x2d, 0x63, 0x6f, 0x6d, 0x01, 0x76, 0x07,
+            0x61, 0x61, 0x70, 0x6c, 0x69, 0x6d, 0x67, 0xc0, 0x16, 0xc0, 0x2b, 0x00,
+            0x05, 0x00, 0x01, 0x00, 0x00, 0x01, 0x2c, 0x00, 0x1b, 0x03, 0x77, 0x77,
+            0x77, 0x05, 0x61, 0x70, 0x70, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x07,
+            0x65, 0x64, 0x67, 0x65, 0x6b, 0x65, 0x79, 0x03, 0x6e, 0x65, 0x74, 0x00,
+            0xc0, 0x51, 0x00, 0x05, 0x00, 0x01, 0x00, 0x00, 0x01, 0x2c, 0x00, 0x19,
+            0x05, 0x65, 0x36, 0x38, 0x35, 0x38, 0x05, 0x64, 0x73, 0x63, 0x65, 0x39,
+            0x0a, 0x61, 0x6b, 0x61, 0x6d, 0x61, 0x69, 0x65, 0x64, 0x67, 0x65, 0xc0,
+            0x67, 0xc0, 0x78, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x14, 0x00,
+            0x04, 0x68, 0x51, 0x8d, 0x2c,
+        ])
         
-        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        // print(parsedAnswer.description)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x86fd, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 4, NSCOUNT: 0, ARCOUNT: 0)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 4)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 0)
+        
+        let expectedQuestion = QuestionSection(host: "www.apple.com", type: .A, CLASS: .internet)
+        
+        /*
+         www.apple.com.        300    IN    CNAME    www-apple-com.v.aaplimg.com.
+         www-apple-com.v.aaplimg.com. 300 IN    CNAME    www.apple.com.edgekey.net.
+         www.apple.com.edgekey.net. 300    IN    CNAME    e6858.dsce9.akamaiedge.net.
+         e6858.dsce9.akamaiedge.net. 20    IN    A    104.81.141.44
+         */
+        let expectedAnswer0 = ResourceRecord(name: "www.apple.com", ttl: 300, Class: .internet, type: .CNAME, value: "www-apple-com.v.aaplimg.com")
+        let expectedAnswer1 = ResourceRecord(name: "www-apple-com.v.aaplimg.com", ttl: 300, Class: .internet, type: .CNAME, value: "www.apple.com.edgekey.net")
+        let expectedAnswer2 = ResourceRecord(name: "www.apple.com.edgekey.net", ttl: 300, Class: .internet, type: .CNAME, value: "e6858.dsce9.akamaiedge.net")
+        let expectedAnswer3 = ResourceRecord(name: "e6858.dsce9.akamaiedge.net", ttl: 20, Class: .internet, type: DNSRecordType.A, value: "104.81.141.44")
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstQuestion == expectedQuestion)
+        #expect(parsedAnswer.Answer[0] == expectedAnswer0)
+        #expect(parsedAnswer.Answer[1] == expectedAnswer1)
+        #expect(parsedAnswer.Answer[2] == expectedAnswer2)
+        #expect(parsedAnswer.Answer[3] == expectedAnswer3)
+    }
+    
+    @Test func a_cname_response1() throws {
+        // e888818000010002000000000377777712696e66696e697465706172746974696f6e7303636f6d0000010001c00c0005000100001d5a0002c010c0100001000100001d5a00044adcdb1d
+
+        let data: Data = Data([
+            0xe8, 0x88, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
+            0x03, 0x77, 0x77, 0x77, 0x12, 0x69, 0x6e, 0x66, 0x69, 0x6e, 0x69, 0x74,
+            0x65, 0x70, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x03,
+            0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x05,
+            0x00, 0x01, 0x00, 0x00, 0x1d, 0x5a, 0x00, 0x02, 0xc0, 0x10, 0xc0, 0x10,
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x1d, 0x5a, 0x00, 0x04, 0x4a, 0xdc,
+            0xdb, 0x1d,
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        // print(parsedAnswer.description)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0xe888, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 2, NSCOUNT: 0, ARCOUNT: 0)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 2)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 0)
+        
+        let expectedQuestion = QuestionSection(host: "www.infinitepartitions.com", type: .A, CLASS: .internet)
+        
+        /*
+         www.infinitepartitions.com. 7514 IN    CNAME    infinitepartitions.com.
+         infinitepartitions.com.    7514    IN    A    74.220.219.29
+         */
+        let expectedAnswer0 = ResourceRecord(name: "www.infinitepartitions.com", ttl: 7514, Class: .internet, type: .CNAME, value: "infinitepartitions.com")
+        let expectedAnswer1 = ResourceRecord(name: "infinitepartitions.com", ttl: 7514, Class: .internet, type: .A, value: "74.220.219.29")
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstQuestion == expectedQuestion)
+        #expect(parsedAnswer.Answer[0] == expectedAnswer0)
+        #expect(parsedAnswer.Answer[1] == expectedAnswer1)
     }
     
     @Test func srv_response() throws {
@@ -515,7 +616,7 @@ struct TestDNSClient {
             0x65, 0x63, 0x68, 0x00,
         ])
         
-        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        let parsedAnswer = try DNSMessage(data: data)
         
         // -------
         
@@ -546,8 +647,6 @@ struct TestDNSClient {
         
         #expect(firstAnswer == expectedAnswer)
         #expect(firstQuestion == expectedQuestion)
-        
-        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
     }
     
     @Test func nxDomainResponse() throws {
@@ -567,7 +666,7 @@ struct TestDNSClient {
             0x80, 0x00, 0x00, 0x07, 0x08
         ])
         
-        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        let parsedAnswer = try DNSMessage(data: data)
         
         // -------
         
@@ -599,8 +698,98 @@ struct TestDNSClient {
         
         #expect(firstQuestion == expectedQuestion)
         #expect(firstAuthority == expectedAnswer)
+    }
+    
+    @Test func rootZone() throws {
+        // 28d381800001000d0000000000000200010000020001000011c1001401650c726f6f742d73657276657273036e6574000000020001000011c100040162c01e0000020001000011c100040164c01e0000020001000011c100040166c01e0000020001000011c100040167c01e0000020001000011c100040163c01e0000020001000011c100040161c01e0000020001000011c10004016dc01e0000020001000011c10004016cc01e0000020001000011c10004016ac01e0000020001000011c10004016bc01e0000020001000011c100040168c01e0000020001000011c100040169c01e
         
-        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
+        let data: Data = Data([
+            0x28, 0xd3, 0x81, 0x80, 0x00, 0x01, 0x00, 0x0d, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00,
+            0x11, 0xc1, 0x00, 0x14, 0x01, 0x65, 0x0c, 0x72, 0x6f, 0x6f, 0x74, 0x2d,
+            0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x03, 0x6e, 0x65, 0x74, 0x00,
+            0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x11, 0xc1, 0x00, 0x04, 0x01,
+            0x62, 0xc0, 0x1e, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x11, 0xc1,
+            0x00, 0x04, 0x01, 0x64, 0xc0, 0x1e, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00,
+            0x00, 0x11, 0xc1, 0x00, 0x04, 0x01, 0x66, 0xc0, 0x1e, 0x00, 0x00, 0x02,
+            0x00, 0x01, 0x00, 0x00, 0x11, 0xc1, 0x00, 0x04, 0x01, 0x67, 0xc0, 0x1e,
+            0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x11, 0xc1, 0x00, 0x04, 0x01,
+            0x63, 0xc0, 0x1e, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x11, 0xc1,
+            0x00, 0x04, 0x01, 0x61, 0xc0, 0x1e, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00,
+            0x00, 0x11, 0xc1, 0x00, 0x04, 0x01, 0x6d, 0xc0, 0x1e, 0x00, 0x00, 0x02,
+            0x00, 0x01, 0x00, 0x00, 0x11, 0xc1, 0x00, 0x04, 0x01, 0x6c, 0xc0, 0x1e,
+            0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x11, 0xc1, 0x00, 0x04, 0x01,
+            0x6a, 0xc0, 0x1e, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x11, 0xc1,
+            0x00, 0x04, 0x01, 0x6b, 0xc0, 0x1e, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00,
+            0x00, 0x11, 0xc1, 0x00, 0x04, 0x01, 0x68, 0xc0, 0x1e, 0x00, 0x00, 0x02,
+            0x00, 0x01, 0x00, 0x00, 0x11, 0xc1, 0x00, 0x04, 0x01, 0x69, 0xc0, 0x1e,
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        // print(parsedAnswer.description)
+        
+        /*
+         ;; header: ID: 0x28d3, DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, z: 0, rcode: SwiftDNS.DNSResponseCode.NoError), QDCOUNT: 1, ANCOUNT: 13, NSCOUNT: 0, ARCOUNT: 0
+         ;; Questions:
+          IN NS
+         ;; Answer:
+          4545 IN NS e.root-servers.net
+          4545 IN NS b.root-servers.net
+          4545 IN NS d.root-servers.net
+          4545 IN NS f.root-servers.net
+          4545 IN NS g.root-servers.net
+          4545 IN NS c.root-servers.net
+          4545 IN NS a.root-servers.net
+          4545 IN NS m.root-servers.net
+          4545 IN NS l.root-servers.net
+          4545 IN NS j.root-servers.net
+          4545 IN NS k.root-servers.net
+          4545 IN NS h.root-servers.net
+          4545 IN NS i.root-servers.net
+         ;; Authority:
+         ;; Additional:
+         */
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x28d3, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 13, NSCOUNT: 0, ARCOUNT: 0)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 13)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 0)
+        
+        
+        let expectedQuestion = QuestionSection(host: "", type: .NS, CLASS: .internet)
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstQuestion == expectedQuestion)
+        
+        let expectedAnswers: [ResourceRecord] = [
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "e.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "b.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "d.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "f.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "g.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "c.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "a.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "m.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "l.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "j.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "k.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "h.root-servers.net"),
+            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "i.root-servers.net"),
+        ]
+        
+        for i in 0..<parsedAnswer.Authority.count {
+            #expect(expectedAnswers[i] == parsedAnswer.Answer[i])
+        }
     }
     
     /// Response from a server pointing to the ns to query
@@ -679,7 +868,7 @@ struct TestDNSClient {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x30,
         ])
         
-        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        let parsedAnswer = try DNSMessage(data: data)
         
         let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x782c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 13, ARCOUNT: 26)
@@ -754,8 +943,6 @@ struct TestDNSClient {
         for i in 0..<parsedAnswer.Additional.count {
             #expect(expectedAR[i] == parsedAnswer.Additional[i])
         }
-        
-        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
     }
     
     // MARK: Invalid Responses
@@ -837,13 +1024,13 @@ struct TestDNSClient {
         ])
         
         #expect(throws: DNSError.invalidData("Invalid RCODE: '25711'"), performing: {
-            let _ = try DNSClient.parseDNSResponse(data)
+            let _ = try DNSMessage(data: data)
         })
     }
     
     // MARK: EDNS
     
-    @Test func query_AAAA_edns() throws {
+    @Test func aaaa_edns_query() throws {
         // AAAA query with edns data. From dig
         // ff780120000100000000000106676f6f676c6503636f6d00001c00010000291000000000000000
 
@@ -854,28 +1041,35 @@ struct TestDNSClient {
             0x00, 0x00, 0x00,
         ])
         
+        let parsedAnswer = try DNSMessage(data: data)
+        
         let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, z: 2, rcode: 0)
         let expectedHeader = DNSHeader(id: 0xff78, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
         
         let expectedQuestion = QuestionSection(host: "google.com", type: .AAAA, CLASS: .internet)
         
+        let optRecord = ResourceRecord(name: "", ttl: 0, Class: DNSClass.unknown, type: DNSRecordType.OPT, value: "EXT_RCODE=0, VERSION=0, DO=false\nOPTIONS: ")
+        
+        guard let firstAdditional = parsedAnswer.Additional.first else {
+            Issue.record("first additional is nil")
+            return
+        }
+        
         // let fullData = expectedHeader.toData() + expectedQuestion.toData()
         // #expect(fullData == data)
         
-        let result = try DNSClient.parseDNSResponse(data)
-        #expect(result.header == expectedHeader)
-        #expect(result.header.flags == expectedFlags)
+        #expect(parsedAnswer.header == expectedHeader)
+        #expect(parsedAnswer.header.flags == expectedFlags)
         
-        #expect(result.header.QDCOUNT == 1)
-        #expect(result.header.ANCOUNT == 0)
-        #expect(result.header.NSCOUNT == 0)
-        #expect(result.header.ARCOUNT == 1)
+        #expect(parsedAnswer.header.QDCOUNT == 1)
+        #expect(parsedAnswer.header.ANCOUNT == 0)
+        #expect(parsedAnswer.header.NSCOUNT == 0)
+        #expect(parsedAnswer.header.ARCOUNT == 1)
         
-        // print("\(result.Additional.first?.value ?? "<nil>")")
+        print("\(parsedAnswer.Additional.first?.value ?? "<nil>")")
         
-        #expect(result.Question.first! == expectedQuestion)
-        
-        // print("expectedHeader: \(expectedHeader.toData().hexEncodedString())\nexpectedQuestion: \(expectedQuestion.toData().hexEncodedString())\nfullData: \(fullData.hexEncodedString())\ndata: \(data.hexEncodedString())")
+        #expect(firstAdditional == optRecord)
+        #expect(parsedAnswer.Question.first! == expectedQuestion)
     }
     
     @Test func aaaa_edns_response() throws {
@@ -890,7 +1084,7 @@ struct TestDNSClient {
             0xd0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ])
         
-        let parsedAnswer = try DNSClient.parseDNSResponse(data)
+        let parsedAnswer = try DNSMessage(data: data)
         
         // -------
         
@@ -909,6 +1103,13 @@ struct TestDNSClient {
         // google.com.        91    IN    AAAA    2607:f8b0:4012:81d::200e
         let expectedAnswer = ResourceRecord(name: "google.com", ttl: 91, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2607:f8b0:4012:81d:0:0:0:200e")
         
+        let optRecord = ResourceRecord(name: "", ttl: 0, Class: DNSClass.unknown, type: DNSRecordType.OPT, value: "EXT_RCODE=0, VERSION=0, DO=false\nOPTIONS: ")
+        
+        guard let firstAdditional = parsedAnswer.Additional.first else {
+            Issue.record("first additional is nil")
+            return
+        }
+        
         guard let firstAnswer = parsedAnswer.Answer.first else {
             Issue.record("First answer is nil")
             return
@@ -919,135 +1120,347 @@ struct TestDNSClient {
             return
         }
         
+        #expect(firstAdditional == optRecord)
         #expect(firstAnswer == expectedAnswer)
         #expect(firstQuestion == expectedQuestion)
         
-        // print("\(parsedAnswer.Additional.first?.value ?? "<nil>")")
-        
-        // print("fullData: \(fullData.hexEncodedString())\n\ndata: \(data.hexEncodedString())")
+        print("\(parsedAnswer.Additional.first?.value ?? "<nil>")")
     }
     
-#warning("do this!!!")
-/*
- A query for www.microsoft.com using dig
- "c9690120000100000000000103777777096d6963726f736f667403636f6d00000100010000291000000000000000"
- 
- Frame 1358: 74 bytes on wire (592 bits), 74 bytes captured (592 bits) on interface 0
- Raw packet data
- Internet Protocol Version 4, Src: 10.250.0.2, Dst: 8.8.8.8
- User Datagram Protocol, Src Port: 61943, Dst Port: 53
- Domain Name System (query)
-     Transaction ID: 0xc969
-     Flags: 0x0120 Standard query
-         0... .... .... .... = Response: Message is a query
-         .000 0... .... .... = Opcode: Standard query (0)
-         .... ..0. .... .... = Truncated: Message is not truncated
-         .... ...1 .... .... = Recursion desired: Do query recursively
-         .... .... .0.. .... = Z: reserved (0)
-         .... .... ..1. .... = AD bit: Set
-         .... .... ...0 .... = Non-authenticated data: Unacceptable
-     Questions: 1
-     Answer RRs: 0
-     Authority RRs: 0
-     Additional RRs: 1
-     Queries
-         www.microsoft.com: type A, class IN
-             Name: www.microsoft.com
-             [Name Length: 17]
-             [Label Count: 3]
-             Type: A (Host Address) (1)
-             Class: IN (0x0001)
-     Additional records
-         <Root>: type OPT
-             Name: <Root>
-             Type: OPT (41)
-             UDP payload size: 4096
-             Higher bits in extended RCODE: 0x00
-             EDNS0 version: 0
-             Z: 0x0000
-                 0... .... .... .... = DO bit: Cannot handle DNSSEC security RRs
-                 .000 0000 0000 0000 = Reserved: 0x0000
-             Data length: 0
-     [Response In: 1361]
+    @Test func aa_clientSubnet_request() throws {
+        // 1e4e0120000100000000000106676f6f676c6503636f6d0000010001000029100000000000000b0008000700011500bd9f68
 
- 
- // ------------------------------------------------------------------------------------------------------------------------
- 
- response:
- "c9698180000100040000000103777777096d6963726f736f667403636f6d0000010001c00c000500010000060e002303777777096d6963726f736f667407636f6d2d632d3307656467656b6579036e657400c02f0005000100000369003703777777096d6963726f736f667407636f6d2d632d3307656467656b6579036e65740b676c6f62616c726564697206616b61646e73c04dc05e000500010000038400190665313336373804647363620a616b616d616965646765c04dc0a1000100010000000900041731360a0000290200000000000000"
- 
- Frame 1361: 241 bytes on wire (1928 bits), 241 bytes captured (1928 bits) on interface 0
- Raw packet data
- Internet Protocol Version 4, Src: 8.8.8.8, Dst: 10.250.0.2
- User Datagram Protocol, Src Port: 53, Dst Port: 61943
- Domain Name System (response)
-     Transaction ID: 0xc969
-     Flags: 0x8180 Standard query response, No error
-         1... .... .... .... = Response: Message is a response
-         .000 0... .... .... = Opcode: Standard query (0)
-         .... .0.. .... .... = Authoritative: Server is not an authority for domain
-         .... ..0. .... .... = Truncated: Message is not truncated
-         .... ...1 .... .... = Recursion desired: Do query recursively
-         .... .... 1... .... = Recursion available: Server can do recursive queries
-         .... .... .0.. .... = Z: reserved (0)
-         .... .... ..0. .... = Answer authenticated: Answer/authority portion was not authenticated by the server
-         .... .... ...0 .... = Non-authenticated data: Unacceptable
-         .... .... .... 0000 = Reply code: No error (0)
-     Questions: 1
-     Answer RRs: 4
-     Authority RRs: 0
-     Additional RRs: 1
-     Queries
-         www.microsoft.com: type A, class IN
-             Name: www.microsoft.com
-             [Name Length: 17]
-             [Label Count: 3]
-             Type: A (Host Address) (1)
-             Class: IN (0x0001)
-     Answers
-         www.microsoft.com: type CNAME, class IN, cname www.microsoft.com-c-3.edgekey.net
-             Name: www.microsoft.com
-             Type: CNAME (Canonical NAME for an alias) (5)
-             Class: IN (0x0001)
-             Time to live: 1550
-             Data length: 35
-             CNAME: www.microsoft.com-c-3.edgekey.net
-         www.microsoft.com-c-3.edgekey.net: type CNAME, class IN, cname www.microsoft.com-c-3.edgekey.net.globalredir.akadns.net
-             Name: www.microsoft.com-c-3.edgekey.net
-             Type: CNAME (Canonical NAME for an alias) (5)
-             Class: IN (0x0001)
-             Time to live: 873
-             Data length: 55
-             CNAME: www.microsoft.com-c-3.edgekey.net.globalredir.akadns.net
-         www.microsoft.com-c-3.edgekey.net.globalredir.akadns.net: type CNAME, class IN, cname e13678.dscb.akamaiedge.net
-             Name: www.microsoft.com-c-3.edgekey.net.globalredir.akadns.net
-             Type: CNAME (Canonical NAME for an alias) (5)
-             Class: IN (0x0001)
-             Time to live: 900
-             Data length: 25
-             CNAME: e13678.dscb.akamaiedge.net
-         e13678.dscb.akamaiedge.net: type A, class IN, addr 23.49.54.10
-             Name: e13678.dscb.akamaiedge.net
-             Type: A (Host Address) (1)
-             Class: IN (0x0001)
-             Time to live: 9
-             Data length: 4
-             Address: 23.49.54.10
-     Additional records
-         <Root>: type OPT
-             Name: <Root>
-             Type: OPT (41)
-             UDP payload size: 512
-             Higher bits in extended RCODE: 0x00
-             EDNS0 version: 0
-             Z: 0x0000
-                 0... .... .... .... = DO bit: Cannot handle DNSSEC security RRs
-                 .000 0000 0000 0000 = Reserved: 0x0000
-             Data length: 0
-     [Request In: 1358]
-     [Time: 0.118485000 seconds]
+        let data: Data = Data([
+            0x1e, 0x4e, 0x01, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x0b, 0x00, 0x08, 0x00, 0x07, 0x00, 0x01, 0x15, 0x00, 0xbd,
+            0x9f, 0x68,
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x1e4e, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 0)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 1)
+        
+        let expectedQuestion = QuestionSection(host: "google.com", type: .A, CLASS: .internet)
+        /*
+        EXT_RCODE=0, VERSION=0, DO=false
+        OPTIONS: Client Subnet: Family=1, SourceMask=21, ScopeMask=0, IP=189.159.104.0
+         */
+        let optRecord = ResourceRecord(name: "", ttl: 0, Class: DNSClass.unknown, type: DNSRecordType.OPT, value: "EXT_RCODE=0, VERSION=0, DO=false\nOPTIONS: Client Subnet: Family=1, SourceMask=21, ScopeMask=0, IP=189.159.104.0")
+        
+        guard let firstAdditional = parsedAnswer.Additional.first else {
+            Issue.record("first additional is nil")
+            return
+        }
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstAdditional == optRecord)
+        #expect(firstQuestion == expectedQuestion)
+        
+        print("\(parsedAnswer.Additional.first?.description ?? "<nil>")")
+    }
+    
+    @Test func aa_clientSubnet_response() throws {
+        // 1e4e8180000100010000000106676f6f676c6503636f6d0000010001c00c00010001000000af00048efab00e000029020000000000000b0008000700011511bd9f68
 
- 
- */
+        let data: Data = Data([
+            0x1e, 0x4e, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
+            0x00, 0xaf, 0x00, 0x04, 0x8e, 0xfa, 0xb0, 0x0e, 0x00, 0x00, 0x29, 0x02,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x08, 0x00, 0x07, 0x00,
+            0x01, 0x15, 0x11, 0xbd, 0x9f, 0x68,
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x1e4e, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 1)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 1)
+        
+        let expectedQuestion = QuestionSection(host: "google.com", type: .A, CLASS: .internet)
+        
+        // google.com.        175    IN    A    142.250.176.14
+        let expectedAnswer = ResourceRecord(name: "google.com", ttl: 175, Class: DNSClass.internet, type: DNSRecordType.A, value: "142.250.176.14")
+        
+        guard let firstAnswer = parsedAnswer.Answer.first else {
+            Issue.record("First answer is nil")
+            return
+        }
+        
+        /*
+        EXT_RCODE=0, VERSION=0, DO=false
+        OPTIONS: Client Subnet: Family=1, SourceMask=21, ScopeMask=17, IP=189.159.104.0
+         */
+        let optRecord = ResourceRecord(name: "", ttl: 0, Class: DNSClass.unknown, type: DNSRecordType.OPT, value: "EXT_RCODE=0, VERSION=0, DO=false\nOPTIONS: Client Subnet: Family=1, SourceMask=21, ScopeMask=17, IP=189.159.104.0")
+        
+        guard let firstAdditional = parsedAnswer.Additional.first else {
+            Issue.record("first additional is nil")
+            return
+        }
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstAnswer == expectedAnswer)
+        #expect(firstAdditional == optRecord)
+        #expect(firstQuestion == expectedQuestion)
+    }
+    
+    @Test func aaaa_clientSubnet_request() throws {
+        // 13b00120000100000000000106676f6f676c6503636f6d00001c0001000029100000000000000e0008000a000230002a11f2c0fff7
+
+        let data: Data = Data([
+            0x13, 0xb0, 0x01, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x1c, 0x00, 0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x0e, 0x00, 0x08, 0x00, 0x0a, 0x00, 0x02, 0x30, 0x00, 0x2a,
+            0x11, 0xf2, 0xc0, 0xff, 0xf7,
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x13b0, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 0)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 1)
+        
+        let expectedQuestion = QuestionSection(host: "google.com", type: .AAAA, CLASS: .internet)
+        /*
+        EXT_RCODE=0, VERSION=0, DO=false
+        OPTIONS: Client Subnet: Family=2, SourceMask=48, ScopeMask=0, IP=2a11:f2c0:fff7:0:0:0:0:0
+         */
+        let optRecord = ResourceRecord(name: "", ttl: 0, Class: DNSClass.unknown, type: DNSRecordType.OPT, value: "EXT_RCODE=0, VERSION=0, DO=false\nOPTIONS: Client Subnet: Family=2, SourceMask=48, ScopeMask=0, IP=2a11:f2c0:fff7:0:0:0:0:0")
+        
+        guard let firstAdditional = parsedAnswer.Additional.first else {
+            Issue.record("first additional is nil")
+            return
+        }
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstAdditional == optRecord)
+        #expect(firstQuestion == expectedQuestion)
+    }
+    
+    @Test func aaaa_clientSubnet_response() throws {
+        // 13b08180000100010000000106676f6f676c6503636f6d00001c0001c00c001c00010000012c00102a001450400e080e000000000000200e000029020000000000000e0008000a000230312a11f2c0fff7
+
+        let data: Data = Data([
+            0x13, 0xb0, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+            0x00, 0x1c, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x00,
+            0x01, 0x2c, 0x00, 0x10, 0x2a, 0x00, 0x14, 0x50, 0x40, 0x0e, 0x08, 0x0e,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x0e, 0x00, 0x00, 0x29, 0x02,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x08, 0x00, 0x0a, 0x00,
+            0x02, 0x30, 0x31, 0x2a, 0x11, 0xf2, 0xc0, 0xff, 0xf7,
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x13b0, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 1)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 1)
+        
+        let expectedQuestion = QuestionSection(host: "google.com", type: .AAAA, CLASS: .internet)
+        
+        // google.com.        300    IN    AAAA    2a00:1450:400e:80e::200e
+        let expectedAnswer = ResourceRecord(name: "google.com", ttl: 300, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2a00:1450:400e:80e:0:0:0:200e")
+        
+        guard let firstAnswer = parsedAnswer.Answer.first else {
+            Issue.record("First answer is nil")
+            return
+        }
+        
+        /*
+         EXT_RCODE=0, VERSION=0, DO=false
+         OPTIONS: Client Subnet: Family=2, SourceMask=48, ScopeMask=49, IP=2a11:f2c0:fff7:0:0:0:0:0
+         */
+        let optRecord = ResourceRecord(name: "", ttl: 0, Class: DNSClass.unknown, type: DNSRecordType.OPT, value: "EXT_RCODE=0, VERSION=0, DO=false\nOPTIONS: Client Subnet: Family=2, SourceMask=48, ScopeMask=49, IP=2a11:f2c0:fff7:0:0:0:0:0")
+        
+        guard let firstAdditional = parsedAnswer.Additional.first else {
+            Issue.record("first additional is nil")
+            return
+        }
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstAnswer == expectedAnswer)
+        #expect(firstAdditional == optRecord)
+        #expect(firstQuestion == expectedQuestion)
+    }
+
+    @Test func edns_cookie_request() throws {
+        // 68ae012000010000000000010830313030303131300378797a000001000100002904d000000000000c000a00085526d20e26f1dce8
+
+        let data: Data = Data([
+            0x68, 0xae, 0x01, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x08, 0x30, 0x31, 0x30, 0x30, 0x30, 0x31, 0x31, 0x30, 0x03, 0x78, 0x79,
+            0x7a, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x29, 0x04, 0xd0, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x0a, 0x00, 0x08, 0x55, 0x26, 0xd2,
+            0x0e, 0x26, 0xf1, 0xdc, 0xe8,
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        print(parsedAnswer.description)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x68ae, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 0)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 1)
+        
+        let expectedQuestion = QuestionSection(host: "01000110.xyz", type: .A, CLASS: .internet)
+        /*
+         EXT_RCODE=0, VERSION=0, DO=false
+        OPTIONS: Cookie: Client=5526d20e26f1dce8, Server=None
+         */
+        
+        let optRecord = ResourceRecord(name: "", ttl: 0, Class: DNSClass.unknown, type: DNSRecordType.OPT, value: "EXT_RCODE=0, VERSION=0, DO=false\nOPTIONS: Cookie: Client=5526d20e26f1dce8, Server=None")
+        
+        guard let firstAdditional = parsedAnswer.Additional.first else {
+            Issue.record("first additional is nil")
+            return
+        }
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(firstAdditional == optRecord)
+        #expect(firstQuestion == expectedQuestion)
+    }
+    
+    @Test func edns_cookie_response() throws {
+        // 68ae850000010001000300010830313030303131300378797a00000100010830313030303131300378797a00000100010000a8c0000442e42ebd0830313030303131300378797a0000020001000151800012036e7330086173323039323435036e6574000830313030303131300378797a0000020001000151800012036e7331086173323039323435036e6574000830313030303131300378797a0000020001000151800014096e732d676c6f62616c046b6a736c03636f6d0000002904d000000000000c000a00085526d20e26f1dce8
+
+        let data: Data = Data([
+            0x68, 0xae, 0x85, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03, 0x00, 0x01,
+            0x08, 0x30, 0x31, 0x30, 0x30, 0x30, 0x31, 0x31, 0x30, 0x03, 0x78, 0x79,
+            0x7a, 0x00, 0x00, 0x01, 0x00, 0x01, 0x08, 0x30, 0x31, 0x30, 0x30, 0x30,
+            0x31, 0x31, 0x30, 0x03, 0x78, 0x79, 0x7a, 0x00, 0x00, 0x01, 0x00, 0x01,
+            0x00, 0x00, 0xa8, 0xc0, 0x00, 0x04, 0x42, 0xe4, 0x2e, 0xbd, 0x08, 0x30,
+            0x31, 0x30, 0x30, 0x30, 0x31, 0x31, 0x30, 0x03, 0x78, 0x79, 0x7a, 0x00,
+            0x00, 0x02, 0x00, 0x01, 0x00, 0x01, 0x51, 0x80, 0x00, 0x12, 0x03, 0x6e,
+            0x73, 0x30, 0x08, 0x61, 0x73, 0x32, 0x30, 0x39, 0x32, 0x34, 0x35, 0x03,
+            0x6e, 0x65, 0x74, 0x00, 0x08, 0x30, 0x31, 0x30, 0x30, 0x30, 0x31, 0x31,
+            0x30, 0x03, 0x78, 0x79, 0x7a, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x01,
+            0x51, 0x80, 0x00, 0x12, 0x03, 0x6e, 0x73, 0x31, 0x08, 0x61, 0x73, 0x32,
+            0x30, 0x39, 0x32, 0x34, 0x35, 0x03, 0x6e, 0x65, 0x74, 0x00, 0x08, 0x30,
+            0x31, 0x30, 0x30, 0x30, 0x31, 0x31, 0x30, 0x03, 0x78, 0x79, 0x7a, 0x00,
+            0x00, 0x02, 0x00, 0x01, 0x00, 0x01, 0x51, 0x80, 0x00, 0x14, 0x09, 0x6e,
+            0x73, 0x2d, 0x67, 0x6c, 0x6f, 0x62, 0x61, 0x6c, 0x04, 0x6b, 0x6a, 0x73,
+            0x6c, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x00, 0x29, 0x04, 0xd0, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x0a, 0x00, 0x08, 0x55, 0x26, 0xd2,
+            0x0e, 0x26, 0xf1, 0xdc, 0xe8,
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        // print(parsedAnswer.description)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 1, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0x68ae, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 3, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 1)
+        #expect(parsedAnswer.Authority.count == 3)
+        #expect(parsedAnswer.Additional.count == 1)
+        
+        let expectedQuestion = QuestionSection(host: "01000110.xyz", type: .A, CLASS: .internet)
+        
+        /*
+         ;; ANSWER SECTION:
+         01000110.xyz.        43200    IN    A    66.228.46.189
+
+         ;; AUTHORITY SECTION:
+         01000110.xyz.        86400    IN    NS    ns0.as209245.net.
+         01000110.xyz.        86400    IN    NS    ns1.as209245.net.
+         01000110.xyz.        86400    IN    NS    ns-global.kjsl.com.
+         */
+        let expectedAnswer0 = ResourceRecord(name: "01000110.xyz", ttl: 86400, Class: .internet, type: .NS, value: "ns0.as209245.net")
+        let expectedAnswer1 = ResourceRecord(name: "01000110.xyz", ttl: 86400, Class: .internet, type: .NS, value: "ns1.as209245.net")
+        let expectedAnswer2 = ResourceRecord(name: "01000110.xyz", ttl: 86400, Class: .internet, type: .NS, value: "ns-global.kjsl.com")
+        
+        /*
+         EXT_RCODE=0, VERSION=0, DO=false
+         OPTIONS: "
+         */
+        let optRecord = ResourceRecord(name: "", ttl: 0, Class: DNSClass.unknown, type: DNSRecordType.OPT, value: "EXT_RCODE=0, VERSION=0, DO=false\nOPTIONS: Cookie: Client=5526d20e26f1dce8, Server=None")
+        
+        guard let firstAdditional = parsedAnswer.Additional.first else {
+            Issue.record("first additional is nil")
+            return
+        }
+        
+        guard let firstQuestion = parsedAnswer.Question.first else {
+            Issue.record("First question is nil")
+            return
+        }
+        
+        #expect(parsedAnswer.Authority[0] == expectedAnswer0)
+        #expect(parsedAnswer.Authority[1] == expectedAnswer1)
+        #expect(parsedAnswer.Authority[2] == expectedAnswer2)
+        #expect(firstAdditional == optRecord)
+        #expect(firstQuestion == expectedQuestion)
+    }
 
 }
