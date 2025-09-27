@@ -287,6 +287,13 @@ final public actor DNSClient: Sendable {
                     
                     // completion(.failure(DNSError.connectionFailed(error)))
                     return
+                case .cancelled:
+                    Task {
+                        await self.closeConnections()
+                        self.logger.error("[sendTCP] Connection cancelled. Restarting...")
+                        // restart the connection
+                        await self.sendTCP(message: message, completion: completion)
+                    }
                 case .waiting(let error):
                     self.logger.info("[sendTCP] Connection waiting", metadata: ["error": "\(error.localizedDescription)"])
                 case .preparing:
