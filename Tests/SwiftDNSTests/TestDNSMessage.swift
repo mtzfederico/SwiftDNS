@@ -1,5 +1,5 @@
 //
-//  TestDNSClient.swift
+//  TestDNSMessage.swift
 //  SwiftDNS
 //
 //  Created by mtzfederico on 2025-08-20
@@ -9,7 +9,7 @@ import Testing
 import Foundation
 @testable import SwiftDNS
 
-struct TestDNSClient {
+struct TestDNSMessage {
     @Test func query_A() throws {
         
         // 76 43
