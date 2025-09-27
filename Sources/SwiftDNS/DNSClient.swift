@@ -72,6 +72,7 @@ final public actor DNSClient: Sendable {
         }
     }
     
+    #warning("make sure this works properly and doesn't crash the app")
     deinit {
         Task { [self] in
             await self.closeConnections()
@@ -89,7 +90,7 @@ final public actor DNSClient: Sendable {
     ///   - Class: The class to query
     /// - Returns: The DNS response
     @available(macOS 10.15, iOS 13.0, *)
-    public func query(host: String, type: DNSRecordType, Class: DNSClass) async throws -> DNSMessage {
+    public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet) async throws -> DNSMessage {
         if host.isEmpty || !host.isDNSSafe {
             throw DNSError.invalidDomainName
         }
@@ -119,7 +120,7 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    public func query(host: String, type: DNSRecordType, Class: DNSClass, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+    public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         do {
             if host.isEmpty || !host.isDNSSafe {
                 completion(.failure(DNSError.invalidDomainName))
@@ -155,7 +156,7 @@ final public actor DNSClient: Sendable {
     }
     
     private func startConnection() throws {
-        if isConnected { return }
+        // if isConnected { return }
         guard let connection else {
             throw DNSError.connectionIsNil
         }
@@ -210,14 +211,13 @@ final public actor DNSClient: Sendable {
                     connection.send(content: data, completion: .contentProcessed { sendError in
                         if let error = sendError {
                             #warning("if the connection fails, it should be restarted. Add some logic to only run this a few times")
-                            connection.cancel()
                             Task {
-                                await self.setConnected(false)
+                                await self.closeConnections()
+                                self.logger.error("[sendTCP] Send failed. Restarting...",  metadata: ["error": "\(error.localizedDescription)"])
+                                // restart the connection
+                                await self.sendTCP(message: message, completion: completion)
                             }
                             
-                            self.logger.error("[sendTCP] Connection failed. Restarting...",  metadata: ["error": "\(error.localizedDescription)"])
-                            // restart the connection
-                            self.sendTCP(message: message, completion: completion)
                             return
                             
                             // completion(.failure(DNSError.connectionFailed(error)))
@@ -274,11 +274,18 @@ final public actor DNSClient: Sendable {
                         }
                     })
                 case .failed(let error):
+                    #warning("make sure this works")
                     // _Concurrency/CheckedContinuation.swift:196: Fatal error: SWIFT TASK CONTINUATION MISUSE: query(host:type:Class:) tried to resume its continuation more than once, throwing connectionFailed(POSIXErrorCode(rawValue: 54): Connection reset by peer)!
                     
                     // if error  == POSIXErrorCode(rawValue: 54) { }
+                    Task {
+                        await self.closeConnections()
+                        self.logger.error("[sendTCP] Connection failed. Restarting...",  metadata: ["error": "\(error.localizedDescription)"])
+                        // restart the connection
+                        await self.sendTCP(message: message, completion: completion)
+                    }
                     
-                    completion(.failure(DNSError.connectionFailed(error)))
+                    // completion(.failure(DNSError.connectionFailed(error)))
                     return
                 case .waiting(let error):
                     self.logger.info("[sendTCP] Connection waiting", metadata: ["error": "\(error.localizedDescription)"])
