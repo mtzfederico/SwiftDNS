@@ -2,7 +2,7 @@
 //  EDNSOptionCode.swift
 //  SwiftDNS
 //
-//  Created by FedeMtz on 2025-10-04
+//  Created by mtzfederico on 2025-10-04
 // 
 
 import Foundation
@@ -17,20 +17,22 @@ public enum EDNSOptionCode: UInt16, Sendable {
     case DAU = 5
     case DHU = 6
     case N3U = 7
+    // https://datatracker.ietf.org/doc/html/rfc7871
     case ClientSubnet = 8
     case EDNSExpire = 9
+    // https://datatracker.ietf.org/doc/html/rfc7873
     case COOKIE = 10
     case KeepAlive = 11
     case Padding = 12
-    // https://www.rfc-editor.org/rfc/rfc8914.html
+    // https://datatracker.ietf.org/doc/html/rfc8914
     case ExtendedDNSError = 15
     case unknown
     
-    public init(from decoder: Decoder) throws {
+    public init?(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let type = try container.decode(UInt16.self)
         
-        self.init(rawValue: type)!
+        self.init(rawValue: type)
     }
     
     /// A short user-friendly string that describes the EDNS Option Code
@@ -38,13 +40,13 @@ public enum EDNSOptionCode: UInt16, Sendable {
         switch self {
         case .reserved: return "RESERVED"
         case .LLQ: return "LLQ"
-        case .updateLease: <#code#>
+        case .updateLease: return "Update Lease"
         case .NSID: return "NSID"
         case .DAU: return "DAU"
         case .DHU: return "DHU"
         case .N3U: return "N3U"
         case .ClientSubnet: return "Client Subnet"
-        case .EDNSExpire: <#code#>
+        case .EDNSExpire: return "EDNS Expire"
         case .COOKIE: return "Cookie"
         case .KeepAlive: return "KeepAlive"
         case .Padding: return "Padding"

@@ -2,12 +2,12 @@
 //  EDNSExtendedError.swift
 //  SwiftDNS
 //
-//  Created by FedeMtz on 2025-10-04
+//  Created by mtzfederico on 2025-10-04
 // 
 
 import Foundation
 
-/// The extended DNS Extended DNS Codes  as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#extended-dns-error-codes)
+/// The extended DNS Extended DNS Codes as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#extended-dns-error-codes)
 public enum EDNSExtendedError: UInt16, Decodable, Equatable, Sendable, LosslessStringConvertible {
     case otherError = 0
     case unsupportedDNSKEYAlgorithm = 1
@@ -112,19 +112,19 @@ public enum EDNSExtendedError: UInt16, Decodable, Equatable, Sendable, LosslessS
                 let regex = try NSRegularExpression(pattern: pattern, options: [])
                 if let result = regex.firstMatch(in: description, options: [], range: NSRange(description.startIndex..., in: description)) {
                     if let range = Range(result.range(at: 1), in: description) {
-                        guard let value = UInt16(description[range]) else {
-                            return nil
+                        if let value = UInt16(description[range]) {
+                            self.init(rawValue: value)
                         }
-                        self.init(rawValue: value)
                     }
                 }
+                return nil
             } catch {
                 return nil
             }
         }
     }
     
-    /// A short string that represents the RCode
+    /// A short string that represents the error
     public var displayName: String {
         switch self {
         case .otherError:
@@ -194,7 +194,7 @@ public enum EDNSExtendedError: UInt16, Decodable, Equatable, Sendable, LosslessS
         }
     }
     
-    /// A short user-friendly string that describes the RCode
+    /// A short user-friendly string that describes the error
     public var description: String {
         switch self {
         case .otherError:
