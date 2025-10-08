@@ -8,7 +8,7 @@
 import Foundation
 
 /// The data format used for the answer, authority, and additional sections of a DNS packet.
-public struct ResourceRecord: Sendable {
+public struct ResourceRecord: Sendable, Equatable {
     /*
      The answer, authority, and additional sections share the same format.
      There is a variable number of resource records, the number of
@@ -57,14 +57,13 @@ public struct ResourceRecord: Sendable {
     
     /// Returns the decoded response
     public init(data: Data, offset: inout Int) throws {
-        let (domainName, domainLength) = DNSClient.parseDomainName(data: data, offset: offset)
+        let (domainName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
         // print("[decodeResourceRecord] domain name: \(domainName), length: \(domainLength). at offset: \(offset)")
         offset += domainLength
         
         // Read TYPE, CLASS, TTL, RDLENGTH
         guard offset + 10 <= data.count else {
-            // print("[decodeResourceRecord] Offset over bounds. offset: \(offset), data.count: \(data.count)")
-            throw DNSError.invalidData("Offset over bounds for TYPE, CLASS, TTL, and RDLENGTH")
+            throw DNSError.invalidData("Offset (\(offset)) over bounds (\(data.count)) for TYPE, CLASS, TTL, and RDLENGTH")
         }
         
         let rawType = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
@@ -73,10 +72,13 @@ public struct ResourceRecord: Sendable {
             throw DNSError.parsingError(DNSError.invalidData("Failed to parse TYPE: '\(rawType)'"))
         }
         
+        if type == .OPT {
+            throw DNSError.invalidData("OPT_RECORD")
+        }
+        
         offset += 2 // type
         
         let rawClass = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
-        
         offset += 2 // class
         let ttl = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4 // ttl
@@ -85,100 +87,13 @@ public struct ResourceRecord: Sendable {
         // print("[decodeResourceRecord] rdlength: \(rdlength). at offset: \(offset)")
         offset += 2 // rdLength
         
-        if type == .OPT {
-            guard offset + Int(rdlength) <= data.count else {
-                // print("Failed to parse OPT record: offset out of bounds")
-                offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("Failed to parse OPT record: offset out of bounds"))
-            }
-
-            let start = offset
-            // https://www.rfc-editor.org/rfc/rfc6891#section-6.1.2
-            //
-            // +------------+--------------+------------------------------+
-            // | Field Name | Field Type   | Description                  |
-            // +------------+--------------+------------------------------+
-            // | NAME       | domain name  | MUST be 0 (root domain)      |
-            // | TYPE       | u_int16_t    | OPT (41)                     |
-            // | CLASS      | u_int16_t    | requestor's UDP payload size |
-            // | TTL        | u_int32_t    | extended RCODE and flags     |
-            // | RDLEN      | u_int16_t    | length of all RDATA          |
-            // | RDATA      | octet stream | {attribute,value} pairs      |
-            // +------------+--------------+------------------------------+
-            //
-            
-            // if domainName != "" { }
-            
-            // TTL Format:
-            //
-            //           +0 (MSB)                            +1 (LSB)
-            // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-            //  0: |         EXTENDED-RCODE        |            VERSION        |
-            // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-            // 2: | DO|                           Z                            |
-            // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-            //
-            
-            /// Forms the upper 8 bits of extended 12-bit RCODE (together with the 4 bits defined in [RFC1035].  Note that EXTENDED-RCODE value 0 indicates that an unextended RCODE is in use (values 0 through 15).
-            let extendedRcode = UInt8((ttl & 0xFF00_0000) >> 24)
-            /// Indicates the implementation level of the setter.  Full conformance with this specification is indicated by version '0'.
-            ///
-            /// Requestors are encouraged to set this to the lowest implemented level capable of expressing a transaction, to minimise the responder and network load of discovering the greatest common implementation level between requestor and responder.
-            /// A requestor's version numbering strategy MAY ideally be a run-time configuration option.
-            /// If a responder does not implement the VERSION level of the request, then it MUST respond with RCODE=BADVERS.
-            /// All responses MUST be limited in format to the VERSION level of the request, but the VERSION of each response SHOULD be the highest implementation level of the responder.  In this way, a requestor will learn the implementation level of a responder as a side effect of every response, including error responses and including RCODE=BADVERS.
-            let ednsVersion = UInt8((ttl & 0x00FF_0000) >> 16)
-            /// Set to zero by senders and ignored by receivers, unless modified in a subsequent specification.
-            let zField = UInt16(ttl & 0x0000_FFFF)
-
-            /// DNSSEC OK bit as defined by [RFC3225](https://www.rfc-editor.org/rfc/rfc3225).
-            let doBit = (zField & 0x8000) != 0
-            
-            // var rdataOffset = 0
-            
-            var options: [String] = []
-            
-            let end = start + Int(rdlength)
-            while offset + 4 <= end {
-                // Read OPTION-CODE
-                let rawOptionCode = data.subdata(in: offset..<offset+2).withUnsafeBytes {
-                    $0.load(as: UInt16.self).bigEndian
-                }
-                offset += 2
-                
-                // Read OPTION-LENGTH
-                let optionLength = data.subdata(in: offset..<offset+2).withUnsafeBytes {
-                    $0.load(as: UInt16.self).bigEndian
-                }
-                offset += 2
-                
-                // Check that the data is within the length
-                guard offset + Int(optionLength) <= end else {
-                    throw DNSError.parsingError(DNSError.invalidData("edns option length out of bounds"))
-                }
-                
-                // Read OPTION-DATA
-                let optionData = data.subdata(in: offset..<offset+Int(optionLength))
-                offset += Int(optionLength)
-                
-                guard let optionCode = EDNSOptionCode(rawValue: rawOptionCode) else {
-                    throw DNSError.invalidData("invalid EDNS option code: '\(rawOptionCode)'")
-                }
-                
-                let decoded = ResourceRecord.decodeEDNSOption(code: optionCode, data: optionData)
-
-                options.append("\(optionCode.description): \(decoded)")
-            }
-            
-            let value: String = "EXT_RCODE=\(extendedRcode), VERSION=\(ednsVersion), DO=\(doBit)\nOPTIONS: \(options.joined(separator: "\n"))"
-            
-            self = ResourceRecord(name: domainName, ttl: 0, Class: .unknown, type: type, value: value)
-            return
-        } // if type == OPT ends
-        
         guard let Class = DNSClass(rawValue: rawClass) else {
             // print("[decodeResourceRecord] Failed to parse CLASS. offset: \(offset)")
             throw DNSError.invalidData("Failed to parse CLASS: '\(rawClass)'")
+        }
+        
+        guard rdlength <= data.count - offset else {
+            throw DNSError.invalidData("RDLength is smaller than the data length. RDLength: \(rdlength), Data Length: \(data.count-offset)")
         }
         
         switch type {
@@ -238,7 +153,7 @@ public struct ResourceRecord: Sendable {
                 $0.load(as: UInt16.self).bigEndian
             }
 
-            let (domain, _) = DNSClient.parseDomainName(data: data, offset: offset + 2)
+            let (domain, _) = try DNSClient.parseDomainName(data: data, offset: offset + 2)
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(preference) \(domain)")
             return
@@ -253,7 +168,7 @@ public struct ResourceRecord: Sendable {
                 offset += Int(rdlength)
                 throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
             }
-            let (domain, _) = DNSClient.parseDomainName(data: data, offset: offset)
+            let (domain, _) = try DNSClient.parseDomainName(data: data, offset: offset)
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: domain)
             return
@@ -311,7 +226,7 @@ public struct ResourceRecord: Sendable {
             let port = try data.readUInt16(at: offset)
             offset += 2
 
-            let (target, targetLen) = DNSClient.parseDomainName(data: data, offset: offset)
+            let (target, targetLen) = try DNSClient.parseDomainName(data: data, offset: offset)
             offset += targetLen
 
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(priority) \(weight) \(port) \(target)")
@@ -331,13 +246,13 @@ public struct ResourceRecord: Sendable {
             }
 
             let start = offset
-
+            
             // Parse MNAME
-            let (mname, mnameLen) = DNSClient.parseDomainName(data: data, offset: offset)
+            let (mname, mnameLen) = try DNSClient.parseDomainName(data: data, offset: offset)
             offset += mnameLen
 
             // Parse RNAME
-            let (rname, rnameLen) = DNSClient.parseDomainName(data: data, offset: offset)
+            let (rname, rnameLen) = try DNSClient.parseDomainName(data: data, offset: offset)
             offset += rnameLen
 
             // Check remaining size
@@ -345,7 +260,7 @@ public struct ResourceRecord: Sendable {
             guard remaining >= 20 else {
                 // print("SOA RDATA too short after domain names")
                 offset = start + Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("soa rdata too short after domain names"))
+                throw DNSError.parsingError(DNSError.invalidData("soa rdata too short after domain names: \(remaining) bytes left"))
             }
 
             // Parse the 5 UInt32 values
@@ -386,81 +301,13 @@ public struct ResourceRecord: Sendable {
         }
     }
     
-    /// Decodes an EDNS Option and returns it as a string
-    /// - Parameters:
-    ///   - code: The EDNS Option Code
-    ///   - data: The data representing the EDNS Option Code's data
-    /// - Returns: A string with the contents of the EDNS Option Code
-    private static func decodeEDNSOption(code: EDNSOptionCode, data: Data) -> String {
-        switch code {
-        case .COOKIE:
-            if data.count < 8 {
-                return "Invalid COOKIE option (too short)"
-            }
-            
-            let clientCookie = data.subdata(in: 0..<8).map { String(format: "%02x", $0) }.joined()
-            let serverCookie = data.count > 8 ? data.subdata(in: 8..<data.count).map { String(format: "%02x", $0) }.joined() : "None"
-            
-            return "Client=\(clientCookie), Server=\(serverCookie)"
-        case .ClientSubnet:
-            guard data.count >= 4 else { return "Invalid Client Subnet option (too short)" }
-            print("[decodeEDNSOption]: ClientSubnet. data: \(data.hexEncodedString())")
-            
-            let family = UInt16(bigEndian: data.subdata(in: 0..<2).withUnsafeBytes { $0.load(as: UInt16.self) })
-            let sourceMask = data[2]
-            let scopeMask = data[3]
-            
-            let addressBytes = data.subdata(in: 4..<data.count)
-            
-            let ipString: String
-            if family == 1 {
-                
-                // IPv4
-                // Adds missing octets set to zero to make sure that they are printed
-                let paddedAddress = addressBytes + Data(repeating: 0, count: max(0, 4 - addressBytes.count))
-                ipString = paddedAddress.map { String($0) }.joined(separator: ".")
-                // ipString = addressBytes.prefix(4).map { String($0) }.joined(separator: ".")
-            } else if family == 2 {
-                // IPv6
-                // Adds missing hextets set to zero to make sure that they are printed
-                let paddedAddress = addressBytes + Data(repeating: 0, count: max(0, 16 - addressBytes.count))
-                
-                var segments: [String] = []
-                for i in stride(from: 0, to: paddedAddress.count, by: 2) {
-                    let part = (UInt16(paddedAddress[i]) << 8) | UInt16(paddedAddress[i + 1])
-                    segments.append(String(format: "%x", part))
-                }
-                
-                ipString = segments.joined(separator: ":")
-            } else {
-                ipString = "Failed to parse address. '\(addressBytes.hexEncodedString())'"
-            }
-            
-            return "Family=\(family), SourceMask=\(sourceMask), ScopeMask=\(scopeMask), IP=\(ipString)"
-        case .KeepAlive:
-            #warning("needs testing")
-            guard data.count == 2 else { return "Invalid KEEPALIVE option" }
-            
-            let timeout = UInt16(bigEndian: data.withUnsafeBytes { $0.load(as: UInt16.self) })
-            return "Timeout=\(timeout) ms"
-        case .Padding:
-            #warning("needs testing")
-            return "Padding (\(data.count) bytes)"
-        default:
-            if let str = String(data: data, encoding: .utf8), str.isPrintable {
-                return str
-            }
-            // fallback to hex representation
-            return data.map { String(format: "%02x", $0) }.joined(separator: " ")
-        }
-    }
-
-    
-    // Gets complicated with compression
-    /*
-    public func toData() throws -> Data {
-        var bytes: Data = DNSClient.encodeDomainName(name: self.name)
+    /// Returns the data of the ResourceRecord
+    internal func toData(messageLength: Int, nameOffsets: inout [String: Int]) throws -> Data {
+        var bytes: Data = try DNSMessage.encodeDomainName(name: self.name, messageLength: messageLength, nameOffsets: &nameOffsets)
         
+        guard type != .OPT else {
+            throw DNSError.invalidData("Use EDNSMessage for OPT records")
+        }
         var qtype: UInt16 = type.rawValue.bigEndian
         bytes.append(Data(bytes: &qtype, count: 2))
         
@@ -470,17 +317,125 @@ public struct ResourceRecord: Sendable {
         var ttl: UInt32 = ttl.bigEndian
         bytes.append(Data(bytes: &ttl, count: 4))
         
-        guard let rdata: Data = value.data(using: .utf8) else {
-            throw DNSError.parsingError(DNSError.invalidData)
+        /// It is the position where the data ends. The current position of the "writer".
+        /// It is used to know where to point to when compressing
+        var offset = messageLength + bytes.count
+        
+        // Increase the offset by the length of the RDLength
+        offset += 2
+        
+        var rdata: Data = Data()
+        
+        switch self.type {
+        case .A:
+            let octets = self.value.split(separator: ".").compactMap { UInt8($0) }
+            guard octets.count == 4 else {
+                throw DNSError.parsingError(DNSError.invalidData("Invalid A record IP: \(value)"))
+            }
+            rdata.append(contentsOf: octets)
+        case .AAAA:
+            var dst = in6_addr()
+            let success = self.value.withCString { cstr in
+                inet_pton(AF_INET6, cstr, &dst)
+            }
+            
+            guard success == 1 else {
+                throw DNSError.parsingError(DNSError.invalidData("Invalid IPv6 address: '\(self.value)'"))
+            }
+            
+            // Convert in6_addr to Data (16 bytes)
+            rdata.append(Data(bytes: &dst, count: MemoryLayout<in6_addr>.size))
+        case .CNAME, .NS, .PTR:
+            // rdlength offset +2 was here
+            let domain = try DNSMessage.encodeDomainName(name: self.value, messageLength: offset, nameOffsets: &nameOffsets)
+            print("[RR toData] CNAME/NS/PTR encodedDomain: \(domain.hexEncodedString()) | length: \(domain.count)")
+            offset += domain.count
+            rdata.append(domain)
+        case .MX:
+            let parts = self.value.split(separator: " ", maxSplits: 1)
+            guard parts.count == 2, let preference = UInt16(parts[0]) else {
+                throw DNSError.parsingError(DNSError.invalidData("Invalid MX record value: \(value)"))
+            }
+            
+            var pref: UInt16 = preference.bigEndian
+            rdata.append(Data(bytes: &pref, count: 2))
+            offset += 2 // rdata.count
+            #warning("look at cname above")
+            rdata.append(try DNSMessage.encodeDomainName(name: String(parts[1]), messageLength: offset, nameOffsets: &nameOffsets))
+        case .TXT:
+            let txtBytes = Array(self.value.utf8)
+            guard txtBytes.count <= 255 else {
+                throw DNSError.parsingError(DNSError.invalidData("TXT record too long"))
+            }
+            rdata.append(UInt8(txtBytes.count))
+            rdata.append(contentsOf: txtBytes)
+        case .SRV:
+            let values = value.split(separator: " ")
+            guard values.count == 4 else {
+                throw DNSError.invalidData("SRV record value must contain 4 values separated by space")
+            }
+
+            // priority
+            rdata.append(contentsOf: withUnsafeBytes(of: UInt16(values[0])!.bigEndian) { Data($0) })
+            
+            // weight
+            rdata.append(contentsOf: withUnsafeBytes(of: UInt16(values[1])!.bigEndian) { Data($0) })
+            
+            // port
+            rdata.append(contentsOf: withUnsafeBytes(of: UInt16(values[2])!.bigEndian) { Data($0) })
+            
+            // target
+            offset += rdata.count
+            rdata.append(try DNSMessage.encodeDomainName(name: String(values[3]), messageLength: offset, nameOffsets: &nameOffsets))
+            // rdata.append(try QuestionSection.encodeDomainName(name: String(values[3])))
+        case .SOA:
+            let values = value.split(separator: " ")
+            guard values.count == 7 else {
+                throw DNSError.invalidData("SOA record value must contain 7 values separated by space")
+            }
+            
+            guard let serial = UInt32(values[2]), let refresh = UInt32(values[3]), let retry = UInt32(values[4]), let expire = UInt32(values[5]), let minimum = UInt32(values[6]) else {
+                throw DNSError.invalidData("SOA record values must be convertible to UInt32")
+            }
+            
+            print("nameOffsets before mname: \(nameOffsets)")
+            
+            let MNAME = String(values[0])
+            let encodedMNAME = try DNSMessage.encodeDomainName(name: MNAME, messageLength: offset, nameOffsets: &nameOffsets)
+            print("nameOffsets after mname: \(nameOffsets)")
+            offset += encodedMNAME.count
+            rdata.append(encodedMNAME)
+            
+            let RNAME = String(values[1])
+            let encodedRNAME = try DNSMessage.encodeDomainName(name: RNAME, messageLength: offset, nameOffsets: &nameOffsets)
+            print("nameOffsets after rname: \(nameOffsets)")
+            offset += encodedRNAME.count
+            rdata.append(encodedRNAME)
+            
+            rdata.append(contentsOf: withUnsafeBytes(of: serial.bigEndian) { Data($0) })
+            
+            rdata.append(contentsOf: withUnsafeBytes(of: refresh.bigEndian) { Data($0) })
+            
+            rdata.append(contentsOf: withUnsafeBytes(of: retry.bigEndian) { Data($0) })
+            
+            rdata.append(contentsOf: withUnsafeBytes(of: expire.bigEndian) { Data($0) })
+            
+            rdata.append(contentsOf: withUnsafeBytes(of: minimum.bigEndian) { Data($0) })
+        default:
+            // raw UTF-8 string
+            guard let fallback = self.value.data(using: .utf8) else {
+                throw DNSError.parsingError(DNSError.invalidData("Could not encode RDATA for \(type)"))
+            }
+            rdata.append(fallback)
         }
         
-        var rdlength: UInt16 = UInt16(rdata.count).bigEndian
-        bytes.append(Data(bytes: &rdlength, count: 2))
-        
+        let rdlength: UInt16 = UInt16(rdata.count).bigEndian
+        // bytes.append(Data(bytes: &rdlength, count: 2))
+        bytes.append(contentsOf: withUnsafeBytes(of: rdlength) { Data($0) })
         bytes.append(rdata)
         
         return bytes
-    }*/
+    }
     
     /// Returns a string with the Name, TTL, Class, Type, and Value
     public var description: String {
@@ -489,51 +444,5 @@ public struct ResourceRecord: Sendable {
     
     public static func ==(lhs: ResourceRecord, rhs: ResourceRecord) -> Bool {
         return lhs.name == rhs.name && lhs.ttl == rhs.ttl && lhs.Class == rhs.Class && lhs.type == rhs.type && lhs.value == rhs.value
-    }
-}
-
-/// The EDNS Options Codes
-/// [Defined by iana](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11)
-enum EDNSOptionCode: UInt16 {
-    case reserved = 0
-    case LLQ = 1
-    case NSID = 3
-    case DAU = 5
-    case DHU = 6
-    case N3U = 7
-    case ClientSubnet = 8
-    case COOKIE = 10
-    case KeepAlive = 11
-    case Padding = 12
-    case ExtendedDNSError = 15
-    case unknown
-    
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let type = try container.decode(UInt16.self)
-        
-        self.init(rawValue: type)!
-    }
-    
-    /// A short user-friendly string that describes the EDNS Option Code
-    public var description: String {
-        switch self {
-        case .reserved: return "RESERVED"
-        case .LLQ: return "LLQ"
-        case .NSID: return "NSID"
-        case .DAU: return "DAU"
-        case .DHU: return "DHU"
-        case .N3U: return "N3U"
-        case .ClientSubnet: return "Client Subnet"
-        case .COOKIE: return "Cookie"
-        case .KeepAlive: return "KeepAlive"
-        case .Padding: return "Padding"
-        case .ExtendedDNSError: return "ExtendedDNSError"
-        case .unknown: return "Unkown: '\(self.rawValue)'"
-        }
-    }
-    
-    public static func == (lhs: EDNSOptionCode, rhs: EDNSOptionCode) -> Bool {
-        return lhs.rawValue == rhs.rawValue
     }
 }
