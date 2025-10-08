@@ -172,6 +172,7 @@ final public actor DNSClient: Sendable {
     
     /// Closes all connections  gracefully.
     public func closeConnections() {
+        logger.trace("Closing Connection")
         self.connection?.cancel()
         setConnected(false)
     }
@@ -290,6 +291,8 @@ final public actor DNSClient: Sendable {
                 case .cancelled:
                     Task {
                         await self.closeConnections()
+                        #warning("check this")
+                        // maybe setConnected(false)
                         self.logger.error("[sendTCP] Connection cancelled. Restarting...")
                         // restart the connection
                         await self.sendTCP(message: message, completion: completion)
@@ -455,7 +458,7 @@ final public actor DNSClient: Sendable {
     ///   - data: The data where the domain is
     ///   - offset: the offset to start parsing the data at
     /// - Returns: The domain parsed and the length. The offset can be increased by the length to keep parsing the data
-    public static func parseDomainName(data: Data, offset: Int) -> (String, Int) {
+    public static func parseDomainName(data: Data, offset: Int) throws -> (String, Int) {
         var labels: [String] = []
         var currentOffset = offset
         var consumed = 0
@@ -472,17 +475,22 @@ final public actor DNSClient: Sendable {
             // Compressed label (pointer: 11xx xxxx)
             // https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4
             if length & 0xC0 == 0xC0 {
-                if currentOffset + 1 >= data.count { break }
+                // TODO: handle pointer loops
+                if currentOffset + 1 >= data.count {
+                    throw DNSError.invalidData("Name pointer over bounds")
+                }
                 let byte2 = Int(data[currentOffset + 1])
                 let pointer = ((length & 0x3F) << 8) | byte2
-                let (jumpedName, _) = parseDomainName(data: data, offset: pointer)
+                let (jumpedName, _) = try parseDomainName(data: data, offset: pointer)
                 labels.append(jumpedName)
                 consumed = currentOffset - offset + 2
                 break
             } else {
                 let labelStart = currentOffset + 1
                 let labelEnd = labelStart + length
-                guard labelEnd <= data.count else { break }
+                guard labelEnd <= data.count else {
+                    throw DNSError.invalidData("End of Name label (\(labelEnd)) over bounds (\(data.count)). offset: \(offset), currentOffset: \(currentOffset)")
+                }
                 let labelData = data[labelStart..<labelEnd]
                 if let label = String(data: labelData, encoding: .utf8) {
                     labels.append(label)
@@ -493,31 +501,5 @@ final public actor DNSClient: Sendable {
         }
 
         return (labels.joined(separator: "."), consumed)
-    }
-    
-    /// Encodes a domain name
-    /// - Parameter name: The domain name to encode
-    /// - Returns: The domaiin name encoded
-    public static func encodeDomainName(name: String) -> Data {
-        // labels          63 octets or less
-        // names           255 octets or less
-        //
-        // 4.1.4. Message compression:
-        // In compression, the first two bits are ones.  This allows a pointer to be distinguished
-        // from a label, since the label must begin with two zero bits because
-        // labels are restricted to 63 octets or less.  (The 10 and 01 combinations
-        // are reserved for future use.)
-        
-        var bytes = Data()
-        
-        let labels = name.split(separator: ".")
-        for label in labels {
-            let length = UInt8(label.count)
-            bytes.append(length)
-            bytes.append(contentsOf: label.utf8)
-        }
-        
-        bytes.append(0) // End of domain name
-        return bytes
     }
 }
