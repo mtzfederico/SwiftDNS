@@ -457,7 +457,7 @@ final public actor DNSClient: Sendable {
     /// - Parameters:
     ///   - data: The data where the domain is
     ///   - offset: the offset to start parsing the data at
-    /// - Returns: The domain parsed and the length. The offset can be increased by the length to keep parsing the data
+    /// - Returns: The domain parsed and the length (the ammount of bytes consumed). The offset can be increased by the length to know where to continue parsing the data
     public static func parseDomainName(data: Data, offset: Int) throws -> (String, Int) {
         var labels: [String] = []
         var currentOffset = offset
