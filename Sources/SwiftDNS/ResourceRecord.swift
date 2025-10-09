@@ -6,6 +6,7 @@
 // 
 
 import Foundation
+import Network
 
 /// The data format used for the answer, authority, and additional sections of a DNS packet.
 public struct ResourceRecord: Sendable, Equatable {
@@ -73,6 +74,7 @@ public struct ResourceRecord: Sendable, Equatable {
         }
         
         if type == .OPT {
+            offset -= domainLength
             throw DNSError.invalidData("OPT_RECORD")
         }
         
@@ -294,7 +296,7 @@ public struct ResourceRecord: Sendable, Equatable {
             if let str = String(data: rdata, encoding: .utf8), str.isPrintable {
                 value = str
             } else {
-                value = rdata.map { String(format: "%02x", $0) }.joined(separator: " ")
+                value = "0x\(rdata.hexEncodedString())"
             }
             
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
@@ -334,21 +336,14 @@ public struct ResourceRecord: Sendable, Equatable {
             }
             rdata.append(contentsOf: octets)
         case .AAAA:
-            var dst = in6_addr()
-            let success = self.value.withCString { cstr in
-                inet_pton(AF_INET6, cstr, &dst)
+            guard let ipv6 = IPv6Address(self.value) else {
+                throw DNSError.parsingError(DNSError.invalidData("Invalid IPv6 address: \(self.value)"))
             }
             
-            guard success == 1 else {
-                throw DNSError.parsingError(DNSError.invalidData("Invalid IPv6 address: '\(self.value)'"))
-            }
-            
-            // Convert in6_addr to Data (16 bytes)
-            rdata.append(Data(bytes: &dst, count: MemoryLayout<in6_addr>.size))
+            rdata.append(contentsOf: ipv6.rawValue)
         case .CNAME, .NS, .PTR:
             // rdlength offset +2 was here
             let domain = try DNSMessage.encodeDomainName(name: self.value, messageLength: offset, nameOffsets: &nameOffsets)
-            print("[RR toData] CNAME/NS/PTR encodedDomain: \(domain.hexEncodedString()) | length: \(domain.count)")
             offset += domain.count
             rdata.append(domain)
         case .MX:
@@ -422,11 +417,14 @@ public struct ResourceRecord: Sendable, Equatable {
             
             rdata.append(contentsOf: withUnsafeBytes(of: minimum.bigEndian) { Data($0) })
         default:
-            // raw UTF-8 string
-            guard let fallback = self.value.data(using: .utf8) else {
-                throw DNSError.parsingError(DNSError.invalidData("Could not encode RDATA for \(type)"))
+            if self.value.hasPrefix("0x") {
+                rdata.append(try Data(hex: String(self.value.dropFirst(2))))
+            } else {
+                guard let string = self.value.data(using: .utf8) else {
+                    throw DNSError.parsingError(DNSError.invalidData("Could not encode RDATA for \(type) as utf8"))
+                }
+                rdata.append(string)
             }
-            rdata.append(fallback)
         }
         
         let rdlength: UInt16 = UInt16(rdata.count).bigEndian
