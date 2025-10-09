@@ -9,7 +9,11 @@ import Foundation
 
 /// The EDNS data as defined in [RFC 6891](https://www.rfc-editor.org/rfc/rfc6891)
 public struct EDNSMessage: Sendable {
-    /// The max UDP payload size. The default value is 1232 as recommended by [DNS Flag Day 2020](https://www.dnsflagday.net/2020/)
+    /// The max UDP payload size
+    ///
+    /// The default value is 1232 bytes as recommended by [DNS Flag Day 2020](https://www.dnsflagday.net/2020/)
+    ///
+    /// In [RFC1035](https://www.rfc-editor.org/rfc/rfc1035), the limit is 512 bytes
     public let udpPayloadSize: UInt16
     public let extendedRcode: UInt8
     public let version: UInt8
@@ -29,10 +33,12 @@ public struct EDNSMessage: Sendable {
     }
     
     public init(data: Data, offset: inout Int) throws {
-        // let (domainName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
-        offset += 0 // domainLength
+        let (domainName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
+        offset += domainLength
         
-        // if domainName != "" { }
+        if domainLength != 1 {
+            throw DNSError.invalidData("OPT record has a non-null label: '\(domainName)'")
+        }
         
         // Read TYPE, CLASS, TTL, RDLENGTH
         guard offset + 10 <= data.count else {
@@ -41,8 +47,10 @@ public struct EDNSMessage: Sendable {
             throw DNSError.invalidData("Offset (\(offset)) over bounds (\(data.count)) for TYPE, CLASS, TTL, and RDLENGTH")
         }
         
-        // let rawType = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
-        // type must be == 41
+        let rawType = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+        if rawType != 41 {
+            throw DNSError.invalidData("Record Type is not OPT: '\(rawType)'")
+        }
         
         offset += 2 // type
         
@@ -57,7 +65,7 @@ public struct EDNSMessage: Sendable {
         
         guard offset + Int(rdlength) <= data.count else {
             offset += Int(rdlength)
-            throw DNSError.parsingError(DNSError.invalidData("Failed to parse OPT record: offset (\(offset)) out of bounds (\(data.count))"))
+            throw DNSError.parsingError(DNSError.invalidData("Failed to parse OPT record: offset (\(offset + Int(rdlength))) out of bounds (\(data.count))"))
         }
 
         let start = offset
