@@ -68,10 +68,7 @@ public struct ResourceRecord: Sendable, Equatable {
         }
         
         let rawType = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
-        guard let type = DNSRecordType(rawValue: rawType) else {
-            // print("[decodeResourceRecord] Failed to parse TYPE. offset: \(offset)")
-            throw DNSError.parsingError(DNSError.invalidData("Failed to parse TYPE: '\(rawType)'"))
-        }
+        let type = DNSRecordType(rawType)
         
         if type == .OPT {
             offset -= domainLength
@@ -159,7 +156,7 @@ public struct ResourceRecord: Sendable, Equatable {
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(preference) \(domain)")
             return
-        case .CNAME, .NS, .PTR:
+        case .NS, .CNAME, .PTR, .DNAME:
             guard rdlength >= 2 else { // was 3, but it breaks CNAMES pointing to the root. www.example.net --> example.net
                 offset += Int(rdlength)
                 throw DNSError.parsingError(DNSError.invalidData("rdlength too small for \(type.description) record: '\(rdlength)'"))
@@ -208,32 +205,6 @@ public struct ResourceRecord: Sendable, Equatable {
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
             return
-        case .SRV:
-            guard rdlength >= 7 else {
-                offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for SRV record: '\(rdlength)'"))
-            }
-            
-            guard offset + Int(rdlength) <= data.count else {
-                offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
-            }
-
-            let priority = try data.readUInt16(at: offset)
-            offset += 2
-            
-            let weight = try data.readUInt16(at: offset)
-            offset += 2
-            
-            let port = try data.readUInt16(at: offset)
-            offset += 2
-
-            let (target, targetLen) = try DNSClient.parseDomainName(data: data, offset: offset)
-            offset += targetLen
-
-            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(priority) \(weight) \(port) \(target)")
-            return
-            
         case .SOA:
             /*
             guard rdlength >= 4 else {
@@ -279,6 +250,172 @@ public struct ResourceRecord: Sendable, Equatable {
 
             let value = "\(mname) \(rname) \(serial) \(refresh) \(retry) \(expire) \(minimum)"
 
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
+            return
+        case .SRV:
+            guard rdlength >= 7 else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for SRV record: '\(rdlength)'"))
+            }
+            
+            guard offset + Int(rdlength) <= data.count else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+            }
+
+            let priority = try data.readUInt16(at: offset)
+            offset += 2
+            
+            let weight = try data.readUInt16(at: offset)
+            offset += 2
+            
+            let port = try data.readUInt16(at: offset)
+            offset += 2
+
+            let (target, targetLen) = try DNSClient.parseDomainName(data: data, offset: offset)
+            offset += targetLen
+
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(priority) \(weight) \(port) \(target)")
+            return
+        case .DS:
+            let keyTag = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+            offset += 2
+            
+            let algorithm: UInt8 = data[offset]
+            offset += 1
+            
+            let digestType: UInt8 = data[offset]
+            offset += 1
+            
+            guard digestType == 1 else {
+                throw DNSError.invalidData("Digest Type for DS record not suported: \(digestType)")
+            }
+            
+            // SHA-1 (digest type 1) is 20 bytes long
+            // https://www.rfc-editor.org/rfc/rfc4034.html#section-5.1.4
+            let digest = data.subdata(in: offset..<offset+20).hexEncodedString()
+            offset += 20
+            
+            let value = "\(keyTag) \(algorithm) \(digestType) \(digest)"
+
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
+            return
+        case .SSHFP:
+            guard rdlength >= 2 else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for SSHFP record: '\(rdlength)'"))
+            }
+            
+            guard offset + Int(rdlength) <= data.count else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+            }
+            
+            let algorithm: UInt8 = data[offset]
+            offset += 1
+            
+            let fingerprintType: UInt8 = data[offset]
+            offset += 1
+            
+            let range = offset..<offset+Int(rdlength-2)
+            let fingerprint = data.subdata(in: range)
+            offset += Int(rdlength)
+            
+            let value = "\(algorithm) \(fingerprintType) \(fingerprint.hexEncodedString())"
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
+            return
+        case .RRSIG:
+            let typeCovered = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+            offset += 2
+            
+            let algorithm: UInt8 = data[offset]
+            offset += 1
+            
+            let labels: UInt8 = data[offset]
+            offset += 1
+            
+            let originalTTL = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
+            offset += 4
+            
+            let signatureExpiration = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
+            offset += 4
+            
+            let signatureInception = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
+            offset += 4
+            
+            let keyTag = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+            offset += 2
+            
+            let (signerName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
+            offset += domainLength
+            
+            // depends on the algorithm
+            let signature = data.subdata(in: offset..<Int(rdlength))
+            offset += signature.count
+            
+            let value = "\(typeCovered) \(algorithm) \(labels) \(originalTTL) \(signatureExpiration) \(signatureInception) \(keyTag) \(signerName) \(signature.base64EncodedString())"
+            
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
+            return
+        case .NSEC:
+            // decode the name with no compression
+            let (nextDomainName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
+            offset += domainLength
+            
+            let typeBitMapsLength = Int(rdlength) - offset
+            
+            guard data.count >= (offset + typeBitMapsLength) else {
+                throw DNSError.invalidData("Failed to parse NSEC record: offset (\(offset + typeBitMapsLength)) out of bounds (\(data.count))")
+            }
+            
+            var types: [String] = []
+            
+            let max = offset + typeBitMapsLength
+            while offset < max {
+                let blockNumber = data[offset]
+                offset += 1
+                let bitmapLength = data[offset]
+                offset += 1
+                let bitmap = data.subdata(in: offset..<offset+Int(bitmapLength))
+                let count = bitmap.count
+                offset += Int(count)
+                
+                for (i, byte) in bitmap.enumerated() {
+                    for bit in 0..<8 {
+                        if byte & (1 << (7 - bit)) != 0 {
+                            let typeCode = UInt16(blockNumber) * 256 + UInt16(i * 8 + bit)
+                            print("blockNumber: \(blockNumber), bitmapLength: \(bitmapLength), typeCode: \(typeCode)")
+                            let type = DNSRecordType(typeCode)
+                            types.append(type.description)
+                        }
+                    }
+                }
+            }
+            
+            let value = "\(nextDomainName) \(types.joined(separator: " "))"
+            
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
+            return
+        case .DNSKEY:
+            let flags = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+            offset += 2
+            
+            let Protocol: UInt8 = data[offset]
+            offset += 1
+            
+            guard Protocol == 3 else {
+                throw DNSError.invalidData("Protocol for DNSKEY record must be 3: \(Protocol)")
+            }
+            
+            let algorithm: UInt8 = data[offset]
+            offset += 1
+            
+            let publicKey = data.subdata(in: offset..<offset + Int(rdlength-4))
+            print("pubkey: \(publicKey.hexEncodedString())")
+            offset += publicKey.count
+            
+            let value = "\(flags) \(Protocol) \(algorithm) \(publicKey.base64EncodedString())"
+            
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
             return
         default:
@@ -352,11 +489,11 @@ public struct ResourceRecord: Sendable, Equatable {
                 throw DNSError.parsingError(DNSError.invalidData("Invalid MX record value: \(value)"))
             }
             
-            var pref: UInt16 = preference.bigEndian
-            rdata.append(Data(bytes: &pref, count: 2))
-            offset += 2 // rdata.count
-            #warning("look at cname above")
-            rdata.append(try DNSMessage.encodeDomainName(name: String(parts[1]), messageLength: offset, nameOffsets: &nameOffsets))
+            rdata.append(contentsOf: withUnsafeBytes(of: preference.bigEndian) { Data($0) })
+            offset += 2
+            let domain = try DNSMessage.encodeDomainName(name: String(parts[1]), messageLength: offset, nameOffsets: &nameOffsets)
+            rdata.append(domain)
+            offset += domain.count
         case .TXT:
             let txtBytes = Array(self.value.utf8)
             guard txtBytes.count <= 255 else {
@@ -364,6 +501,36 @@ public struct ResourceRecord: Sendable, Equatable {
             }
             rdata.append(UInt8(txtBytes.count))
             rdata.append(contentsOf: txtBytes)
+        case .SOA:
+            let values = value.split(separator: " ")
+            guard values.count == 7 else {
+                throw DNSError.invalidData("SOA record value must contain 7 values separated by space")
+            }
+            
+            guard let serial = UInt32(values[2]), let refresh = UInt32(values[3]), let retry = UInt32(values[4]), let expire = UInt32(values[5]), let minimum = UInt32(values[6]) else {
+                throw DNSError.invalidData("SOA record values must be convertible to UInt32")
+            }
+            
+            let MNAME = String(values[0])
+            let encodedMNAME = try DNSMessage.encodeDomainName(name: MNAME, messageLength: offset, nameOffsets: &nameOffsets)
+            offset += encodedMNAME.count
+            rdata.append(encodedMNAME)
+            
+            let RNAME = String(values[1])
+            let encodedRNAME = try DNSMessage.encodeDomainName(name: RNAME, messageLength: offset, nameOffsets: &nameOffsets)
+            rdata.append(encodedRNAME)
+            offset += encodedRNAME.count
+            
+            rdata.append(contentsOf: withUnsafeBytes(of: serial.bigEndian) { Data($0) })
+            offset += 4
+            rdata.append(contentsOf: withUnsafeBytes(of: refresh.bigEndian) { Data($0) })
+            offset += 4
+            rdata.append(contentsOf: withUnsafeBytes(of: retry.bigEndian) { Data($0) })
+            offset += 4
+            rdata.append(contentsOf: withUnsafeBytes(of: expire.bigEndian) { Data($0) })
+            offset += 4
+            rdata.append(contentsOf: withUnsafeBytes(of: minimum.bigEndian) { Data($0) })
+            offset += 4
         case .SRV:
             let values = value.split(separator: " ")
             guard values.count == 4 else {
@@ -383,39 +550,157 @@ public struct ResourceRecord: Sendable, Equatable {
             offset += rdata.count
             rdata.append(try DNSMessage.encodeDomainName(name: String(values[3]), messageLength: offset, nameOffsets: &nameOffsets))
             // rdata.append(try QuestionSection.encodeDomainName(name: String(values[3])))
-        case .SOA:
+        case .DS:
             let values = value.split(separator: " ")
-            guard values.count == 7 else {
-                throw DNSError.invalidData("SOA record value must contain 7 values separated by space")
+            guard values.count == 4 else {
+                throw DNSError.invalidData("DS record value must contain 4 values separated by space. Contains \(values.count) values")
             }
             
-            guard let serial = UInt32(values[2]), let refresh = UInt32(values[3]), let retry = UInt32(values[4]), let expire = UInt32(values[5]), let minimum = UInt32(values[6]) else {
-                throw DNSError.invalidData("SOA record values must be convertible to UInt32")
+            guard let keyTag = UInt16(values[0]), let algorithm = UInt8(values[1]), let digestType = UInt8(values[2]) else {
+                throw DNSError.invalidData("Failed to parse DS record")
             }
             
-            print("nameOffsets before mname: \(nameOffsets)")
+            guard digestType == 1 else {
+                throw DNSError.invalidData("Digest Type for DS record not suported: \(digestType)")
+            }
             
-            let MNAME = String(values[0])
-            let encodedMNAME = try DNSMessage.encodeDomainName(name: MNAME, messageLength: offset, nameOffsets: &nameOffsets)
-            print("nameOffsets after mname: \(nameOffsets)")
-            offset += encodedMNAME.count
-            rdata.append(encodedMNAME)
+            rdata.append(contentsOf: withUnsafeBytes(of: keyTag.bigEndian) { Data($0) })
+            offset += 2
             
-            let RNAME = String(values[1])
-            let encodedRNAME = try DNSMessage.encodeDomainName(name: RNAME, messageLength: offset, nameOffsets: &nameOffsets)
-            print("nameOffsets after rname: \(nameOffsets)")
-            offset += encodedRNAME.count
-            rdata.append(encodedRNAME)
+            rdata.append(contentsOf: withUnsafeBytes(of: algorithm.bigEndian) { Data($0) })
+            offset += 1
             
-            rdata.append(contentsOf: withUnsafeBytes(of: serial.bigEndian) { Data($0) })
+            rdata.append(contentsOf: withUnsafeBytes(of: digestType.bigEndian) { Data($0) })
+            offset += 1
             
-            rdata.append(contentsOf: withUnsafeBytes(of: refresh.bigEndian) { Data($0) })
+            let digest = try Data(hex: values[3...values.count-1].joined())
+            rdata.append(contentsOf: digest)
+            offset += digest.count
+        case .SSHFP:
+            let values = value.split(separator: " ")
+            guard values.count == 3 else {
+                throw DNSError.invalidData("SSHFP record value must contain 4 values separated by space. Contains \(values.count) values")
+            }
             
-            rdata.append(contentsOf: withUnsafeBytes(of: retry.bigEndian) { Data($0) })
+            guard let algorithm = UInt8(values[0]), let fingerprintType = UInt8(values[1]) else {
+                throw DNSError.invalidData("Failed to parse SSHFP record")
+            }
             
-            rdata.append(contentsOf: withUnsafeBytes(of: expire.bigEndian) { Data($0) })
+            rdata.append(algorithm)
+            // rdata[offset] = algorithm
+            offset += 1
             
-            rdata.append(contentsOf: withUnsafeBytes(of: minimum.bigEndian) { Data($0) })
+            rdata.append(fingerprintType)
+            // rdata[offset] = fingerprintType
+            offset += 1
+            
+            let fingerprint = try Data(hex: String(values[2]))
+            offset += fingerprint.count
+            rdata.append(contentsOf: fingerprint)
+         /*
+        case .RRSIG:
+            let typeCovered = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+            offset += 2
+            
+            let algorithm: UInt8 = data[offset]
+            offset += 1
+            
+            let labels: UInt8 = data[offset]
+            offset += 1
+            
+            let originalTTL = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
+            offset += 4
+            
+            let signatureExpiration = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
+            offset += 4
+            
+            let signatureInception = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
+            offset += 4
+            
+            let keyTag = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+            offset += 2
+            
+            let (signerName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
+            offset += domainLength
+            
+            // depends on the algorithm
+            let signature = data.subdata(in: offset..<Int(rdlength))
+            offset += signature.count
+            
+            let value = "\(typeCovered) \(algorithm) \(labels) \(originalTTL) \(signatureExpiration) \(signatureInception) \(keyTag) \(signerName) \(signature.base64EncodedString())"
+            
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
+            return
+         */
+        case .NSEC:
+            let values = value.split(separator: " ")
+            guard values.count >= 2 else {
+                throw DNSError.invalidData("DS record value must contain 4 values separated by space. Contains: \(values.count) values")
+            }
+            
+            // encode the name with no compression
+            let name = try QuestionSection.encodeDomainName(name: String(values[0]))
+            rdata.append(name)
+            offset += name.count
+            
+            // blockNumber → bitmap bytes
+            var blocks: [UInt8: [UInt8]] = [:] // [UInt8: [UInt8]]()
+            
+            try values.dropFirst().forEach { value in
+                var rawType: UInt16 = 0
+                let strValue = String(value)
+                guard let type = DNSRecordType(strValue) else {
+                    throw DNSError.invalidData("Failed to parse NSEC record: unknown type: \(strValue)")
+                }
+                rawType = type.rawValue
+                
+                let block = UInt8(rawType / 256)
+                let offset = Int(rawType % 256)
+                let byteIndex = offset / 8
+                let bitIndex = 7 - (offset % 8)
+                
+                var bitmap = blocks[block] ?? Array(repeating: 0, count: byteIndex + 1)
+                if bitmap.count <= byteIndex {
+                    bitmap += Array(repeating: 0, count: byteIndex - bitmap.count + 1)
+                }
+                
+                bitmap[byteIndex] |= (1 << bitIndex)
+                blocks[block] = bitmap
+            }
+            
+            for block in blocks.keys.sorted() {
+                let bitmap = blocks[block]!
+                rdata.append(block)
+                rdata.append(UInt8(bitmap.count))
+                rdata.append(contentsOf: bitmap)
+            }
+        case .DNSKEY:
+            let values = value.split(separator: " ")
+            guard values.count == 4 else {
+                throw DNSError.invalidData("DNSKEY record value must contain 4 values separated by space. Contains: \(values.count) values")
+            }
+            
+            guard let flags = UInt16(values[0]), let Protocol = UInt8(values[1]), let algorithm = UInt8(values[2]), let publicKey = Data(base64Encoded: String(values[3])) else {
+                throw DNSError.invalidData("Failed to parse DNSKEY record")
+            }
+            
+            guard Protocol == 3 else {
+                throw DNSError.invalidData("Protocol for DNSKEY record must be 3: \(Protocol)")
+            }
+            
+            print("pubkey_out: \(publicKey.hexEncodedString())")
+            
+            rdata.append(contentsOf: withUnsafeBytes(of: flags.bigEndian) { Data($0) })
+            offset += 2
+            
+            rdata.append(Protocol.bigEndian)
+            offset += 1
+            
+            rdata.append(algorithm.bigEndian)
+            offset += 1
+            
+            rdata.append(contentsOf: publicKey)
+            offset += publicKey.count
         default:
             if self.value.hasPrefix("0x") {
                 rdata.append(try Data(hex: String(self.value.dropFirst(2))))
@@ -428,8 +713,8 @@ public struct ResourceRecord: Sendable, Equatable {
         }
         
         let rdlength: UInt16 = UInt16(rdata.count).bigEndian
-        // bytes.append(Data(bytes: &rdlength, count: 2))
         bytes.append(contentsOf: withUnsafeBytes(of: rdlength) { Data($0) })
+        // The length of the RDLength is added to the offset before the switch
         bytes.append(rdata)
         
         return bytes
@@ -437,7 +722,7 @@ public struct ResourceRecord: Sendable, Equatable {
     
     /// Returns a string with the Name, TTL, Class, Type, and Value
     public var description: String {
-        return "\(name) \(ttl) \(Class.displayName) \(type) \(value)"
+        return "\(name) \(ttl) \(Class.description) \(type) \(value)"
     }
     
     public static func ==(lhs: ResourceRecord, rhs: ResourceRecord) -> Bool {
