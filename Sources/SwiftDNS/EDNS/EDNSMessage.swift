@@ -23,7 +23,7 @@ public struct EDNSMessage: Sendable {
     /// The EDNS options
     public let options: [EDNSOption]
     
-    init(extendedRcode: UInt8, version: UInt8, zField: UInt16, doBit: Bool, options: [EDNSOption], udpPayloadSize: UInt16 = 1232) {
+    public init(extendedRcode: UInt8, version: UInt8, zField: UInt16, doBit: Bool, options: [EDNSOption], udpPayloadSize: UInt16 = 1232) {
         self.udpPayloadSize = udpPayloadSize
         self.extendedRcode = extendedRcode
         self.version = version
