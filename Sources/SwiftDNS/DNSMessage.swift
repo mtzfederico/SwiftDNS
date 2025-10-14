@@ -8,6 +8,10 @@
 import Foundation
 
 /// A DNS response
+///
+/// It represents a DNS Message that includes the DNS header alongside, Questions, Answers, Authority, and Additional records.
+///
+/// EDNS data (which uses an OPT additional record) is stored as an `EDNSMessage`.
 public struct DNSMessage: Sendable {
     /// The DNS response headers
     public var header: DNSHeader
@@ -23,7 +27,9 @@ public struct DNSMessage: Sendable {
     public var Authority: [ResourceRecord] = []
     /// The additional records section
     public var Additional: [ResourceRecord] = []
-    
+    /// The optional EDNS Data
+    ///
+    /// Defined in [RFC6891](https://www.rfc-editor.org/rfc/rfc6891.html)
     public var EDNSData: EDNSMessage?
     
     public init(header: DNSHeader, Question: [QuestionSection], Answer: [ResourceRecord], Authority: [ResourceRecord], Additional: [ResourceRecord], EDNSData: EDNSMessage? = nil) {
@@ -41,7 +47,7 @@ public struct DNSMessage: Sendable {
     public init(data: Data) throws {
         // Make sure that there is enough data for the header.
         // 6 sections of 2 bytes (16 bits) = 6 * 2 = 12
-        guard data.count > 12 else {
+        guard data.count >= 12 else {
             throw DNSError.invalidData("DNS data too small. Cannot parse header.")
         }
         

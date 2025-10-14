@@ -163,6 +163,22 @@ struct TestFlags {
         
         #expect(rawFlags == encodedFlags)
     }
+    
+    /// Tests the Z bit
+    @Test func testDNSFlags8() throws {
+        let rawFlags: UInt16 = 0b0_0000_0_0_1_0_010_1011
+        let parsedFlags = try DNSHeader.DNSFlags(from: rawFlags)
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, z: 2, rcode: 11)
+        
+        #expect(parsedFlags == expectedFlags)
+        
+        // -------------
+        
+        let encodedFlags = expectedFlags.toRaw()
+        
+        #expect(rawFlags == encodedFlags)
+    }
 }
 
 

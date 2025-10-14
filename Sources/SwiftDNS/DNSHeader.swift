@@ -86,7 +86,7 @@ public struct DNSHeader: Sendable {
         /// Reserved for future use. 3 bits long.  Must be zero in all queries and responses.
         public var z: UInt16 = 0
         /// Response code - this 4 bit field is set as part of responses.
-        public var rcode: DNSResponseCode = DNSResponseCode(rawValue: 0)!
+        public var rcode: DNSResponseCode = .NoError
         
         public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16) throws {
             self.qr = qr
@@ -95,12 +95,7 @@ public struct DNSHeader: Sendable {
             self.tc = tc
             self.rd = rd
             self.ra = ra
-            // self.ad = ad
-            // self.cd = cd
-            guard let rc = DNSResponseCode(rawValue: rcode) else {
-                throw DNSError.invalidData("Invalid RCODE: '\(rcode)'")
-            }
-            self.rcode = rc
+            self.rcode = DNSResponseCode(rcode)
         }
         
         public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, z: UInt16, rcode: UInt16) throws {
@@ -116,11 +111,23 @@ public struct DNSHeader: Sendable {
             }
             self.z = z
             
-            guard let rc = DNSResponseCode(rawValue: rcode) else {
-                throw DNSError.invalidData("Invalid RCODE: '\(rcode)'")
+            self.rcode = DNSResponseCode(rcode)
+        }
+        
+        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, z: UInt16, rcode: DNSResponseCode) throws {
+            self.qr = qr
+            self.opcode = opcode
+            self.aa = aa
+            self.tc = tc
+            self.rd = rd
+            self.ra = ra
+            // Z is 3 bits long
+            guard z <= 7 else {
+                throw DNSError.invalidData("z value too big")
             }
-            self.rcode = rc
+            self.z = z
             
+            self.rcode = rcode
         }
 
         public init(from raw: UInt16) throws {
@@ -156,10 +163,7 @@ public struct DNSHeader: Sendable {
             // 4 bit
             // 0000 0000 0000 1111
             let rawRcode: UInt16 = (raw & 0x000F)
-            guard let rc = DNSResponseCode(rawValue: rawRcode) else {
-                throw DNSError.invalidData("Invalid RCODE: '\(raw)'")
-            }
-            rcode = rc
+            rcode = DNSResponseCode(rawRcode)
         }
 
         /// Returns the flags as a UInt16
@@ -183,28 +187,123 @@ public struct DNSHeader: Sendable {
 }
 
 /// The DNS RCode as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6)
-public enum DNSResponseCode: UInt16, Equatable, Sendable {
-    case NoError = 0
-    case FormErr = 1
-    case ServFail = 2
-    case NXDomain = 3
-    case NotImp = 4
-    case Refused = 5
-    case YXDomain = 6
-    case YXRRSet = 7
-    case NXRRSet = 8
-    case NotAuth = 9
-    case NotZone = 10
-    case DSOTYPENI = 11
-    case BADSIG = 16
-    case BADKEY = 17
-    case BADTIME = 18
-    case BADMODE = 19
-    case BADNAME = 20
-    case BADALG = 21
-    case BADTRUNC = 22
-    case BADCOOKIE = 23
-    case unknown
+public enum DNSResponseCode: Equatable, Sendable {
+    case NoError // = 0
+    case FormErr // = 1
+    case ServFail // = 2
+    case NXDomain // = 3
+    case NotImp // = 4
+    case Refused // = 5
+    case YXDomain // = 6
+    case YXRRSet // = 7
+    case NXRRSet // = 8
+    case NotAuth // = 9
+    case NotZone // = 10
+    case DSOTYPENI // = 11
+    // The next ones are in EDNS
+    case BADSIG // = 16
+    case BADKEY // = 17
+    case BADTIME // = 18
+    case BADMODE // = 19
+    case BADNAME // = 20
+    case BADALG // = 21
+    case BADTRUNC // = 22
+    case BADCOOKIE // = 23
+    case unknown(UInt16)
+    
+    public init(_ value: UInt16) {
+        switch value {
+        case 0:
+            self = .NoError
+        case 1:
+            self = .FormErr
+        case 2:
+            self = .ServFail
+        case 3:
+            self = .NXDomain
+        case 4:
+            self = .NotImp
+        case 5:
+            self = .Refused
+        case 6:
+            self = .YXDomain
+        case 7:
+            self = .YXRRSet
+        case 8:
+            self = .NXRRSet
+        case 9:
+            self = .NotAuth
+        case 10:
+            self = .NotZone
+        case 11:
+            self = .DSOTYPENI
+        case 16:
+            self = .BADSIG
+        case 17:
+            self = .BADKEY
+        case 18:
+            self = .BADTIME
+        case 19:
+            self = .BADMODE
+        case 20:
+            self = .BADNAME
+        case 21:
+            self = .BADALG
+        case 22:
+            self = .BADTRUNC
+        case 23:
+            self = .BADCOOKIE
+        default:
+            self = .unknown(value)
+        }
+    }
+    
+    public var rawValue: UInt16 {
+        switch self {
+        case .NoError:
+            return 0
+        case .FormErr:
+            return 1
+        case .ServFail:
+            return 2
+        case .NXDomain:
+            return 3
+        case .NotImp:
+            return 4
+        case .Refused:
+            return 5
+        case .YXDomain:
+            return 6
+        case .YXRRSet:
+            return 7
+        case .NXRRSet:
+            return 8
+        case .NotAuth:
+            return 9
+        case .NotZone:
+            return 10
+        case .DSOTYPENI:
+            return 11
+        case .BADSIG:
+            return 16
+        case .BADKEY:
+            return 17
+        case .BADTIME:
+            return 18
+        case .BADMODE:
+            return 19
+        case .BADNAME:
+            return 20
+        case .BADALG:
+            return 21
+        case .BADTRUNC:
+            return 22
+        case .BADCOOKIE:
+            return 23
+        case .unknown(let value):
+            return value
+        }
+    }
     
     /// A short string that represents the RCode
     public var displayName: String {
@@ -249,12 +348,12 @@ public enum DNSResponseCode: UInt16, Equatable, Sendable {
             return "BADTRUNC"
         case .BADCOOKIE:
             return "BADCOOKIE"
-        case .unknown:
-            return "Unkown '\(rawValue)'"
+        case .unknown(let value):
+            return "Unkown '\(value)'"
         }
     }
     
-    /// A short user-friendly string that describes the RCode
+    /// A  user-friendly string that describes the RCode
     public var description: String {
         switch self {
         case .NoError:
@@ -297,8 +396,8 @@ public enum DNSResponseCode: UInt16, Equatable, Sendable {
             return "Bad Truncation"
         case .BADCOOKIE:
             return "Bad/missing Server Cookie"
-        case .unknown:
-            return "unknown. Value: '\(rawValue)'"
+        case .unknown(let value):
+            return "unknown. Value: '\(value)'"
         }
     }
     

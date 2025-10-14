@@ -1407,4 +1407,33 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority[2] == expectedAnswer2)
         #expect(ednsRecord == expectedEDNS)
     }
+    
+    /// Tests parsing a DNSMessage that is only a DNS Header
+    @Test func onlyHeader() throws {
+
+        let data: Data = Data([
+            0xe8, 0x88, 0x81, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        let dataOut = try parsedAnswer.toData()
+        #expect(dataOut == data)
+        // print("dataOut: \(dataOut.hexEncodedString())\ndata:    \(data.hexEncodedString())")
+        
+        // print(parsedAnswer.description)
+        
+        // -------
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedHeader = DNSHeader(id: 0xe888, flags: expectedFlags, QDCOUNT: 0, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 0)
+        #expect(parsedAnswer.Answer.count == 0)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 0)
+        
+    }
 }
