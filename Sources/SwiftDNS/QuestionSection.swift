@@ -38,10 +38,7 @@ public struct QuestionSection: Sendable, Equatable {
         
         offset += 2 // type
         
-        guard let Class = DNSClass(rawValue: try data.readUInt16(at: offset)) else {
-            // print("[decodeQuestion] Failed to parse CLASS. offset: \(offset), data.count: \(data.count)")
-            throw DNSError.parsingError(DNSError.invalidData("failed to parse question CLASS"))
-        }
+        let Class = DNSClass(try data.readUInt16(at: offset))
         
         offset += 2 // class
         

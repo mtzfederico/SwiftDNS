@@ -31,6 +31,26 @@ struct TestResourceRecord {
         #expect(DNSRecordType("type128") == type128)
     }
     
+    @Test func classFromString() {
+        for type in DNSClass.allCases {
+            let description = type.description
+            #expect(DNSClass(description) == type)
+            #expect(DNSClass(description.lowercased()) == type)
+        }
+    }
+    
+    @Test func classFromValue() {
+        for type in DNSClass.allCases {
+            #expect(DNSClass(type.rawValue) == type)
+        }
+        
+        // Test an unknown value
+        let type128 = DNSClass.unknown(128)
+        #expect(type128.description == "CLASS128")
+        #expect(DNSClass("CLASS128") == type128)
+        #expect(DNSClass("class128") == type128)
+    }
+    
     /// Parse an A record
     @Test func A() throws {
         let data: Data = Data([
@@ -591,5 +611,38 @@ struct TestResourceRecord {
     // HTTPS 65
     @Test func HTTPS() throws {
         #expect(false)
+    }
+    
+    // Tests an unknown type with code 123
+    @Test func unknown123() throws {
+        // example.com.    3600    IN    TYPE123    256 3 13 oJMRESz5E4gYzS/q6XDrvU1qMPYIjCWzJaOau8XNEZeqCYKD5ar0IRd8 KqXXFJkqmVfRvMGPmM1x8fGAa2XhSA==
+        
+        let data: Data = Data([
+            0x07,
+            0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,               // example
+            0x03,
+            0x63, 0x6f, 0x6d,                                       // com
+            0x00,
+            0x00, 0x7b,                                             // type 123
+            0x00, 0x01,                                             // class in
+            0x00, 0x00, 0x0e, 0x10,                                 // TTL = 3600
+            0x00, 0x38,                                             // rdlength = 56
+            0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x2C, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64,
+            0x21, 0x20, 0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x61, 0x6E,
+            0x20, 0x75, 0x6E, 0x6B, 0x6E, 0x6F, 0x77, 0x6E, 0x20, 0x52, 0x65, 0x73,
+            0x6F, 0x75, 0x72, 0x63, 0x65, 0x20, 0x52, 0x65, 0x63, 0x6F, 0x72, 0x64,
+            0x27, 0x73, 0x20, 0x52, 0x44, 0x41, 0x54, 0x41,
+        ])
+        
+        var offset = 0
+        let parsedRR = try ResourceRecord(data: data, offset: &offset)
+        
+        let expectedRR = ResourceRecord(name: "example.com", ttl: 3600, Class: .internet, type: .unknown(123), value: "\\# 56 48656c6c6f2c20576f726c6421205468697320697320616e20756e6b6e6f776e205265736f75726365205265636f72642773205244415441")
+        #expect(parsedRR == expectedRR)
+        
+        var nameOffsets: [String: Int] = [:]
+        let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
+        print("rrOut: \(rrOut.hexEncodedString())")
+        #expect(rrOut == data)
     }
 }

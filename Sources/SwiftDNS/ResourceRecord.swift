@@ -86,10 +86,7 @@ public struct ResourceRecord: Sendable, Equatable {
         // print("[decodeResourceRecord] rdlength: \(rdlength). at offset: \(offset)")
         offset += 2 // rdLength
         
-        guard let Class = DNSClass(rawValue: rawClass) else {
-            // print("[decodeResourceRecord] Failed to parse CLASS. offset: \(offset)")
-            throw DNSError.invalidData("Failed to parse CLASS: '\(rawClass)'")
-        }
+        let Class = DNSClass(rawClass)
         
         guard rdlength <= data.count - offset else {
             throw DNSError.invalidData("RDLength is smaller than the data length. RDLength: \(rdlength), Data Length: \(data.count-offset)")
@@ -428,13 +425,7 @@ public struct ResourceRecord: Sendable, Equatable {
             let rdata = data.subdata(in: offset..<offset+Int(rdlength))
             offset += Int(rdlength)
             
-            // decode as string, fallback to hex
-            let value: String
-            if let str = String(data: rdata, encoding: .utf8), str.isPrintable {
-                value = str
-            } else {
-                value = "0x\(rdata.hexEncodedString())"
-            }
+            let value = "\\# \(rdlength) \(rdata.hexEncodedString())"
             
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
         }
@@ -702,13 +693,37 @@ public struct ResourceRecord: Sendable, Equatable {
             rdata.append(contentsOf: publicKey)
             offset += publicKey.count
         default:
-            if self.value.hasPrefix("0x") {
-                rdata.append(try Data(hex: String(self.value.dropFirst(2))))
-            } else {
-                guard let string = self.value.data(using: .utf8) else {
-                    throw DNSError.parsingError(DNSError.invalidData("Could not encode RDATA for \(type) as utf8"))
-                }
-                rdata.append(string)
+            // https://datatracker.ietf.org/doc/html/rfc3597#section-5
+            /*
+             The RDATA section of an RR of unknown type is represented as a
+             sequence of white space separated words as follows:
+             
+             The special token \# (a backslash immediately followed by a hash
+             sign), which identifies the RDATA as having the generic encoding
+             defined herein rather than a traditional type-specific encoding.
+             
+             An unsigned decimal integer specifying the RDATA length in octets.
+             
+             Zero or more words of hexadecimal data encoding the actual RDATA
+             field, each containing an even number of hexadecimal digits.
+             
+             a.example.   CLASS32     TYPE731         \# 6 abcd ef 01 23 45
+             
+             If the RDATA is of zero length, the text representation contains only
+             the \# token and the single zero representing the length.
+             
+             b.example.   HS          TYPE62347       \# 0
+             */
+            
+            let values = self.value.split(separator: " ")
+            
+            guard values.count >= 2, values.first == ("\\#"), let length = UInt16(values[1]) else {
+                throw DNSError.invalidData("Encoding for \(type) not implemented and RDATA doesn't follow the format in rfc3597 section 5")
+            }
+            
+            if length != 0 {
+                let str = String(values.dropFirst(2).joined(separator: ""))
+                rdata.append(try Data(hex: str))
             }
         }
         

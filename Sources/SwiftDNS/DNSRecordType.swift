@@ -8,6 +8,7 @@
 import Foundation
 
 /// DNS record type
+///
 /// [Defined by iana](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4)
 public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseIterable {
     public static let allCases: [DNSRecordType] = [ .A, .NS, .CNAME, .SOA, .PTR, .MX, .TXT, .AAAA, .SRV, .DNAME, .OPT, .DS, .SSHFP, .RRSIG, .NSEC, .DNSKEY, .NSEC3, .SVCB, .HTTPS, .IXFR, .AXFR, .ANY]
@@ -103,6 +104,10 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
         }
     }
     
+    /// Initializer from string
+    /// - Parameter description: The short string that represents the Record Type
+    ///
+    /// Unknown records are represented as TYPE + unsigned integer such as TYPE123
     public init?(_ description: String) {
         let uppercasedDescription = description.uppercased()
         switch uppercasedDescription {
@@ -134,7 +139,6 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
             guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
             
             if let result = regex.firstMatch(in: uppercasedDescription, options: [], range: NSRange(uppercasedDescription.startIndex..., in: uppercasedDescription)) {
-                print("result: \(result)")
                 if let range = Range(result.range(at: 1), in: uppercasedDescription) {
                     if let value = UInt16(uppercasedDescription[range]) {
                         self.init(value)
@@ -147,6 +151,8 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
     }
     
     /// A short user-friendly string that describes the Record Type
+    ///
+    /// Unknown records are represented as TYPE + unsigned integer such as TYPE123
     public var description: String {
         switch self {
         case .A: return "A"
