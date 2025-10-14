@@ -34,10 +34,7 @@ public struct QuestionSection: Sendable, Equatable {
             throw DNSError.invalidData("offset out of bounds for type and class")
         }
         
-        guard let type = DNSRecordType(rawValue: try data.readUInt16(at: offset)) else {
-            // print("[decodeQuestion] Failed to parse TYPE. offset: \(offset), data.count: \(data.count)")
-            throw DNSError.parsingError(DNSError.invalidData("failed to parse question TYPE"))
-        }
+        let type = DNSRecordType(try data.readUInt16(at: offset))
         
         offset += 2 // type
         
@@ -73,7 +70,7 @@ public struct QuestionSection: Sendable, Equatable {
     
     /// Returns a string with the Name, Class, and Type.
     public var description: String {
-        return "\(QNAME) \(QCLASS.displayName) \(QTYPE)"
+        return "\(QNAME) \(QCLASS.description) \(QTYPE)"
     }
     
     public static func == (lhs: QuestionSection, rhs: QuestionSection) -> Bool {

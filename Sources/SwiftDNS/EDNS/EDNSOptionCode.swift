@@ -19,6 +19,7 @@ public enum EDNSOptionCode: UInt16, Sendable {
     case N3U = 7
     // https://datatracker.ietf.org/doc/html/rfc7871
     case ClientSubnet = 8
+    // https://www.rfc-editor.org/rfc/rfc7314.html
     case EDNSExpire = 9
     // https://datatracker.ietf.org/doc/html/rfc7873
     case COOKIE = 10
@@ -28,14 +29,7 @@ public enum EDNSOptionCode: UInt16, Sendable {
     case ExtendedDNSError = 15
     case unknown
     
-    public init?(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let type = try container.decode(UInt16.self)
-        
-        self.init(rawValue: type)
-    }
-    
-    /// A short user-friendly string that describes the EDNS Option Code
+    /// A short user-friendly string that describes the EDNS Option Code. It is not always the name and it may contain spaces
     public var description: String {
         switch self {
         case .reserved: return "RESERVED"

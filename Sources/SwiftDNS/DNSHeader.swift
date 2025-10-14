@@ -183,7 +183,7 @@ public struct DNSHeader: Sendable {
 }
 
 /// The DNS RCode as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6)
-public enum DNSResponseCode: UInt16, Decodable, Equatable, Sendable {
+public enum DNSResponseCode: UInt16, Equatable, Sendable {
     case NoError = 0
     case FormErr = 1
     case ServFail = 2

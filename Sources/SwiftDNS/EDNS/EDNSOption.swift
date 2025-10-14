@@ -110,13 +110,11 @@ public struct EDNSOption: Sendable, Equatable {
             self.values = ["Family": String(family), "SourceMask": String(sourceMask), "ScopeMask": String(scopeMask), "IP": ipString]
             return
         case .KeepAlive:
-            #warning("needs testing")
             guard optionLength == 2 else { throw DNSError.invalidData("Invalid EDNS KEEPALIVE. Bad length: \(optionLength)") }
             
             let timeout = UInt16(bigEndian: optionData.withUnsafeBytes { $0.load(as: UInt16.self) })
             self.values = ["Timeout": timeout.description]
         case .Padding:
-            #warning("needs testing")
             self.values = ["Padding": optionData.hexEncodedString()]
         case .ExtendedDNSError:
             guard optionLength >= 2 else { throw DNSError.invalidData("Invalid EDNS Extended Error. Bad length: \(optionLength)") }
@@ -132,7 +130,6 @@ public struct EDNSOption: Sendable, Equatable {
                 let extraText = String(data: optionData.subdata(in: Int(optionLength)-2..<Int(optionLength)), encoding: .utf8)
                 values["Extra Text"] = extraText
             }
-            #warning("needs testing")
             self.values = values
         default:
             if let str = String(data: optionData, encoding: .utf8), str.isPrintable {
@@ -254,6 +251,10 @@ public struct EDNSOption: Sendable, Equatable {
         return finalData
     }
     
+    /// A description of the EDNS Option
+    ///
+    ///Format:
+    /// EDNS Option Code: key=value
     var description: String {
         var description: String = "\(code.description): "
         

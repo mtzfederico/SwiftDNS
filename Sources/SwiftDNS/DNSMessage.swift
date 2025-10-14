@@ -71,7 +71,6 @@ public struct DNSMessage: Sendable {
                 let rr = try ResourceRecord(data: data, offset: &offset)
                 self.Additional.append(rr)
             } catch DNSError.invalidData("OPT_RECORD") {
-                
                 self.EDNSData = try EDNSMessage(data: data, offset: &offset)
             } catch(let error) {
                 throw error

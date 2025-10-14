@@ -8,7 +8,7 @@
 import Foundation
 
 /// The DNS Class as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2)
-public enum DNSClass: UInt16, Decodable, Equatable, Sendable {
+public enum DNSClass: UInt16, Equatable, CustomStringConvertible, Sendable, CaseIterable {
     case internet = 1
     case chaos = 3
     case hesiod = 4
@@ -16,15 +16,8 @@ public enum DNSClass: UInt16, Decodable, Equatable, Sendable {
     case any = 255
     case unknown
     
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let type = try container.decode(UInt16.self)
-        
-        self.init(rawValue: type)!
-    }
-    
     /// A short string that represents the class
-    public var displayName: String {
+    public var description: String {
         switch self {
         case .internet:
             return "IN"
@@ -42,6 +35,6 @@ public enum DNSClass: UInt16, Decodable, Equatable, Sendable {
     }
     
     public static func ==(lhs: DNSClass, rhs: DNSClass) -> Bool {
-        return lhs.displayName == rhs.displayName
+        return lhs.rawValue == rhs.rawValue
     }
 }

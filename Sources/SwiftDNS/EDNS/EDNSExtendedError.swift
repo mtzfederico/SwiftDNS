@@ -8,7 +8,7 @@
 import Foundation
 
 /// The extended DNS Extended DNS Codes as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#extended-dns-error-codes)
-public enum EDNSExtendedError: UInt16, Decodable, Equatable, Sendable, LosslessStringConvertible {
+public enum EDNSExtendedError: UInt16, Equatable, Sendable, LosslessStringConvertible {
     case otherError = 0
     case unsupportedDNSKEYAlgorithm = 1
     case unsupportedDSDigestType = 2
@@ -42,6 +42,10 @@ public enum EDNSExtendedError: UInt16, Decodable, Equatable, Sendable, LosslessS
     case invalidQueryType = 30
     case unknown
     
+    /// Initializes an EDNS Extended Error using it's descriprion not the name.
+    /// - Parameter description: The description for the EDNS Extended Error
+    ///
+    /// You can get the description with EDNSExtendedError.signatureExpired.description
     public init?(_ description: String) {
         switch description {
         case "Other Error":
@@ -107,20 +111,17 @@ public enum EDNSExtendedError: UInt16, Decodable, Equatable, Sendable, LosslessS
         case "Invalid Query Type":
             self = .invalidQueryType
         default:
-            do {
-                let pattern = "'(\\d+)'"
-                let regex = try NSRegularExpression(pattern: pattern, options: [])
-                if let result = regex.firstMatch(in: description, options: [], range: NSRange(description.startIndex..., in: description)) {
-                    if let range = Range(result.range(at: 1), in: description) {
-                        if let value = UInt16(description[range]) {
-                            self.init(rawValue: value)
-                        }
+            let pattern = "'(\\d+)'"
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+            
+            if let result = regex.firstMatch(in: description, options: [], range: NSRange(description.startIndex..., in: description)) {
+                if let range = Range(result.range(at: 1), in: description) {
+                    if let value = UInt16(description[range]) {
+                        self.init(rawValue: value)
                     }
                 }
-                return nil
-            } catch {
-                return nil
             }
+            return nil
         }
     }
     
