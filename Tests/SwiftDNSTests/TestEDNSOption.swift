@@ -40,6 +40,35 @@ struct TestEDNSOption {
         #expect(parsedOption == expectedOption)
     }
     
+    @Test func testIPv4ClientSubnetResponse() async throws {
+        let data: Data = Data([
+            0x00, 0x08,         // OP Code = 8
+            0x00, 0x07,         // OP Length
+            0x00, 0x01,         // Family = 1
+            0x15,               // Source Prefix Length. 0x15 = /21
+            0x11,               // Scope Prefix Length = 17
+            0xbd, 0x9f, 0x68    // Address = 189.159.104
+        ])
+        
+        var offset: Int = 0
+        let parsedOption = try EDNSOption(data: data, offset: &offset)
+        
+        // Test encoding
+        let dataOut = try parsedOption.toData()
+        #expect(dataOut == data)
+        
+        // print("dataOut: \(dataOut.hexEncodedString())\ndata:    \(data.hexEncodedString())")
+        
+        // Test init from data generated
+        var offset2: Int = 0
+        let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
+        #expect(parsedOption == parsedOut)
+    
+        let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "1", "SourceMask": "21", "ScopeMask": "17", "IP": "189.159.104.0"])
+        
+        #expect(parsedOption == expectedOption)
+    }
+    
     @Test func testIPv6ClientSubnet() async throws {
         let data: Data = Data([
             0x00, 0x08,                         // OP Code = 8
@@ -65,6 +94,35 @@ struct TestEDNSOption {
         #expect(parsedOption == parsedOut)
     
         let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "2", "SourceMask": "48", "ScopeMask": "0", "IP": "2a11:f2c0:fff7:0:0:0:0:0"])
+        
+        #expect(parsedOption == expectedOption)
+    }
+    
+    @Test func testIPv6ClientSubnetResponse() async throws {
+        let data: Data = Data([
+            0x00, 0x08,                         // OP Code = 8
+            0x00, 0x0a,                         // OP Length = 10
+            0x00, 0x02,                         // Family = 2
+            0x30,                               // Source Prefix Length. 0x30 = /48
+            0x31,                               // Scope Prefix Length = 49
+            0x2a, 0x11, 0xf2, 0xc0, 0xff, 0xf7  // Address = 2a11:f2c0:fff7:0:0:0:0:0
+        ])
+        
+        var offset: Int = 0
+        let parsedOption = try EDNSOption(data: data, offset: &offset)
+        
+        // Test encoding
+        let dataOut = try parsedOption.toData()
+        #expect(dataOut == data)
+        
+        print("dataOut: \(dataOut.hexEncodedString())\ndata:    \(data.hexEncodedString())")
+        
+        // Test init from data generated
+        var offset2: Int = 0
+        let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
+        #expect(parsedOption == parsedOut)
+    
+        let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "2", "SourceMask": "48", "ScopeMask": "49", "IP": "2a11:f2c0:fff7:0:0:0:0:0"])
         
         #expect(parsedOption == expectedOption)
     }
