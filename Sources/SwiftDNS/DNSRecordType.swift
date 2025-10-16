@@ -10,7 +10,7 @@ import Foundation
 /// DNS record type
 ///
 /// [Defined by iana](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4)
-public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseIterable {
+public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseIterable, Hashable {
     public static let allCases: [DNSRecordType] = [ .A, .NS, .CNAME, .SOA, .PTR, .MX, .TXT, .AAAA, .SRV, .DNAME, .OPT, .DS, .SSHFP, .RRSIG, .NSEC, .DNSKEY, .NSEC3, .SVCB, .HTTPS, .IXFR, .AXFR, .ANY]
     
     case A // = 1
