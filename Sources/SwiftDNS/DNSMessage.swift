@@ -12,7 +12,7 @@ import Foundation
 /// It represents a DNS Message that includes the DNS header alongside, Questions, Answers, Authority, and Additional records.
 ///
 /// EDNS data (which uses an OPT additional record) is stored as an `EDNSMessage`.
-public struct DNSMessage: Sendable {
+public struct DNSMessage: Sendable, CustomStringConvertible {
     /// The DNS response headers
     public var header: DNSHeader
     
