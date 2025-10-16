@@ -8,7 +8,7 @@
 import Foundation
 
 /// The EDNS data as defined in [RFC 6891](https://www.rfc-editor.org/rfc/rfc6891)
-public struct EDNSMessage: Sendable {
+public struct EDNSMessage: Sendable, CustomStringConvertible {
     /// The max UDP payload size
     ///
     /// The default value is 1232 bytes as recommended by [DNS Flag Day 2020](https://www.dnsflagday.net/2020/)
@@ -23,7 +23,7 @@ public struct EDNSMessage: Sendable {
     /// The EDNS options
     public let options: [EDNSOption]
     
-    public init(extendedRcode: UInt8, version: UInt8, zField: UInt16, doBit: Bool, options: [EDNSOption], udpPayloadSize: UInt16 = 1232) {
+    public init(extendedRcode: UInt8, version: UInt8 = 0, zField: UInt16, doBit: Bool, options: [EDNSOption], udpPayloadSize: UInt16 = 1232) {
         self.udpPayloadSize = udpPayloadSize
         self.extendedRcode = extendedRcode
         self.version = version
@@ -155,7 +155,8 @@ public struct EDNSMessage: Sendable {
         return data
     }
     
-    var description: String {
+    /// A multi-line description of the  EDNSMessage's extended RCode, version, the DO bit, and all of the options
+    public var description: String {
         var description = "EXT_RCODE=\(extendedRcode), VERSION=\(version), DO=\(doBit), OPTIONS:\n"
         for opt in options {
             description += "\(opt.description)\n"

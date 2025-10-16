@@ -8,7 +8,7 @@
 import Foundation
 
 /// The Question section of a DNS packet
-public struct QuestionSection: Sendable, Equatable {
+public struct QuestionSection: Sendable, Equatable, LosslessStringConvertible {
     /// a domain name represented as a sequence of labels, where each label consists of a length octet followed by that number of octets.  The domain name terminates with the zero length octet for the null label of the root.  Note that this field may be an odd number of octets; no padding is used.
     public var QNAME: String
     /// a two octet code which specifies the type of the query. The values for this field include all codes valid for a TYPE field, together with some more general codes which can match more than one type of RR.
@@ -65,9 +65,24 @@ public struct QuestionSection: Sendable, Equatable {
         return bytes
     }
     
-    /// Returns a string with the Name, Class, and Type.
+    /// Initializes a Question Section from a string
+    /// - Parameter description: A single line with the Name, Class, and Type separated by a space
+    public init?(_ description: String) {
+        let values = description.split(separator: " ")
+        guard values.count >= 3 else { return nil }
+        
+        guard let Class = DNSClass(String(values[1])), let type = DNSRecordType(String(values[2])) else {
+            return nil
+        }
+        
+        QNAME = String(values[0])
+        QCLASS = Class
+        QTYPE = type
+    }
+    
+    /// Returns a string with the Name, Class, and Type separated by a space
     public var description: String {
-        return "\(QNAME) \(QCLASS.description) \(QTYPE)"
+        return "\(QNAME) \(QCLASS.description) \(QTYPE.description)"
     }
     
     public static func == (lhs: QuestionSection, rhs: QuestionSection) -> Bool {
