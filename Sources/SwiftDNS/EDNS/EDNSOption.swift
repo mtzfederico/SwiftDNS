@@ -8,9 +8,19 @@
 import Foundation
 import Network
 
-public struct EDNSOption: Sendable, Equatable {
+public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
     public let code: EDNSOptionCode
     public let values: [String: String]
+    
+    /// Initislizes an EDNS Client Subnet Option
+    /// - Parameters:
+    ///   - family: The family of the IP Address. 1 for IPv4 and 2 for IPv6
+    ///   - IP: The IP Address
+    ///   - sourceMask: The subnet mask of the network
+    ///   - scopeMask: The scope mask. This is only used in responses
+    public init(family: Int, IP: String, sourceMask: Int, scopeMask: Int = 0) {
+        self = EDNSOption(code: .ClientSubnet, values: ["Family": "\(family)", "SourceMask": "\(sourceMask)", "ScopeMask": "\(scopeMask)", "IP": "\(IP)"])
+    }
     
     public init(code: EDNSOptionCode, values: [String: String]) {
         self.code = code
@@ -41,7 +51,7 @@ public struct EDNSOption: Sendable, Equatable {
         let optionData = data.subdata(in: offset..<offset+Int(optionLength))
         // print("[decodeEDNSOption]: optionData: \(optionData.hexEncodedString())")
         
-        offset += Int(optionLength)
+        // offset += Int(optionLength)
         
         guard let optionCode = EDNSOptionCode(rawValue: rawOptionCode) else {
             throw DNSError.invalidData("invalid EDNS option code: '\(rawOptionCode)'")
@@ -61,6 +71,7 @@ public struct EDNSOption: Sendable, Equatable {
             
             let clientCookie = optionData.subdata(in: 0..<8).hexEncodedString()
             let serverCookie = optionLength > 8 ? optionData.subdata(in: 8..<Int(optionLength)).hexEncodedString() : "None"
+            offset += Int(optionLength)
             
             self.values = ["Client": clientCookie, "Server": serverCookie]
         case .ClientSubnet:
@@ -106,32 +117,36 @@ public struct EDNSOption: Sendable, Equatable {
             default:
                 ipString = "Failed to parse address. '\(addressBytes.hexEncodedString())'"
             }
-            
+            offset += Int(optionLength)
             self.values = ["Family": String(family), "SourceMask": String(sourceMask), "ScopeMask": String(scopeMask), "IP": ipString]
             return
         case .KeepAlive:
             guard optionLength == 2 else { throw DNSError.invalidData("Invalid EDNS KEEPALIVE. Bad length: \(optionLength)") }
             
             let timeout = UInt16(bigEndian: optionData.withUnsafeBytes { $0.load(as: UInt16.self) })
+            offset += Int(optionLength)
             self.values = ["Timeout": timeout.description]
         case .Padding:
+            offset += Int(optionLength)
             self.values = ["Padding": optionData.hexEncodedString()]
         case .ExtendedDNSError:
             guard optionLength >= 2 else { throw DNSError.invalidData("Invalid EDNS Extended Error. Bad length: \(optionLength)") }
             
             let code = UInt16(bigEndian: optionData.withUnsafeBytes { $0.load(as: UInt16.self) })
-            guard let extendedError = EDNSExtendedError(rawValue: code) else {
-                throw DNSError.invalidData("Invalid EDNS Extended Error. Failed to parse code: \(code)")
-            }
+            let extendedError = EDNSExtendedError(code)
+            offset += 2
             
             var values: [String: String] = ["Extended Error Code": extendedError.description]
             
             if optionLength > 2 {
-                let extraText = String(data: optionData.subdata(in: Int(optionLength)-2..<Int(optionLength)), encoding: .utf8)
+                let textData = optionData.subdata(in: (offset-4)..<(offset + Int(optionLength-6)))
+                offset += textData.count
+                let extraText = String(data: textData, encoding: .utf8)
                 values["Extra Text"] = extraText
             }
             self.values = values
         default:
+            offset += Int(optionLength)
             if let str = String(data: optionData, encoding: .utf8), str.isPrintable {
                 self.values = ["Unknown": str]
                 return
@@ -255,7 +270,7 @@ public struct EDNSOption: Sendable, Equatable {
     ///
     ///Format:
     /// EDNS Option Code: key=value
-    var description: String {
+    public var description: String {
         var description: String = "\(code.description): "
         
         let count = values.count

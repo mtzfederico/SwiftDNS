@@ -10,6 +10,24 @@ import Foundation
 @testable import SwiftDNS
 
 struct TestEDNSOption {
+    @Test func EDNSExtendedErrorFromString() {
+        for type in EDNSExtendedError.allCases {
+            let description = type.description
+            #expect(EDNSExtendedError(description) == type)
+        }
+    }
+    
+    @Test func EDNSExtendedErrorFromValue() {
+        for type in EDNSExtendedError.allCases {
+            #expect(EDNSExtendedError(type.rawValue) == type)
+        }
+        
+        // Test an unknown value
+        let type128 = EDNSExtendedError.unknown(128)
+        #expect(type128.description == "ExtendedError128")
+        #expect(EDNSExtendedError("ExtendedError128") == type128)
+        #expect(EDNSExtendedError("ExtendedError128") == type128)
+    }
 
     @Test func testIPv4ClientSubnet() async throws {
         let data: Data = Data([
@@ -64,7 +82,8 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "1", "SourceMask": "21", "ScopeMask": "17", "IP": "189.159.104.0"])
+        let expectedOption = EDNSOption(family: 1, IP: "189.159.104.0", sourceMask: 21, scopeMask: 17)
+        // let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "1", "SourceMask": "21", "ScopeMask": "17", "IP": "189.159.104.0"])
         
         #expect(parsedOption == expectedOption)
     }
@@ -93,7 +112,8 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "2", "SourceMask": "48", "ScopeMask": "0", "IP": "2a11:f2c0:fff7:0:0:0:0:0"])
+        let expectedOption = EDNSOption(family: 2, IP: "2a11:f2c0:fff7:0:0:0:0:0", sourceMask: 48, scopeMask: 0)
+        // let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "2", "SourceMask": "48", "ScopeMask": "0", "IP": "2a11:f2c0:fff7:0:0:0:0:0"])
         
         #expect(parsedOption == expectedOption)
     }
@@ -261,7 +281,60 @@ struct TestEDNSOption {
         #expect(parsedOption == expectedOption)
     }
     
-    // ExtendedDNSError 15
+    @Test func testExtendedDNSError0() async throws {
+        let data: Data = Data([
+            0x00, 0x0f,                                     // OP Code = 15
+            0x00, 0x02,                                     // OP Length = 2
+            0x00, 0x11,                                     // Code 17 = filtered
+        ])
+        
+        var offset: Int = 0
+        let parsedOption = try EDNSOption(data: data, offset: &offset)
+        
+        // Test encoding
+        let dataOut = try parsedOption.toData()
+        #expect(dataOut == data)
+        
+        // Test init from data generated
+        var offset2: Int = 0
+        let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
+        #expect(parsedOption == parsedOut)
+    
+        let expectedOption = EDNSOption(code: .ExtendedDNSError, values: ["Extended Error Code": "filtered"])
+        
+        #expect(parsedOption == expectedOption)
+    }
+    
+    @Test func testExtendedDNSError1() async throws {
+        let data: Data = Data([
+            0x00, 0x0f,                                     // OP Code = 15
+            0x00, 0x36,                                     // OP Length = 54
+            0x00, 0x11,                                     // Code 17 = filtered
+            0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64,
+            0x21, 0x20, 0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x61, 0x6e,
+            0x20, 0x65, 0x78, 0x74, 0x65, 0x6e, 0x64, 0x65, 0x64, 0x20, 0x65, 0x64,
+            0x6E, 0x73, 0x20, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x20, 0x6d, 0x65, 0x73,
+            0x73, 0x61, 0x67, 0x65,
+        ])
+        
+        var offset: Int = 0
+        let parsedOption = try EDNSOption(data: data, offset: &offset)
+        
+        // Test encoding
+        let dataOut = try parsedOption.toData()
+        #expect(dataOut == data)
+        
+        // Test init from data generated
+        var offset2: Int = 0
+        let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
+        #expect(parsedOption == parsedOut)
+    
+        let expectedOption = EDNSOption(code: .ExtendedDNSError, values: ["Extended Error Code": "filtered", "Extra Text": "Hello, World! This is an extended edns error message"])
+        
+        #expect(parsedOption == expectedOption)
+    }
+    
+    // TODO: Test unknown option
     
     // MARK: Errors
     
