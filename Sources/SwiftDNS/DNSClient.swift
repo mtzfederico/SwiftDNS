@@ -91,10 +91,6 @@ final public actor DNSClient: Sendable {
     /// - Returns: The DNS response
     @available(macOS 10.15, iOS 13.0, *)
     public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet) async throws -> DNSMessage {
-        if host.isEmpty || !host.isDNSSafe {
-            throw DNSError.invalidDomainName
-        }
-        
         return try await withCheckedThrowingContinuation { continuation in
             self.query(host: host, type: type, Class: Class, completion: { result in
                 continuation.resume(with: result)
@@ -264,7 +260,7 @@ final public actor DNSClient: Sendable {
                                     // check that the id in the response is the same as the one sent in the query
                                     if result.header.id != id {
                                         self.logger.trace("[sendTCP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
-                                        completion(.failure(DNSError.IDMismatch))
+                                        completion(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
                                         return
                                     }
                                     completion(.success(result))
@@ -372,7 +368,7 @@ final public actor DNSClient: Sendable {
                         // check that the id in the response is the same as the one sent in the query
                         if result.header.id != id {
                             self.logger.trace("[sendUDP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
-                            completion(.failure(DNSError.IDMismatch))
+                            completion(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
                             return
                         }
                         completion(.success(result))
@@ -428,7 +424,7 @@ final public actor DNSClient: Sendable {
                     // check that the id in the response is the same as the one sent in the query
                     if result.header.id != id {
                         self.logger.trace("[sendHTTPS] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
-                        completion(.failure(DNSError.IDMismatch))
+                        completion(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
                         return
                     }
                     completion(.success(result))

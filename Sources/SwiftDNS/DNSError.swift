@@ -25,7 +25,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
     /// Received invalid data
     case invalidData(String)
     /// The ID sent in the query is not the same as the one in the response
-    case IDMismatch
+    case IDMismatch(got: UInt16, expected: UInt16)
     /// The domain name used in the query is invalid
     case invalidDomainName
     
@@ -53,8 +53,10 @@ public enum DNSError: Error, Equatable, LocalizedError {
         case .invalidData(let value):
             let format = NSLocalizedString("DNSError.invalidData %@", bundle: .module, comment: "")
             return String(format: format, value)
-        case .IDMismatch:
-            return NSLocalizedString("DNSError.IDMismatch", bundle: .module, comment: "")
+        case .IDMismatch(let got, let expected):
+            #warning("this needs to be changed for UInt16")
+            let format = NSLocalizedString("DNSError.IDMismatch %u %u", bundle: .module, comment: "")
+            return String(format: format, got, expected)
         case .invalidDomainName:
             return NSLocalizedString("DNSError.invalidDomainName", bundle: .module, comment: "")
         }
@@ -78,7 +80,9 @@ public enum DNSError: Error, Equatable, LocalizedError {
             }
         case (.invalidData(let lhsValue), .invalidData(let rhsValue)):
             return lhsValue == rhsValue
-        case (.noDataReceived, .noDataReceived), (.IDMismatch, .IDMismatch), (.invalidDomainName, .invalidDomainName):
+        case (.IDMismatch(let lhsGot, let lhsExpected), .IDMismatch(let rhsGot, let rhsExpected)):
+            return lhsGot == rhsGot && lhsExpected == rhsExpected
+        case (.noDataReceived, .noDataReceived), (.invalidDomainName, .invalidDomainName):
             return true
         case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil):
             return true

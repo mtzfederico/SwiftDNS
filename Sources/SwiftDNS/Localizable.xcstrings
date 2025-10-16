@@ -33,18 +33,18 @@
         }
       }
     },
-    "DNSError.IDMismatch" : {
+    "DNSError.IDMismatch %u %u" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Response ID doesn’t match query ID"
+            "value" : "Response ID doesn’t match query ID. Got: ‘%1$u’ Expected: ‘%2$u’"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El ID de respuesta no coincide con el ID de la consulta"
+            "value" : "El ID de respuesta no coincide con el ID de la consulta. Respuesta: ‘%1$u’ Consulta: ‘%2$u’"
           }
         }
       }
