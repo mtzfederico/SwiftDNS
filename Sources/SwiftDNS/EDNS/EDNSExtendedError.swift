@@ -8,116 +8,258 @@
 import Foundation
 
 /// The extended DNS Extended DNS Codes as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#extended-dns-error-codes)
-public enum EDNSExtendedError: UInt16, Equatable, Sendable, LosslessStringConvertible {
-    case otherError = 0
-    case unsupportedDNSKEYAlgorithm = 1
-    case unsupportedDSDigestType = 2
-    case staleAnswer = 3
-    case forgedAnswer = 4
-    case DNSSECIndeterminate = 5
-    case DNSSECBogus = 6
-    case signatureExpired = 7
-    case signatureNotYetValid = 8
-    case DNSKEYMissing = 9
-    case RRSIGMissing = 10
-    case noZoneKeyBit = 11
-    case NSECMissing = 12
-    case cachedError = 13
-    case notReady = 14
-    case blocked = 15
-    case censored = 16
-    case filtered = 17
-    case prohibited = 18
-    case staleNXDomainAnswer = 19
-    case notAuthoritative = 20
-    case notSupported = 21
-    case noReachableAuthority = 22
-    case networkError = 23
-    case invalidData = 24
-    case signatureExpiredBeforeValid = 25
-    case tooEarly = 26
-    case unsupportedNSEC3IterationsValue = 27
-    case unableToConformToPolicy = 28
-    case synthesized = 29
-    case invalidQueryType = 30
-    case unknown
+public enum EDNSExtendedError: Equatable, Sendable, LosslessStringConvertible, CustomDebugStringConvertible, CaseIterable {
+    public static let allCases: [EDNSExtendedError] = [.otherError, .unsupportedDNSKEYAlgorithm, .unsupportedDSDigestType, .staleAnswer, .forgedAnswer, .DNSSECIndeterminate, .DNSSECBogus, .signatureExpired, .signatureNotYetValid, .DNSKEYMissing, .RRSIGMissing, .noZoneKeyBit, .NSECMissing, .cachedError, .notReady, .blocked, .censored, .filtered, .prohibited, .staleNXDomainAnswer, .notAuthoritative, .notSupported, .noReachableAuthority, .networkError, .invalidData, .signatureExpiredBeforeValid, .tooEarly, .unsupportedNSEC3IterationsValue, .unableToConformToPolicy, .synthesized, .invalidQueryType]
     
-    /// Initializes an EDNS Extended Error using it's descriprion not the name.
+    case otherError // = 0
+    case unsupportedDNSKEYAlgorithm // = 1
+    case unsupportedDSDigestType // = 2
+    case staleAnswer // = 3
+    case forgedAnswer // = 4
+    case DNSSECIndeterminate // = 5
+    case DNSSECBogus // = 6
+    case signatureExpired // = 7
+    case signatureNotYetValid // = 8
+    case DNSKEYMissing // = 9
+    case RRSIGMissing // = 10
+    case noZoneKeyBit // = 11
+    case NSECMissing // = 12
+    case cachedError // = 13
+    case notReady // = 14
+    case blocked // = 15
+    case censored // = 16
+    case filtered // = 17
+    case prohibited // = 18
+    case staleNXDomainAnswer // = 19
+    case notAuthoritative // = 20
+    case notSupported // = 21
+    case noReachableAuthority // = 22
+    case networkError//  = 23
+    case invalidData // = 24
+    case signatureExpiredBeforeValid // = 25
+    case tooEarly // = 26
+    case unsupportedNSEC3IterationsValue // = 27
+    case unableToConformToPolicy // = 28
+    case synthesized // = 29
+    case invalidQueryType // = 30
+    case unknown(UInt16)
+    
+    public init(_ value: UInt16) {
+        switch value {
+        case 0:
+            self = .otherError
+        case 1:
+            self = .unsupportedDNSKEYAlgorithm
+        case 2:
+            self = .unsupportedDSDigestType
+        case 3:
+            self = .staleAnswer
+        case 4:
+            self = .forgedAnswer
+        case 5:
+            self = .DNSSECIndeterminate
+        case 6:
+            self = .DNSSECBogus
+        case 7:
+            self = .signatureExpired
+        case 8:
+            self = .signatureNotYetValid
+        case 9:
+            self = .DNSKEYMissing
+        case 10:
+            self = .RRSIGMissing
+        case 11:
+            self = .noZoneKeyBit
+        case 12:
+            self = .NSECMissing
+        case 13:
+            self = .cachedError
+        case 14:
+            self = .notReady
+        case 15:
+            self = .blocked
+        case 16:
+            self = .censored
+        case 17:
+            self = .filtered
+        case 18:
+            self = .prohibited
+        case 19:
+            self = .staleNXDomainAnswer
+        case 20:
+            self = .notAuthoritative
+        case 21:
+            self = .notSupported
+        case 22:
+            self = .noReachableAuthority
+        case 23:
+            self = .networkError
+        case 24:
+            self = .invalidData
+        case 25:
+            self = .signatureExpiredBeforeValid
+        case 26:
+            self = .tooEarly
+        case 27:
+            self = .unsupportedNSEC3IterationsValue
+        case 28:
+            self = .unableToConformToPolicy
+        case 29:
+            self = .synthesized
+        case 30:
+            self = .invalidQueryType
+        default:
+            self = .unknown(value)
+        }
+    }
+    
+    public var rawValue: UInt16 {
+        switch self {
+        case .otherError:
+            return 0
+        case .unsupportedDNSKEYAlgorithm:
+            return 1
+        case .unsupportedDSDigestType:
+            return 2
+        case .staleAnswer:
+            return 3
+        case .forgedAnswer:
+            return 4
+        case .DNSSECIndeterminate:
+            return 5
+        case .DNSSECBogus:
+            return 6
+        case .signatureExpired:
+            return 7
+        case .signatureNotYetValid:
+            return 8
+        case .DNSKEYMissing:
+            return 9
+        case .RRSIGMissing:
+            return 10
+        case .noZoneKeyBit:
+            return 11
+        case .NSECMissing:
+            return 12
+        case .cachedError:
+            return 13
+        case .notReady:
+            return 14
+        case .blocked:
+            return 15
+        case .censored:
+            return 16
+        case .filtered:
+            return 17
+        case .prohibited:
+            return 18
+        case .staleNXDomainAnswer:
+            return 19
+        case .notAuthoritative:
+            return 20
+        case .notSupported:
+            return 21
+        case .noReachableAuthority:
+            return 22
+        case .networkError:
+            return 23
+        case .invalidData:
+            return 24
+        case .signatureExpiredBeforeValid:
+            return 25
+        case .tooEarly:
+            return 26
+        case .unsupportedNSEC3IterationsValue:
+            return 27
+        case .unableToConformToPolicy:
+            return 28
+        case .synthesized:
+            return 29
+        case .invalidQueryType:
+            return 30
+        case .unknown(let value):
+            return value
+        }
+    }
+    
+    /// Initializes an EDNS Extended Error using it's descriprion
     /// - Parameter description: The description for the EDNS Extended Error
     ///
     /// You can get the description with EDNSExtendedError.signatureExpired.description
     public init?(_ description: String) {
         switch description {
-        case "Other Error":
+        case "otherError":
             self = .otherError
-        case "Unsupported DNSKEY Algorithm":
+        case "unsupportedDNSKEYAlgorithm":
             self = .unsupportedDNSKEYAlgorithm
-        case "Unsupported DS Digest Type" :
+        case "unsupportedDSDigestType" :
             self = .unsupportedDSDigestType
-        case "Stale Answer":
+        case "staleAnswer":
             self = .staleAnswer
-        case "Forged Answer":
+        case "forgedAnswer":
             self = .forgedAnswer
-        case "DNSSEC Indeterminate":
+        case "DNSSECIndeterminate":
             self = .DNSSECIndeterminate
-        case "DNSSEC Bogus":
+        case "DNSSECBogus":
             self = .DNSSECBogus
-        case "Signature Expired":
+        case "signatureExpired":
             self = .signatureExpired
-        case "Signature Not Yet Valid":
+        case "signatureNotYetValid":
             self = .signatureNotYetValid
-        case "DNSKEY Missing":
+        case "DNSKEYMissing":
             self = .DNSKEYMissing
-        case "RRSIGs Missing":
+        case "RRSIGMissing":
             self = .RRSIGMissing
-        case "No Zone Key Bit Set":
+        case "noZoneKeyBit":
             self = .noZoneKeyBit
-        case "NSEC Missing":
+        case "NSECMissing":
             self = .NSECMissing
-        case "Cached Error":
+        case "cachedError":
             self = .cachedError
-        case "Not Ready":
+        case "notReady":
             self = .notReady
-        case "Blocked":
+        case "blocked":
             self = .blocked
-        case "Censored":
+        case "censored":
             self = .censored
-        case "Filtered":
+        case "filtered":
             self = .filtered
-        case "Prohibited":
+        case "prohibited":
             self = .prohibited
-        case "Stale NXDomain Answer":
+        case "staleNXDomainAnswer":
             self = .staleNXDomainAnswer
-        case "Not Authoritative":
+        case "notAuthoritative":
             self = .notAuthoritative
-        case "Not Supported":
+        case "notSupported":
             self = .notSupported
-        case "No Reachable Authority":
+        case "noReachableAuthority":
             self = .noReachableAuthority
-        case "Network Error":
+        case "networkError":
             self = .networkError
-        case "Invalid Data":
+        case "invalidData":
             self = .invalidData
-        case "Signature Expired before Valid":
+        case "signatureExpiredBeforeValid":
             self = .signatureExpiredBeforeValid
-        case "Too Early":
+        case "tooEarly":
             self = .tooEarly
-        case "Unsupported NSEC3 Iterations Value":
+        case "unsupportedNSEC3IterationsValue":
             self = .unsupportedNSEC3IterationsValue
-        case "Unable to conform to policy":
+        case "unableToConformToPolicy":
             self = .unableToConformToPolicy
-        case "Synthesized":
+        case "synthesized":
             self = .synthesized
-        case "Invalid Query Type":
+        case "invalidQueryType":
             self = .invalidQueryType
         default:
-            let pattern = "'(\\d+)'"
+            // Limit to 5 digits since a UInt16 is limited to 65535
+            let pattern = #"^ExtendedError(\d{1,5})$"#
             guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
             
             if let result = regex.firstMatch(in: description, options: [], range: NSRange(description.startIndex..., in: description)) {
                 if let range = Range(result.range(at: 1), in: description) {
                     if let value = UInt16(description[range]) {
-                        self.init(rawValue: value)
+                        self.init(value)
+                        return
                     }
                 }
             }
@@ -126,77 +268,79 @@ public enum EDNSExtendedError: UInt16, Equatable, Sendable, LosslessStringConver
     }
     
     /// A short string that represents the error
-    public var displayName: String {
+    ///
+    /// Returns the string used in the string initializer
+    public var description: String {
         switch self {
         case .otherError:
-            return "NoError"
+            return "otherError"
         case .unsupportedDNSKEYAlgorithm:
-            return "NoError"
+            return "unsupportedDNSKEYAlgorithm"
         case .unsupportedDSDigestType:
-            return "NoError"
+            return "unsupportedDSDigestType"
         case .staleAnswer:
-            return "NoError"
+            return "staleAnswer"
         case .forgedAnswer:
-            return "NoError"
+            return "forgedAnswer"
         case .DNSSECIndeterminate:
-            return "NoError"
+            return "DNSSECIndeterminate"
         case .DNSSECBogus:
-            return "NoError"
+            return "DNSSECBogus"
         case .signatureExpired:
-            return "NoError"
+            return "signatureExpired"
         case .signatureNotYetValid:
-            return "NoError"
+            return "signatureNotYetValid"
         case .DNSKEYMissing:
-            return "NoError"
+            return "DNSKEYMissing"
         case .RRSIGMissing:
-            return "NoError"
+            return "RRSIGMissing"
         case .noZoneKeyBit:
-            return "NoError"
+            return "noZoneKeyBit"
         case .NSECMissing:
-            return "NoError"
+            return "NSECMissing"
         case .cachedError:
-            return "NoError"
+            return "cachedError"
         case .notReady:
-            return "NoError"
+            return "notReady"
         case .blocked:
-            return "NoError"
+            return "blocked"
         case .censored:
-            return "NoError"
+            return "censored"
         case .filtered:
-            return "NoError"
+            return "filtered"
         case .prohibited:
-            return "NoError"
+            return "prohibited"
         case .staleNXDomainAnswer:
-            return "NoError"
+            return "staleNXDomainAnswer"
         case .notAuthoritative:
-            return "NoError"
+            return "notAuthoritative"
         case .notSupported:
-            return "NoError"
+            return "notSupported"
         case .noReachableAuthority:
-            return "NoError"
+            return "noReachableAuthority"
         case .networkError:
-            return "NoError"
+            return "networkError"
         case .invalidData:
-            return "NoError"
+            return "invalidData"
         case .signatureExpiredBeforeValid:
-            return "NoError"
+            return "signatureExpiredBeforeValid"
         case .tooEarly:
             return "tooEarly"
         case .unsupportedNSEC3IterationsValue:
-            return "NoError"
+            return "unsupportedNSEC3IterationsValue"
         case .unableToConformToPolicy:
-            return "NoError"
+            return "unableToConformToPolicy"
         case .synthesized:
-            return "NoError"
+            return "synthesized"
         case .invalidQueryType:
-            return "NoError"
-        case .unknown:
-            return "Unkown '\(rawValue)'"
+            return "invalidQueryType"
+        case .unknown(let value):
+            return "ExtendedError\(value)"
         }
     }
     
     /// A short user-friendly string that describes the error
-    public var description: String {
+    public var debugDescription: String {
         switch self {
         case .otherError:
             return "Other Error"
@@ -260,8 +404,8 @@ public enum EDNSExtendedError: UInt16, Equatable, Sendable, LosslessStringConver
             return "Synthesized"
         case .invalidQueryType:
             return "Invalid Query Type"
-        case .unknown:
-            return "unknown. Value: '\(rawValue)'"
+        case .unknown(let value):
+            return "Unkown '\(value)'"
         }
     }
     

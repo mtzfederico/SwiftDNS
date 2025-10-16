@@ -187,7 +187,7 @@ public struct DNSHeader: Sendable {
 }
 
 /// The DNS RCode as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6)
-public enum DNSResponseCode: Equatable, Sendable {
+public enum DNSResponseCode: Equatable, Sendable, CustomStringConvertible, CustomDebugStringConvertible {
     case NoError // = 0
     case FormErr // = 1
     case ServFail // = 2
@@ -306,7 +306,9 @@ public enum DNSResponseCode: Equatable, Sendable {
     }
     
     /// A short string that represents the RCode
-    public var displayName: String {
+    ///
+    /// Unknown records are represented as RCODE + unsigned integer such as RCODE123
+    public var description: String {
         switch self {
         case .NoError:
             return "NoError"
@@ -349,12 +351,12 @@ public enum DNSResponseCode: Equatable, Sendable {
         case .BADCOOKIE:
             return "BADCOOKIE"
         case .unknown(let value):
-            return "Unkown '\(value)'"
+            return "RCODE\(value)"
         }
     }
     
-    /// A  user-friendly string that describes the RCode
-    public var description: String {
+    /// A  user-friendly string that describes the RCode's meaning
+    public var debugDescription: String {
         switch self {
         case .NoError:
             return "No Error"
@@ -402,6 +404,6 @@ public enum DNSResponseCode: Equatable, Sendable {
     }
     
     public static func ==(lhs: DNSResponseCode, rhs: DNSResponseCode) -> Bool {
-        return lhs.displayName == rhs.displayName && lhs.description == rhs.description
+        return lhs.rawValue == rhs.rawValue
     }
 }
