@@ -9,7 +9,7 @@ import Foundation
 import Network
 
 /// The data format used for the answer, authority, and additional sections of a DNS packet.
-public struct ResourceRecord: Sendable, Equatable {
+public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
     /*
      The answer, authority, and additional sections share the same format.
      There is a variable number of resource records, the number of
@@ -37,7 +37,7 @@ public struct ResourceRecord: Sendable, Equatable {
          +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
      */
     
-    /// a domain name to which this resource record pertains
+    /// The domain name to which this resource record belongs
     public let name: String
     /// An unsigned integer that specifies the time interval (in seconds) that the resource record may be cached before it should be discarded.  Zero values are interpreted to mean that the RR can only be used for the transaction in progress, and should not be cached.
     public let ttl: UInt32
@@ -105,7 +105,7 @@ public struct ResourceRecord: Sendable, Equatable {
             }
             
             let ipBytes = data.subdata(in: offset..<offset+4)
-            let ip = ipBytes.map { String($0) }.joined(separator: ".")
+            let ip = ResourceRecord.decodeIPv4(ipBytes)
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: ip)
             return
@@ -122,15 +122,7 @@ public struct ResourceRecord: Sendable, Equatable {
             }
             
             let ipBytes = data.subdata(in: offset..<offset+16)
-            
-            // Convert every 2 bytes into one 16-bit block
-            var segments: [String] = []
-            for i in stride(from: 0, to: 16, by: 2) {
-                let part = (UInt16(ipBytes[i]) << 8) | UInt16(ipBytes[i + 1])
-                segments.append(String(format: "%x", part))
-            }
-            
-            let ip = segments.joined(separator: ":")
+            let ip = ResourceRecord.decodeIPv6(ipBytes)
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: ip)
             return
@@ -408,10 +400,108 @@ public struct ResourceRecord: Sendable, Equatable {
             offset += 1
             
             let publicKey = data.subdata(in: offset..<offset + Int(rdlength-4))
-            print("pubkey: \(publicKey.hexEncodedString())")
             offset += publicKey.count
             
             let value = "\(flags) \(Protocol) \(algorithm) \(publicKey.base64EncodedString())"
+            
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
+            return
+        case .SVCB, .HTTPS:
+            let svcPriority = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+            offset += 2
+            let (targetName, len) = try DNSClient.parseDomainName(data: data, offset: offset)
+            offset += len
+            
+            var value = "\(svcPriority) \(targetName)"
+            
+            if rdlength > 2 + Int(len) {
+                let svcParams = data.subdata(in: offset..<(offset + Int(rdlength) - (2 + len)))
+                let max = svcParams.count + offset
+                
+                guard max <= Int(rdlength)+offset else {
+                    throw DNSError.invalidData("\(type.description) record parametrs over bounds \(max)")
+                }
+                
+                while offset < max {
+                    print("** while offset < max begins **")
+                    // Defined in https://www.rfc-editor.org/rfc/rfc9460.html#iana-keys
+                    let svcParamKey = SVCParamKeys(UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) }))
+                    offset += 2
+                    let svcParamValueLength = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+                    offset += 2
+                    
+                    guard svcParamValueLength <= data.count else {
+                        throw DNSError.invalidData("SVC Param value length out of bounds")
+                    }
+                    
+                    let svcParamValueData = data.subdata(in: offset..<offset+Int(svcParamValueLength))
+                    
+                    switch svcParamKey {
+                    case .mandatory:
+                        throw DNSError.invalidData("Not Implemented yet")
+                    case .alpn:
+                        var alpnValue: [String] = []
+                        var alpnOffset = 0
+                        while alpnOffset < svcParamValueData.count {
+                            let len = svcParamValueData[alpnOffset]
+                            alpnOffset += 1
+                            let alpnData = svcParamValueData.subdata(in: alpnOffset..<Int(len)+alpnOffset)
+                            alpnOffset += alpnData.count
+                            if let str = String(data: alpnData, encoding: .utf8) {
+                                alpnValue.append(str)
+                            }
+                        }
+                        
+                        value.append(" \(svcParamKey.description)=\(alpnValue.joined(separator: ","))")
+                    case .noDefaultAlpn:
+                        throw DNSError.invalidData("Not Implemented yet")
+                    case .port:
+                        throw DNSError.invalidData("Not Implemented yet")
+                    case .ipv4hint:
+                        guard svcParamValueLength % 4 == 0 else {
+                            offset += Int(rdlength)
+                            throw DNSError.parsingError(DNSError.invalidData("invalid length for ipv4hint: \(svcParamValueLength)"))
+                        }
+                        
+                        var ips: [String] = []
+                        let count = (svcParamValueData.count / 4) - 1
+                        
+                        var ipOffset: Int = 0
+                        for _ in 0...count {
+                            let ipBytes = svcParamValueData[ipOffset..<ipOffset+4]
+                            let ip = ResourceRecord.decodeIPv4(ipBytes)
+                            ips.append(ip)
+                            ipOffset += 4
+                        }
+                        
+                        value.append(" \(svcParamKey.description)=\(ips.joined(separator: ","))")
+                    case .ech:
+                        throw DNSError.invalidData("Not Implemented yet")
+                    case .ipv6hint:
+                        guard svcParamValueLength % 16 == 0 else {
+                            offset += Int(rdlength)
+                            throw DNSError.parsingError(DNSError.invalidData("invalid length for ipv6hint: \(svcParamValueLength)"))
+                        }
+                        
+                        var ips: [String] = []
+                        let count = (svcParamValueData.count / 16) - 1
+                        
+                        var ipOffset: Int = 0
+                        for _ in 0...count {
+                            let ipBytes = svcParamValueData.subdata(in: ipOffset..<ipOffset+16)
+                            let ip = ResourceRecord.decodeIPv6(ipBytes)
+                            ips.append(ip)
+                            ipOffset += 16
+                        }
+                        
+                        value.append(" \(svcParamKey.description)=\(ips.joined(separator: ","))")
+                    case .unknown(let value):
+                        throw DNSError.invalidData("Not Implemented yet. \(value)")
+                    }
+                    
+                    offset += Int(svcParamValueLength)
+                }
+            }
             
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
             return
@@ -424,7 +514,7 @@ public struct ResourceRecord: Sendable, Equatable {
             
             let rdata = data.subdata(in: offset..<offset+Int(rdlength))
             offset += Int(rdlength)
-            
+            // https://datatracker.ietf.org/doc/html/rfc3597#section-5
             let value = "\\# \(rdlength) \(rdata.hexEncodedString())"
             
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
@@ -458,17 +548,16 @@ public struct ResourceRecord: Sendable, Equatable {
         
         switch self.type {
         case .A:
-            let octets = self.value.split(separator: ".").compactMap { UInt8($0) }
+            // let octets = self.value.split(separator: ".").compactMap { UInt8($0) }
+            let octets = try ResourceRecord.encodeIPv4(self.value)
             guard octets.count == 4 else {
                 throw DNSError.parsingError(DNSError.invalidData("Invalid A record IP: \(value)"))
             }
             rdata.append(contentsOf: octets)
         case .AAAA:
-            guard let ipv6 = IPv6Address(self.value) else {
-                throw DNSError.parsingError(DNSError.invalidData("Invalid IPv6 address: \(self.value)"))
-            }
+            let ipv6 = try ResourceRecord.encodeIPv6(self.value)
             
-            rdata.append(contentsOf: ipv6.rawValue)
+            rdata.append(contentsOf: ipv6)
         case .CNAME, .NS, .PTR:
             // rdlength offset +2 was here
             let domain = try DNSMessage.encodeDomainName(name: self.value, messageLength: offset, nameOffsets: &nameOffsets)
@@ -692,6 +781,70 @@ public struct ResourceRecord: Sendable, Equatable {
             
             rdata.append(contentsOf: publicKey)
             offset += publicKey.count
+        case .SVCB, .HTTPS:
+            let values = value.split(separator: " ")
+            guard values.count >= 2 else {
+                throw DNSError.invalidData("\(type.description) record value must at least contain 2 values separated by space. Contains: \(values.count) values")
+            }
+            
+            guard let svcPriority = UInt16(values[0]) else {
+                throw DNSError.invalidData("Failed to parse \(type.description) record")
+            }
+            
+            rdata.append(contentsOf: withUnsafeBytes(of: svcPriority.bigEndian) { Data($0) })
+            offset += 2
+            
+            let targetName = String(values[1])
+            let bytes = try QuestionSection.encodeDomainName(name: targetName)
+            rdata.append(bytes)
+            
+            // Each svcParam's value has items separated by a comma and there should be no space inside. Each param is separated by a space
+            for param in values.dropFirst(2) {
+                let keyVal = param.split(separator: "=")
+                guard let svcParamKey = SVCParamKeys(String(keyVal[0])) else {
+                    throw DNSError.invalidData("Invalid SVCParamKey: '\(keyVal[0])'")
+                }
+                let svcParamValue = String(keyVal[1])
+                
+                rdata.append(contentsOf: withUnsafeBytes(of: svcParamKey.rawValue.bigEndian) { Data($0) })
+                var paramValue: Data = Data()
+                
+                switch svcParamKey {
+                case .mandatory:
+                    throw DNSError.invalidData("Not Implemented yet")
+                case .alpn:
+                    let items = svcParamValue.split(separator: ",")
+                    for item in items {
+                        let val = Array(String(item).utf8)
+                        paramValue.append(UInt8(val.count))
+                        paramValue.append(contentsOf: val)
+                    }
+                case .noDefaultAlpn:
+                    throw DNSError.invalidData("Not Implemented yet")
+                case .port:
+                    throw DNSError.invalidData("Not Implemented yet")
+                case .ipv4hint:
+                    let items = svcParamValue.split(separator: ",")
+                    for item in items {
+                        let bytes = try ResourceRecord.encodeIPv4(String(item))
+                        paramValue.append(contentsOf: bytes)
+                    }
+                case .ech:
+                    throw DNSError.invalidData("Not Implemented yet")
+                case .ipv6hint:
+                    let items = svcParamValue.split(separator: ",")
+                    for item in items {
+                        let bytes = try ResourceRecord.encodeIPv6(String(item))
+                        paramValue.append(contentsOf: bytes)
+                    }
+                case .unknown(let value):
+                    throw DNSError.invalidData("Not Implemented yet. \(value)")
+                }
+                
+                rdata.append(contentsOf: withUnsafeBytes(of: UInt16(paramValue.count).bigEndian) { Data($0) })
+                rdata.append(paramValue)
+            }
+            
         default:
             // https://datatracker.ietf.org/doc/html/rfc3597#section-5
             /*
@@ -735,9 +888,63 @@ public struct ResourceRecord: Sendable, Equatable {
         return bytes
     }
     
-    /// Returns a string with the Name, TTL, Class, Type, and Value
+    internal static func decodeIPv4(_ ipBytes: Data) -> String {
+        let ip = ipBytes.map { String($0) }.joined(separator: ".")
+        return ip
+    }
+    
+    internal static func encodeIPv4(_ address: String) throws -> Data {
+        let octets = address.split(separator: ".").compactMap { UInt8($0) }
+        guard octets.count == 4 else {
+            throw DNSError.parsingError(DNSError.invalidData("Invalid A record IP: \(address)"))
+        }
+        return Data(octets)
+    }
+    
+    internal static func decodeIPv6(_ ipBytes: Data) -> String {
+        // Convert every 2 bytes into one 16-bit block
+        var segments: [String] = []
+        for i in stride(from: 0, to: 16, by: 2) {
+            let part = (UInt16(ipBytes[i]) << 8) | UInt16(ipBytes[i + 1])
+            segments.append(String(format: "%x", part))
+        }
+        
+        let ip = segments.joined(separator: ":")
+        return ip
+    }
+    
+    
+    /// Encodes an IPv6 address into Data
+    /// - Parameter address: The IPv6 address as a string
+    /// - Returns: The Data that represents the IPv6 address
+    internal static func encodeIPv6(_ address: String) throws -> Data {
+        guard let ipv6 = IPv6Address(address) else {
+            throw DNSError.parsingError(DNSError.invalidData("Invalid IPv6 address: \(address)"))
+        }
+        
+        return ipv6.rawValue
+    }
+    
+    /// Initializes a Resource Record from a string
+    /// - Parameter description: A single line with the Name, TTL, Class, Type, and Value separated by a space
+    public init?(_ description: String) {
+        let values = description.split(separator: " ")
+        guard values.count >= 5 else { return nil }
+        
+        guard let ttl = UInt32(values[1]), let Class = DNSClass(String(values[2])), let type = DNSRecordType(String(values[3])) else {
+            return nil
+        }
+        
+        self.name = String(values[0])
+        self.ttl = ttl
+        self.Class = Class
+        self.type = type
+        value = values[4...].joined(separator: " ")
+    }
+    
+    /// Returns a string with the Name, TTL, Class, Type, and Value separated by a space
     public var description: String {
-        return "\(name) \(ttl) \(Class.description) \(type) \(value)"
+        return "\(name) \(ttl) \(Class.description) \(type.description) \(value)"
     }
     
     public static func ==(lhs: ResourceRecord, rhs: ResourceRecord) -> Bool {

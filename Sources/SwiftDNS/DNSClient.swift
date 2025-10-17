@@ -465,6 +465,8 @@ final public actor DNSClient: Sendable {
             // Null label
             if length == 0 {
                 consumed = currentOffset - offset + 1
+                // Append an empty string for the trailing dot
+                labels.append("")
                 break
             }
 
@@ -495,7 +497,8 @@ final public actor DNSClient: Sendable {
                 consumed = currentOffset - offset
             }
         }
-
-        return (labels.joined(separator: "."), consumed)
+        
+        // If there is only one item and it *is* an empty string, add a trailing dot
+        return (labels.joined(separator: ".") + (labels.count == 1 && labels.first == "" ? "." : ""), consumed)
     }
 }

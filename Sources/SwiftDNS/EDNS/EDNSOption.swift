@@ -205,11 +205,8 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
                 
                 optionData.append(contentsOf: prefix)
             case 2:
-                guard let ipv6 = IPv6Address(ipString) else {
-                    throw DNSError.parsingError(DNSError.invalidData("Invalid IPv6 address: \(ipString)"))
-                }
+                let rawBytes = try ResourceRecord.encodeIPv6(ipString)
                 
-                let rawBytes = ipv6.rawValue
                 let bitCount = Int(sourceMask)
                 // Calculate the number of bytes needed to hold the prefix bits and round up
                 let byteCount = (bitCount + 7) / 8

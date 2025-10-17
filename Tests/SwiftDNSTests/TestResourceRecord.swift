@@ -72,8 +72,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "ns3.google.com", ttl: 85839, Class: .internet, type: .A, value: "216.239.36.10")
+        let expectedRR = ResourceRecord(name: "ns3.google.com.", ttl: 85839, Class: .internet, type: .A, value: "216.239.36.10")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -101,8 +103,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "google.com", ttl: 85839, Class: .internet, type: .NS, value: "ns1.google.com")
+        let expectedRR = ResourceRecord(name: "google.com.", ttl: 85839, Class: .internet, type: .NS, value: "ns1.google.com.")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -128,8 +132,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "www.infinitepartitions.com", ttl: 7514, Class: .internet, type: .CNAME, value: "infinitepartitions.com")
+        let expectedRR = ResourceRecord(name: "www.infinitepartitions.com.", ttl: 7514, Class: .internet, type: .CNAME, value: "infinitepartitions.com.")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -176,8 +182,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "as209245.net", ttl: 1800, Class: .internet, type: .SOA, value: "josh.ns.cloudflare.com dns.cloudflare.com 2384946876 10000 2400 604800 1800")
+        let expectedRR = ResourceRecord(name: "as209245.net.", ttl: 1800, Class: .internet, type: .SOA, value: "josh.ns.cloudflare.com. dns.cloudflare.com. 2384946876 10000 2400 604800 1800")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -219,8 +227,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "34.48.210.189.in-addr.arpa", ttl: 2884, Class: .internet, type: .PTR, value: "189-210-48-34.static.axtel.net")
+        let expectedRR = ResourceRecord(name: "34.48.210.189.in-addr.arpa.", ttl: 2884, Class: .internet, type: .PTR, value: "189-210-48-34.static.axtel.net.")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -282,8 +292,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa", ttl: 3600, Class: .internet, type: .PTR, value: "edge0.ams0.as209245.net")
+        let expectedRR = ResourceRecord(name: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa.", ttl: 3600, Class: .internet, type: .PTR, value: "edge0.ams0.as209245.net.")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -314,8 +326,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "as209245.net", ttl: 300, Class: .internet, type: .MX, value: "10 mx1.improvmx.com")
+        let expectedRR = ResourceRecord(name: "as209245.net.", ttl: 300, Class: .internet, type: .MX, value: "10 mx1.improvmx.com.")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -348,8 +362,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "as209245.net", ttl: 26, Class: .internet, type: .AAAA, value: "2606:4700:3031:0:0:0:6815:5ad2")
+        let expectedRR = ResourceRecord(name: "as209245.net.", ttl: 26, Class: .internet, type: .AAAA, value: "2606:4700:3031:0:0:0:6815:5ad2")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -385,8 +401,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "_minecraft._tcp.fedemtz66.tech", ttl: 300, Class: .internet, type: .SRV, value: "1 1 25564 dfw-1.fedemtz66.tech")
+        let expectedRR = ResourceRecord(name: "_minecraft._tcp.fedemtz66.tech.", ttl: 300, Class: .internet, type: .SRV, value: "1 1 25564 dfw-1.fedemtz66.tech.")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -423,8 +441,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "dskey.example.com", ttl: 86400, Class: .internet, type: .DS, value: "60485 5 1 2bb183af5f22588179a53b0a98631fad1a292118")
+        let expectedRR = ResourceRecord(name: "dskey.example.com.", ttl: 86400, Class: .internet, type: .DS, value: "60485 5 1 2bb183af5f22588179a53b0a98631fad1a292118")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -456,8 +476,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "ams-1.fedemtz66.tech", ttl: 300, Class: .internet, type: .SSHFP, value: "1 1 9056700c6fff1ac29f90c844ece6ca586d897fbb")
+        let expectedRR = ResourceRecord(name: "ams-1.fedemtz66.tech.", ttl: 300, Class: .internet, type: .SSHFP, value: "1 1 9056700c6fff1ac29f90c844ece6ca586d897fbb")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -490,8 +512,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "ams-1.fedemtz66.tech", ttl: 300, Class: .internet, type: .SSHFP, value: "4 2 792e93389eb2a1c9b9044a25be8357e0be7c28a75bfa6a008afce720df4cbe25")
+        let expectedRR = ResourceRecord(name: "ams-1.fedemtz66.tech.", ttl: 300, Class: .internet, type: .SSHFP, value: "4 2 792e93389eb2a1c9b9044a25be8357e0be7c28a75bfa6a008afce720df4cbe25")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -554,8 +578,10 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "alfa.example.com", ttl: 86400, Class: .internet, type: .NSEC, value: "host.example.com A MX RRSIG NSEC TYPE1234")
+        let expectedRR = ResourceRecord(name: "alfa.example.com.", ttl: 86400, Class: .internet, type: .NSEC, value: "host.example.com. A MX RRSIG NSEC TYPE1234")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
@@ -589,12 +615,13 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "mtzfederico.com", ttl: 3600, Class: .internet, type: .DNSKEY, value: "256 3 13 oJMRESz5E4gYzS/q6XDrvU1qMPYIjCWzJaOau8XNEZeqCYKD5ar0IRd8KqXXFJkqmVfRvMGPmM1x8fGAa2XhSA==")
+        let expectedRR = ResourceRecord(name: "mtzfederico.com.", ttl: 3600, Class: .internet, type: .DNSKEY, value: "256 3 13 oJMRESz5E4gYzS/q6XDrvU1qMPYIjCWzJaOau8XNEZeqCYKD5ar0IRd8KqXXFJkqmVfRvMGPmM1x8fGAa2XhSA==")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
-        print("rrOut: \(rrOut.hexEncodedString())")
         #expect(rrOut == data)
     }
     
@@ -610,7 +637,54 @@ struct TestResourceRecord {
     
     // HTTPS 65
     @Test func HTTPS() throws {
-        #expect(false)
+        
+        let data: Data = Data([
+            0x0a,
+            0x63, 0x6c, 0x6f, 0x75, 0x64, 0x66, 0x6c, 0x61, 0x72, 0x65,         // cloudflare
+            0x03,
+            0x63, 0x6f, 0x6d,                                                   // com
+            0x00,
+            0x00, 0x41,                                                         // type 65 = HTTPS
+            0x00, 0x01,                                                         // class in
+            0x00, 0x00, 0x00, 0x00,                                             // TTL = 0
+            0x00, 0x3d,                                                         // RDLength = 61
+            0x00, 0x01,                                                         // SvcPriority = 1
+            0x00,                                                               // targetName
+            
+            0x00, 0x01,                                                         // alpn
+            0x00, 0x06,                                                         // SvcParamValue length = 6
+            0x02,                                                               // len = 2
+            0x68, 0x33,                                                         // h3
+            0x02,                                                               // len = 2
+            0x68, 0x32,                                                         // h2
+            
+            0x00, 0x04,                                                         // ipv4hint
+            0x00, 0x08,                                                         // SvcParamValue length = 8
+            0x68, 0x10, 0x84, 0xe5,                                             // 104.16.132.229
+            0x68, 0x10, 0x85, 0xe5,                                             // 104.16.133.229
+            
+            0x00, 0x06,                                                         // ipv6hint
+            0x00, 0x20,                                                         // SvcParamValue length = 32
+            // 2606:4700:0000:0000:0000:0000:6810:84e5
+            0x26, 0x06, 0x47, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x10, 0x84, 0xe5,
+            // 2606:4700:0000:0000:0000:0000:6810:85e5
+            0x26, 0x06, 0x47, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x10, 0x85, 0xe5,
+        ])
+        
+        
+        var offset = 0
+        let parsedRR = try ResourceRecord(data: data, offset: &offset)
+        print("parsedRR: \(parsedRR.description)")
+        
+        let expectedRR = ResourceRecord(name: "cloudflare.com.", ttl: 0, Class: .internet, type: .HTTPS, value: "1 . alpn=h3,h2 ipv4hint=104.16.132.229,104.16.133.229 ipv6hint=2606:4700:0:0:0:0:6810:84e5,2606:4700:0:0:0:0:6810:85e5")
+        #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
+        
+        var nameOffsets: [String: Int] = [:]
+        let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
+        print("rrOut: \(rrOut.hexEncodedString())")
+        #expect(rrOut == data)
     }
     
     // Tests an unknown type with code 123
@@ -637,12 +711,13 @@ struct TestResourceRecord {
         var offset = 0
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
-        let expectedRR = ResourceRecord(name: "example.com", ttl: 3600, Class: .internet, type: .unknown(123), value: "\\# 56 48656c6c6f2c20576f726c6421205468697320697320616e20756e6b6e6f776e205265736f75726365205265636f72642773205244415441")
+        let expectedRR = ResourceRecord(name: "example.com.", ttl: 3600, Class: .internet, type: .unknown(123), value: "\\# 56 48656c6c6f2c20576f726c6421205468697320697320616e20756e6b6e6f776e205265736f75726365205265636f72642773205244415441")
         #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
         
         var nameOffsets: [String: Int] = [:]
         let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
-        print("rrOut: \(rrOut.hexEncodedString())")
         #expect(rrOut == data)
     }
 }

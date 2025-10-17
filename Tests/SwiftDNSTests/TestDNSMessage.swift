@@ -43,7 +43,7 @@ struct TestDNSMessage {
         let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x7643, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
-        let expectedQuestion = QuestionSection(host: "as209245.net", type: .A, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "as209245.net.", type: .A, CLASS: .internet)
         let fullData = expectedHeader.toData() + (try expectedQuestion.toData())
         
         #expect(fullData == data)
@@ -86,7 +86,7 @@ struct TestDNSMessage {
         let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0xa17c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
-        let expectedQuestion = QuestionSection(host: "bandaancha.eu", type: .AAAA, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "bandaancha.eu.", type: .AAAA, CLASS: .internet)
         let fullData = expectedHeader.toData() + (try expectedQuestion.toData())
         
         #expect(fullData == data)
@@ -131,7 +131,7 @@ struct TestDNSMessage {
         let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x5ef4, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
-        let expectedQuestion = QuestionSection(host: "id.server", type: .TXT, CLASS: .chaos)
+        let expectedQuestion = QuestionSection(host: "id.server.", type: .TXT, CLASS: .chaos)
         let fullData = expectedHeader.toData() + (try expectedQuestion.toData())
         
         #expect(fullData == data)
@@ -201,7 +201,7 @@ struct TestDNSMessage {
         // print("----------------------------\nOutput:\n\(parsedOut.description)\n\nReference:\n\(parsedAnswer.description)\n----------------------------")
         #expect(parsedAnswer.header.id == 0xe1a8)
         
-        let expectedQuestion = QuestionSection(host: "google.com", type: .NS, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "google.com.", type: .NS, CLASS: .internet)
         
         #expect(parsedAnswer.header.QDCOUNT == 1)
         #expect(parsedAnswer.header.ANCOUNT == 4)
@@ -215,10 +215,10 @@ struct TestDNSMessage {
         
         #expect(firstQuestion == expectedQuestion)
         
-        let expectedAnswer1 = ResourceRecord(name: "google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns1.google.com")
-        let expectedAnswer2 = ResourceRecord(name: "google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns3.google.com")
-        let expectedAnswer3 = ResourceRecord(name: "google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns4.google.com")
-        let expectedAnswer4 = ResourceRecord(name: "google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns2.google.com")
+        let expectedAnswer1 = ResourceRecord(name: "google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns1.google.com.")
+        let expectedAnswer2 = ResourceRecord(name: "google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns3.google.com.")
+        let expectedAnswer3 = ResourceRecord(name: "google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns4.google.com.")
+        let expectedAnswer4 = ResourceRecord(name: "google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.NS, value: "ns2.google.com.")
         
         
         #expect(parsedAnswer.Answer[0] == expectedAnswer1)
@@ -226,17 +226,17 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Answer[2] == expectedAnswer3)
         #expect(parsedAnswer.Answer[3] == expectedAnswer4)
         
-        let expectedAR0 = ResourceRecord(name: "ns3.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.36.10")
-        let expectedAR1 = ResourceRecord(name: "ns3.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:36:0:0:0:a")
+        let expectedAR0 = ResourceRecord(name: "ns3.google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.36.10")
+        let expectedAR1 = ResourceRecord(name: "ns3.google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:36:0:0:0:a")
         
-        let expectedAR2 = ResourceRecord(name: "ns4.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.38.10")
-        let expectedAR3 = ResourceRecord(name: "ns4.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:38:0:0:0:a")
+        let expectedAR2 = ResourceRecord(name: "ns4.google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.38.10")
+        let expectedAR3 = ResourceRecord(name: "ns4.google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:38:0:0:0:a")
         
-        let expectedAR4 = ResourceRecord(name: "ns2.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.34.10")
-        let expectedAR5 = ResourceRecord(name: "ns2.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:34:0:0:0:a")
+        let expectedAR4 = ResourceRecord(name: "ns2.google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.34.10")
+        let expectedAR5 = ResourceRecord(name: "ns2.google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:34:0:0:0:a")
         
-        let expectedAR6 = ResourceRecord(name: "ns1.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.32.10")
-        let expectedAR7 = ResourceRecord(name: "ns1.google.com", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:32:0:0:0:a")
+        let expectedAR6 = ResourceRecord(name: "ns1.google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.A, value: "216.239.32.10")
+        let expectedAR7 = ResourceRecord(name: "ns1.google.com.", ttl: 85839, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:4860:4802:32:0:0:0:a")
         
         #expect(parsedAnswer.Additional[0] == expectedAR0)
         #expect(parsedAnswer.Additional[1] == expectedAR1)
@@ -286,10 +286,10 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 0)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "as209245.net", type: .AAAA, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "as209245.net.", type: .AAAA, CLASS: .internet)
         
-        let expectedAnswer0 = ResourceRecord(name: "as209245.net", ttl: 26, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2606:4700:3031:0:0:0:6815:5ad2")
-        let expectedAnswer1 = ResourceRecord(name: "as209245.net", ttl: 26, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2606:4700:3037:0:0:0:ac43:a168")
+        let expectedAnswer0 = ResourceRecord(name: "as209245.net.", ttl: 26, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2606:4700:3031:0:0:0:6815:5ad2")
+        let expectedAnswer1 = ResourceRecord(name: "as209245.net.", ttl: 26, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2606:4700:3037:0:0:0:ac43:a168")
         
         guard let firstQuestion = parsedAnswer.Question.first else {
             Issue.record("First question is nil")
@@ -356,9 +356,9 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 0)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "34.48.210.189.in-addr.arpa", type: .PTR, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "34.48.210.189.in-addr.arpa.", type: .PTR, CLASS: .internet)
         
-        let expectedAnswer = ResourceRecord(name: "34.48.210.189.in-addr.arpa", ttl: 2884, Class: DNSClass.internet, type: DNSRecordType.PTR, value: "189-210-48-34.static.axtel.net")
+        let expectedAnswer = ResourceRecord(name: "34.48.210.189.in-addr.arpa.", ttl: 2884, Class: DNSClass.internet, type: DNSRecordType.PTR, value: "189-210-48-34.static.axtel.net.")
         
         guard let firstAnswer = parsedAnswer.Answer.first else {
             Issue.record("First answer is nil")
@@ -412,10 +412,10 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 0)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa", type: .PTR, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa.", type: .PTR, CLASS: .internet)
         
         // as209245.net.        1800    IN    SOA    josh.ns.cloudflare.com. dns.cloudflare.com. 2379358730 10000 2400 604800 1800
-        let expectedAnswer = ResourceRecord(name: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa", ttl: 3600, Class: DNSClass.internet, type: DNSRecordType.PTR, value: "edge0.ams0.as209245.net")
+        let expectedAnswer = ResourceRecord(name: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa.", ttl: 3600, Class: DNSClass.internet, type: DNSRecordType.PTR, value: "edge0.ams0.as209245.net.")
         
         guard let firstAnswer = parsedAnswer.Answer.first else {
             Issue.record("First answer is nil")
@@ -475,7 +475,7 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 0)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "www.apple.com", type: .A, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "www.apple.com.", type: .A, CLASS: .internet)
         
         /*
          www.apple.com.        300    IN    CNAME    www-apple-com.v.aaplimg.com.
@@ -483,10 +483,10 @@ struct TestDNSMessage {
          www.apple.com.edgekey.net. 300    IN    CNAME    e6858.dsce9.akamaiedge.net.
          e6858.dsce9.akamaiedge.net. 20    IN    A    104.81.141.44
          */
-        let expectedAnswer0 = ResourceRecord(name: "www.apple.com", ttl: 300, Class: .internet, type: .CNAME, value: "www-apple-com.v.aaplimg.com")
-        let expectedAnswer1 = ResourceRecord(name: "www-apple-com.v.aaplimg.com", ttl: 300, Class: .internet, type: .CNAME, value: "www.apple.com.edgekey.net")
-        let expectedAnswer2 = ResourceRecord(name: "www.apple.com.edgekey.net", ttl: 300, Class: .internet, type: .CNAME, value: "e6858.dsce9.akamaiedge.net")
-        let expectedAnswer3 = ResourceRecord(name: "e6858.dsce9.akamaiedge.net", ttl: 20, Class: .internet, type: DNSRecordType.A, value: "104.81.141.44")
+        let expectedAnswer0 = ResourceRecord(name: "www.apple.com.", ttl: 300, Class: .internet, type: .CNAME, value: "www-apple-com.v.aaplimg.com.")
+        let expectedAnswer1 = ResourceRecord(name: "www-apple-com.v.aaplimg.com.", ttl: 300, Class: .internet, type: .CNAME, value: "www.apple.com.edgekey.net.")
+        let expectedAnswer2 = ResourceRecord(name: "www.apple.com.edgekey.net.", ttl: 300, Class: .internet, type: .CNAME, value: "e6858.dsce9.akamaiedge.net.")
+        let expectedAnswer3 = ResourceRecord(name: "e6858.dsce9.akamaiedge.net.", ttl: 20, Class: .internet, type: DNSRecordType.A, value: "104.81.141.44")
         
         guard let firstQuestion = parsedAnswer.Question.first else {
             Issue.record("First question is nil")
@@ -534,14 +534,14 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 0)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "www.infinitepartitions.com", type: .A, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "www.infinitepartitions.com.", type: .A, CLASS: .internet)
         
         /*
          www.infinitepartitions.com. 7514 IN    CNAME    infinitepartitions.com.
          infinitepartitions.com.    7514    IN    A    74.220.219.29
          */
-        let expectedAnswer0 = ResourceRecord(name: "www.infinitepartitions.com", ttl: 7514, Class: .internet, type: .CNAME, value: "infinitepartitions.com")
-        let expectedAnswer1 = ResourceRecord(name: "infinitepartitions.com", ttl: 7514, Class: .internet, type: .A, value: "74.220.219.29")
+        let expectedAnswer0 = ResourceRecord(name: "www.infinitepartitions.com.", ttl: 7514, Class: .internet, type: .CNAME, value: "infinitepartitions.com.")
+        let expectedAnswer1 = ResourceRecord(name: "infinitepartitions.com.", ttl: 7514, Class: .internet, type: .A, value: "74.220.219.29")
         
         guard let firstQuestion = parsedAnswer.Question.first else {
             Issue.record("First question is nil")
@@ -595,10 +595,10 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Additional.count == 0)
         
         
-        let expectedQuestion = QuestionSection(host: "nxdomain.as209245.net", type: .A, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "nxdomain.as209245.net.", type: .A, CLASS: .internet)
         
         // as209245.net.        1800    IN    SOA    josh.ns.cloudflare.com. dns.cloudflare.com. 2379358730 10000 2400 604800 1800
-        let expectedAnswer = ResourceRecord(name: "as209245.net", ttl: 1800, Class: DNSClass.internet, type: DNSRecordType.SOA, value: "josh.ns.cloudflare.com dns.cloudflare.com 2379358730 10000 2400 604800 1800")
+        let expectedAnswer = ResourceRecord(name: "as209245.net.", ttl: 1800, Class: DNSClass.internet, type: DNSRecordType.SOA, value: "josh.ns.cloudflare.com. dns.cloudflare.com. 2379358730 10000 2400 604800 1800")
         
         guard let firstQuestion = parsedAnswer.Question.first else {
             Issue.record("First question is nil")
@@ -684,7 +684,7 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Additional.count == 0)
         
         
-        let expectedQuestion = QuestionSection(host: "", type: .NS, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: ".", type: .NS, CLASS: .internet)
         
         guard let firstQuestion = parsedAnswer.Question.first else {
             Issue.record("First question is nil")
@@ -694,19 +694,19 @@ struct TestDNSMessage {
         #expect(firstQuestion == expectedQuestion)
         
         let expectedAnswers: [ResourceRecord] = [
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "e.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "b.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "d.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "f.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "g.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "c.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "a.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "m.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "l.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "j.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "k.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "h.root-servers.net"),
-            ResourceRecord(name: "", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "i.root-servers.net"),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "e.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "b.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "d.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "f.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "g.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "c.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "a.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "m.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "l.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "j.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "k.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "h.root-servers.net."),
+            ResourceRecord(name: ".", ttl: 4545, Class: DNSClass.internet, type: DNSRecordType.NS, value: "i.root-servers.net."),
         ]
         
         for i in 0..<parsedAnswer.Authority.count {
@@ -884,7 +884,7 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Additional.count == 26)
         
         
-        let expectedQuestion = QuestionSection(host: "as209245.net", type: .AAAA, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "as209245.net.", type: .AAAA, CLASS: .internet)
         
         guard let firstQuestion = parsedAnswer.Question.first else {
             Issue.record("First question is nil")
@@ -894,19 +894,19 @@ struct TestDNSMessage {
         #expect(firstQuestion == expectedQuestion)
         
         let expectedNS: [ResourceRecord] = [
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "a.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "i.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "j.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "b.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "l.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "m.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "e.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "d.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "h.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "f.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "g.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "c.gtld-servers.net"),
-            ResourceRecord(name: "net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "k.gtld-servers.net"),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "a.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "i.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "j.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "b.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "l.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "m.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "e.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "d.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "h.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "f.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "g.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "c.gtld-servers.net."),
+            ResourceRecord(name: "net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.NS, value: "k.gtld-servers.net."),
         ]
         
         for i in 0..<parsedAnswer.Authority.count {
@@ -914,33 +914,33 @@ struct TestDNSMessage {
         }
         
         let expectedAR: [ResourceRecord] = [
-            ResourceRecord(name: "m.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.55.83.30"),
-            ResourceRecord(name: "l.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.41.162.30"),
-            ResourceRecord(name: "k.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.52.178.30"),
-            ResourceRecord(name: "j.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.48.79.30"),
-            ResourceRecord(name: "i.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.43.172.30"),
-            ResourceRecord(name: "h.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.54.112.30"),
-            ResourceRecord(name: "g.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.42.93.30"),
-            ResourceRecord(name: "f.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.35.51.30"),
-            ResourceRecord(name: "e.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.12.94.30"),
-            ResourceRecord(name: "d.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.31.80.30"),
-            ResourceRecord(name: "c.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.26.92.30"),
-            ResourceRecord(name: "b.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.33.14.30"),
-            ResourceRecord(name: "a.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.5.6.30"),
+            ResourceRecord(name: "m.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.55.83.30"),
+            ResourceRecord(name: "l.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.41.162.30"),
+            ResourceRecord(name: "k.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.52.178.30"),
+            ResourceRecord(name: "j.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.48.79.30"),
+            ResourceRecord(name: "i.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.43.172.30"),
+            ResourceRecord(name: "h.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.54.112.30"),
+            ResourceRecord(name: "g.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.42.93.30"),
+            ResourceRecord(name: "f.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.35.51.30"),
+            ResourceRecord(name: "e.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.12.94.30"),
+            ResourceRecord(name: "d.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.31.80.30"),
+            ResourceRecord(name: "c.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.26.92.30"),
+            ResourceRecord(name: "b.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.33.14.30"),
+            ResourceRecord(name: "a.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.A, value: "192.5.6.30"),
             
-            ResourceRecord(name: "m.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:501:b1f9:0:0:0:0:30"),
-            ResourceRecord(name: "l.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:500:d937:0:0:0:0:30"),
-            ResourceRecord(name: "k.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:d2d:0:0:0:0:30"),
-            ResourceRecord(name: "j.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:502:7094:0:0:0:0:30"),
-            ResourceRecord(name: "i.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:39c1:0:0:0:0:30"),
-            ResourceRecord(name: "h.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:502:8cc:0:0:0:0:30"),
-            ResourceRecord(name: "g.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:eea3:0:0:0:0:30"),
-            ResourceRecord(name: "f.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:d414:0:0:0:0:30"),
-            ResourceRecord(name: "e.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:502:1ca1:0:0:0:0:30"),
-            ResourceRecord(name: "d.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:500:856e:0:0:0:0:30"),
-            ResourceRecord(name: "c.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:83eb:0:0:0:0:30"),
-            ResourceRecord(name: "b.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:231d:0:0:0:2:30"),
-            ResourceRecord(name: "a.gtld-servers.net", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:a83e:0:0:0:2:30"),
+            ResourceRecord(name: "m.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:501:b1f9:0:0:0:0:30"),
+            ResourceRecord(name: "l.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:500:d937:0:0:0:0:30"),
+            ResourceRecord(name: "k.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:d2d:0:0:0:0:30"),
+            ResourceRecord(name: "j.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:502:7094:0:0:0:0:30"),
+            ResourceRecord(name: "i.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:39c1:0:0:0:0:30"),
+            ResourceRecord(name: "h.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:502:8cc:0:0:0:0:30"),
+            ResourceRecord(name: "g.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:eea3:0:0:0:0:30"),
+            ResourceRecord(name: "f.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:d414:0:0:0:0:30"),
+            ResourceRecord(name: "e.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:502:1ca1:0:0:0:0:30"),
+            ResourceRecord(name: "d.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:500:856e:0:0:0:0:30"),
+            ResourceRecord(name: "c.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:83eb:0:0:0:0:30"),
+            ResourceRecord(name: "b.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:231d:0:0:0:2:30"),
+            ResourceRecord(name: "a.gtld-servers.net.", ttl: 172800, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2001:503:a83e:0:0:0:2:30"),
         ]
         
         for i in 0..<parsedAnswer.Additional.count {
@@ -1026,7 +1026,7 @@ struct TestDNSMessage {
             0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e
         ])
         
-        #expect(throws: DNSError.invalidData("Invalid RCODE: '25711'"), performing: {
+        #expect(throws: DNSError.invalidData("offset out of bounds for type and class"), performing: {
             let _ = try DNSMessage(data: data)
         })
     }
@@ -1063,7 +1063,7 @@ struct TestDNSMessage {
         let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, z: 2, rcode: 0)
         let expectedHeader = DNSHeader(id: 0xff78, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
         
-        let expectedQuestion = QuestionSection(host: "google.com", type: .AAAA, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "google.com.", type: .AAAA, CLASS: .internet)
         
         let expectedEDNS = EDNSMessage(extendedRcode: 0, version: 0, zField: 0, doBit: false, options: [])
         
@@ -1116,10 +1116,10 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 0)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "google.com", type: .AAAA, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "google.com.", type: .AAAA, CLASS: .internet)
         
         // google.com.        91    IN    AAAA    2607:f8b0:4012:81d::200e
-        let expectedAnswer = ResourceRecord(name: "google.com", ttl: 91, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2607:f8b0:4012:81d:0:0:0:200e")
+        let expectedAnswer = ResourceRecord(name: "google.com.", ttl: 91, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2607:f8b0:4012:81d:0:0:0:200e")
         
         let expectedEDNS = EDNSMessage(extendedRcode: 0, version: 0, zField: 0, doBit: false, options: [])
         
@@ -1177,7 +1177,7 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 0)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "google.com", type: .A, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "google.com.", type: .A, CLASS: .internet)
         /*
         EXT_RCODE=0, VERSION=0, DO=false
         OPTIONS: Client Subnet: Family=1, SourceMask=21, ScopeMask=0, IP=189.159.104.0
@@ -1228,10 +1228,10 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 0)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "google.com", type: .A, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "google.com.", type: .A, CLASS: .internet)
         
         // google.com.        175    IN    A    142.250.176.14
-        let expectedAnswer = ResourceRecord(name: "google.com", ttl: 175, Class: DNSClass.internet, type: DNSRecordType.A, value: "142.250.176.14")
+        let expectedAnswer = ResourceRecord(name: "google.com.", ttl: 175, Class: DNSClass.internet, type: DNSRecordType.A, value: "142.250.176.14")
         
         guard let firstAnswer = parsedAnswer.Answer.first else {
             Issue.record("First answer is nil")
@@ -1290,10 +1290,10 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 0)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "google.com", type: .AAAA, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "google.com.", type: .AAAA, CLASS: .internet)
         
         // google.com.        300    IN    AAAA    2a00:1450:400e:80e::200e
-        let expectedAnswer = ResourceRecord(name: "google.com", ttl: 300, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2a00:1450:400e:80e:0:0:0:200e")
+        let expectedAnswer = ResourceRecord(name: "google.com.", ttl: 300, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2a00:1450:400e:80e:0:0:0:200e")
         
         guard let firstAnswer = parsedAnswer.Answer.first else {
             Issue.record("First answer is nil")
@@ -1370,7 +1370,7 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Authority.count == 3)
         #expect(parsedAnswer.Additional.count == 0)
         
-        let expectedQuestion = QuestionSection(host: "01000110.xyz", type: .A, CLASS: .internet)
+        let expectedQuestion = QuestionSection(host: "01000110.xyz.", type: .A, CLASS: .internet)
         
         /*
          ;; ANSWER SECTION:
@@ -1381,9 +1381,9 @@ struct TestDNSMessage {
          01000110.xyz.        86400    IN    NS    ns1.as209245.net.
          01000110.xyz.        86400    IN    NS    ns-global.kjsl.com.
          */
-        let expectedAnswer0 = ResourceRecord(name: "01000110.xyz", ttl: 86400, Class: .internet, type: .NS, value: "ns0.as209245.net")
-        let expectedAnswer1 = ResourceRecord(name: "01000110.xyz", ttl: 86400, Class: .internet, type: .NS, value: "ns1.as209245.net")
-        let expectedAnswer2 = ResourceRecord(name: "01000110.xyz", ttl: 86400, Class: .internet, type: .NS, value: "ns-global.kjsl.com")
+        let expectedAnswer0 = ResourceRecord(name: "01000110.xyz.", ttl: 86400, Class: .internet, type: .NS, value: "ns0.as209245.net.")
+        let expectedAnswer1 = ResourceRecord(name: "01000110.xyz.", ttl: 86400, Class: .internet, type: .NS, value: "ns1.as209245.net.")
+        let expectedAnswer2 = ResourceRecord(name: "01000110.xyz.", ttl: 86400, Class: .internet, type: .NS, value: "ns-global.kjsl.com.")
         
         /*
          EXT_RCODE=0, VERSION=0, DO=false
