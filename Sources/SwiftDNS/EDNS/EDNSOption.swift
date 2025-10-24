@@ -62,18 +62,14 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
         self.code = optionCode
         
         switch code {
-        case .COOKIE:
-            // https://datatracker.ietf.org/doc/html/rfc7873#section-4
-            // The client cookie has a fixed length of 8 bytes and the server Cookie has a variable size of 8 to 32 bytes
-            guard optionLength >= 8 && optionLength <= 40 else {
-                throw DNSError.invalidData("Invalid EDNS Cookie. Bad length: \(optionLength)")
-            }
-            
-            let clientCookie = optionData.subdata(in: 0..<8).hexEncodedString()
-            let serverCookie = optionLength > 8 ? optionData.subdata(in: 8..<Int(optionLength)).hexEncodedString() : "None"
+        case .NSID:
             offset += Int(optionLength)
-            
-            self.values = ["Client": clientCookie, "Server": serverCookie]
+            if let str = String(data: optionData, encoding: .utf8), str.isPrintable {
+                self.values = ["NSID": str]
+                return
+            }
+            // fallback to hex representation
+            self.values = ["NSID": "0x\(optionData.hexEncodedString())"]
         case .ClientSubnet:
             guard optionLength >= 4 else {
                 throw DNSError.invalidData("Invalid EDNS Client Subnet. Data too short: \(optionLength)")
@@ -120,6 +116,18 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
             offset += Int(optionLength)
             self.values = ["Family": String(family), "SourceMask": String(sourceMask), "ScopeMask": String(scopeMask), "IP": ipString]
             return
+        case .COOKIE:
+            // https://datatracker.ietf.org/doc/html/rfc7873#section-4
+            // The client cookie has a fixed length of 8 bytes and the server Cookie has a variable size of 8 to 32 bytes
+            guard optionLength >= 8 && optionLength <= 40 else {
+                throw DNSError.invalidData("Invalid EDNS Cookie. Bad length: \(optionLength)")
+            }
+            
+            let clientCookie = optionData.subdata(in: 0..<8).hexEncodedString()
+            let serverCookie = optionLength > 8 ? optionData.subdata(in: 8..<Int(optionLength)).hexEncodedString() : "None"
+            offset += Int(optionLength)
+            
+            self.values = ["Client": clientCookie, "Server": serverCookie]
         case .KeepAlive:
             guard optionLength == 2 else { throw DNSError.invalidData("Invalid EDNS KEEPALIVE. Bad length: \(optionLength)") }
             
@@ -162,14 +170,15 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
         
         var optionData = Data()
         switch code {
-        case .COOKIE:
-            guard let clientCookie = values["Client"], let serverCookie = values["Server"] else {
-                throw DNSError.invalidData("Invalid EDNS Client Subnet values")
+        case .NSID:
+            guard let nsid = values["NSID"] else {
+                throw DNSError.invalidData("Unknown NSID value")
             }
             
-            optionData.append(try Data(hex: clientCookie))
-            if serverCookie != "None" {
-                optionData.append(try Data(hex: serverCookie))
+            if nsid.hasPrefix("0x") {
+                optionData.append(try Data(hex: String(nsid.dropFirst(2))))
+            } else {
+                optionData.append(contentsOf: nsid.utf8)
             }
         case .ClientSubnet:
             guard let rawFamily = values["Family"], let family = UInt16(rawFamily),
@@ -224,6 +233,15 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
             default:
                 throw DNSError.invalidData("Unsupported IP family for EDNS Client Subnet: \(family)")
             }
+        case .COOKIE:
+            guard let clientCookie = values["Client"], let serverCookie = values["Server"] else {
+                throw DNSError.invalidData("Invalid EDNS Client Subnet values")
+            }
+            
+            optionData.append(try Data(hex: clientCookie))
+            if serverCookie != "None" {
+                optionData.append(try Data(hex: serverCookie))
+            }
         case .KeepAlive:
             guard let rawTimeout = values["Timeout"], let timeout = UInt16(rawTimeout) else {
                 throw DNSError.invalidData("Invalid EDNS KeepAlive timeout")
@@ -248,7 +266,7 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
             }
         default:
             guard let unknownData = values["Unknown"] else {
-                throw DNSError.invalidData("Unknown Client Subnet values")
+                throw DNSError.invalidData("Failed to get value for unknown type")
             }
             
             if unknownData.hasPrefix("0x") {

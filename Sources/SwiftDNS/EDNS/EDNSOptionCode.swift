@@ -13,6 +13,7 @@ public enum EDNSOptionCode: UInt16, Sendable, CustomStringConvertible {
     case reserved = 0
     case LLQ = 1
     case updateLease = 2
+    /// The DNS Name Server Identifier option as defined in [RFC 5001](https://datatracker.ietf.org/doc/html/rfc5001)
     case NSID = 3
     case DAU = 5
     case DHU = 6
