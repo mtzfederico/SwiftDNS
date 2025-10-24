@@ -11,7 +11,7 @@ import Foundation
 ///
 /// [Defined by iana](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4)
 public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseIterable, Hashable {
-    public static let allCases: [DNSRecordType] = [ .A, .NS, .CNAME, .SOA, .PTR, .MX, .TXT, .AAAA, .SRV, .DNAME, .OPT, .DS, .SSHFP, .RRSIG, .NSEC, .DNSKEY, .NSEC3, .SVCB, .HTTPS, .IXFR, .AXFR, .ANY]
+    public static let allCases: [DNSRecordType] = [ .A, .NS, .CNAME, .SOA, .PTR, .MX, .TXT, .AAAA, .SRV, .DNAME, .OPT, .DS, .SSHFP, .RRSIG, .NSEC, .DNSKEY, .NSEC3, .SVCB, .HTTPS, .NXNAME, .IXFR, .AXFR, .ANY]
     
     case A // = 1
     case NS // = 2
@@ -42,6 +42,10 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
     case SVCB // = 64
     // https://www.rfc-editor.org/rfc/rfc9460.html#section-9.1
     case HTTPS // = 65
+    // https://www.rfc-editor.org/rfc/rfc9824.html
+    // Section 3.5:
+    // "NXNAME is a Meta-TYPE that SHOULD NOT appear anywhere in a DNS message apart from the NSEC type bitmap of a Compact Answer response for a nonexistent name."
+    case NXNAME // = 128
     case IXFR // = 251
     case AXFR // = 252
     case ANY // = 255
@@ -69,6 +73,7 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
         case 50: self = .NSEC3
         case 64: self = .SVCB
         case 65: self = .HTTPS
+        case 128: self = .NXNAME
         case 251: self = .IXFR
         case 252: self = .AXFR
         case 255: self = .ANY
@@ -97,6 +102,7 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
         case .NSEC3: return 50
         case .SVCB: return 64
         case .HTTPS: return 65
+        case .NXNAME: return 128
         case .IXFR: return 251
         case .AXFR: return 252
         case .ANY: return 255
@@ -130,6 +136,7 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
         case "NSEC3": self = .NSEC3
         case "SVCB": self = .SVCB
         case "HTTPS": self = .HTTPS
+        case "NXNAME": self = .NXNAME
         case "IXFR": self = .IXFR
         case "AXFR": self = .AXFR
         case "ANY": self = .ANY
@@ -174,6 +181,7 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
         case .NSEC3: return "NSEC3"
         case .SVCB: return "SVCB"
         case .HTTPS: return "HTTPS"
+        case .NXNAME: return "NXNAME"
         case .IXFR: return "IXFR"
         case .AXFR: return "AXFR"
         case .ANY: return "ANY"
