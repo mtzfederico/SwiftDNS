@@ -1,5 +1,5 @@
 //
-//  SvcParamKeys.swift
+//  SVCParamKeys.swift
 //  SwiftDNS
 //
 //  Created by mtzfederico on 2025-10-16
@@ -7,16 +7,34 @@
 
 import Foundation
 
+/// The Service Parameter Keys used in SVCB and HTTPS Resource Records
+///
+/// Defined by [IANA](https://www.iana.org/assignments/dns-svcb/dns-svcb.xhtml)
 enum SVCParamKeys: Equatable, LosslessStringConvertible, Sendable, CaseIterable, Hashable {
-    static let allCases: [SVCParamKeys] = [.mandatory, .alpn, .noDefaultAlpn, .port, .ipv4hint, .ech, .ipv6hint]
-    
+    static let allCases: [SVCParamKeys] = [.mandatory, .alpn, .noDefaultAlpn, .port, .ipv4hint, .ech, .ipv6hint, .dohpath, .ohttp, .tlsSupportedGroups, .docpath]
+    /// Mandatory keys in this RR
     case mandatory
+    /// Additional supported protocols
     case alpn
+    /// No support for default protocol
     case noDefaultAlpn
+    /// Port for alternative endpoint
     case port
+    /// IPv4 address hints
     case ipv4hint
+    /// TLS Encrypted ClientHello Config
     case ech
+    /// IPv6 address hints
     case ipv6hint
+    /// DNS over HTTPS path template
+    case dohpath
+    /// Denotes that a service operates an Oblivious HTTP target
+    case ohttp
+    /// Supported groups in TLS
+    case tlsSupportedGroups
+    ///  DNS over CoAP resource path
+    case docpath
+    /// Keys 65280-65534 are reserved for private use
     case unknown(UInt16)
     
     public init(_ value: UInt16) {
@@ -35,6 +53,14 @@ enum SVCParamKeys: Equatable, LosslessStringConvertible, Sendable, CaseIterable,
             self = .ech
         case 6:
             self = .ipv6hint
+        case 7:
+            self = .dohpath
+        case 8:
+            self = .ohttp
+        case 9:
+            self = .tlsSupportedGroups
+        case 10:
+            self = .docpath
         default:
             self = .unknown(value)
         }
@@ -56,6 +82,14 @@ enum SVCParamKeys: Equatable, LosslessStringConvertible, Sendable, CaseIterable,
             return 5
         case .ipv6hint:
             return 6
+        case .dohpath:
+            return 7
+        case .ohttp:
+            return 8
+        case .tlsSupportedGroups:
+            return 9
+        case .docpath:
+            return 10
         case .unknown(let value):
             return value
         }
@@ -78,6 +112,14 @@ enum SVCParamKeys: Equatable, LosslessStringConvertible, Sendable, CaseIterable,
             self = .ech
         case "ipv6hint":
             self = .ipv6hint
+        case "dohpath":
+            self = .dohpath
+        case "ohttp":
+            self = .ohttp
+        case "tlssupportedgroups":
+            self = .tlsSupportedGroups
+        case "docpath":
+            self = .docpath
         default:
             // Limit to 5 digits since a UInt16 is limited to 65535
             let pattern = #"^key(\d{1,5})$"#
@@ -111,6 +153,14 @@ enum SVCParamKeys: Equatable, LosslessStringConvertible, Sendable, CaseIterable,
             return "ech"
         case .ipv6hint:
             return "ipv6hint"
+        case .dohpath:
+            return "dohpath"
+        case .ohttp:
+            return "ohttp"
+        case .tlsSupportedGroups:
+            return "tlssupportedgroups"
+        case .docpath:
+            return "docpath"
         case .unknown(let value):
             return "key\(value)"
         }
