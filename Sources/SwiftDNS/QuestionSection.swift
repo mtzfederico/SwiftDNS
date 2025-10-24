@@ -89,9 +89,11 @@ public struct QuestionSection: Sendable, Equatable, LosslessStringConvertible {
         return lhs.QNAME == rhs.QNAME && lhs.QTYPE == rhs.QTYPE && lhs.QCLASS == rhs.QCLASS
     }
     
-    /// Encodes a domain name
+    /// Encodes a domain name without compression
     /// - Parameter name: The domain name to encode
-    /// - Returns: The domaiin name encoded
+    /// - Returns: The domain name encoded
+    ///
+    /// For compression use `DNSMessage.encodeDomainName(name:messageLength:nameOffsets:)`
     public static func encodeDomainName(name: String) throws -> Data {
         // labels          63 octets or less
         // names           255 octets or less
