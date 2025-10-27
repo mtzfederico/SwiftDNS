@@ -438,7 +438,22 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                     
                     switch svcParamKey {
                     case .mandatory:
-                        throw DNSError.invalidData("Not Implemented yet")
+                        // it is a list of keys that are mandatory to be supported by the client.
+                        // If the client doesn't support one of them, it should ignore this RR.
+                        var mandatoryKeys: [String] = []
+                        var mandatoryOffset = 0
+                        
+                        // get the number of keys
+                        // each key is a UInt16 (2 bytes)
+                        for i in 0...svcParamValueLength/2 {
+                            let rawKey = UInt16(bigEndian: svcParamValueData.subdata(in: mandatoryOffset..<mandatoryOffset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
+                            mandatoryOffset += 2
+                            
+                            let key = SVCParamKeys(rawKey)
+                            mandatoryKeys.append(key.description)
+                        }
+                        
+                        value.append(" \(svcParamKey.description)=\(mandatoryKeys.joined(separator: ","))")
                     case .alpn:
                         var alpnValue: [String] = []
                         var alpnOffset = 0
@@ -454,9 +469,11 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                         
                         value.append(" \(svcParamKey.description)=\(alpnValue.joined(separator: ","))")
                     case .noDefaultAlpn:
-                        throw DNSError.invalidData("Not Implemented yet")
+                        // there should be no data for this key, but we need the '=' for parsing it in toData (the values are split using it).
+                        value.append(" \(svcParamKey.description)=\(svcParamValueLength > 0 ? "0x\(svcParamValueData.hexEncodedString())": "")")
                     case .port:
-                        throw DNSError.invalidData("Not Implemented yet")
+                        let port = UInt16(bigEndian: svcParamValueData.withUnsafeBytes { $0.load(as: UInt16.self) })
+                        value.append(" \(svcParamKey.description)=\(port)")
                     case .ipv4hint:
                         guard svcParamValueLength % 4 == 0 else {
                             offset += Int(rdlength)
@@ -476,7 +493,8 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                         
                         value.append(" \(svcParamKey.description)=\(ips.joined(separator: ","))")
                     case .ech:
-                        throw DNSError.invalidData("Not Implemented yet")
+                        let echData = svcParamValueData.base64EncodedString()
+                        value.append(" \(svcParamKey.description)=\(echData)")
                     case .ipv6hint:
                         guard svcParamValueLength % 16 == 0 else {
                             offset += Int(rdlength)
@@ -495,8 +513,22 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                         }
                         
                         value.append(" \(svcParamKey.description)=\(ips.joined(separator: ","))")
-                    case .unknown(let value):
-                        throw DNSError.invalidData("Not Implemented yet. \(value)")
+                    case .dohpath:
+                        guard let path = String(data: svcParamValueData, encoding: .utf8) else {
+                            throw DNSError.invalidData("Failed to parse doh path")
+                        }
+                        
+                        // TODO: validate the input and escape some characters
+                        
+                        value.append(" \(svcParamKey.description)=\(path)")
+                    default: // case .unknown(_), .ohttp:
+                        // ohttp should be empty
+                        // https://www.rfc-editor.org/rfc/rfc9540.html#name-the-ohttp-svcparamkey
+                        if let str = String(data: svcParamValueData, encoding: .utf8), str.isPrintable {
+                            value.append(" \(svcParamKey.description)=\(str)")
+                        } else {
+                            value.append(" \(svcParamKey.description)=0x\(svcParamValueData.hexEncodedString())")
+                        }
                     }
                     
                     offset += Int(svcParamValueLength)
@@ -521,7 +553,13 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
         }
     }
     
-    /// Returns the data of the ResourceRecord
+    /// Encodes a ResourceRecord into Data
+    ///
+    /// It uses DNS compression as defined in RFC1035
+    /// - Parameters:
+    ///   - messageLength: The length of the DNS message that has already been encoded
+    ///   - nameOffsets: A dictionary where the keys are domains and the values are the position where it can be found in the data. This is required for DNS compression
+    /// - Returns: The data representing the DNS record
     internal func toData(messageLength: Int, nameOffsets: inout [String: Int]) throws -> Data {
         var bytes: Data = try DNSMessage.encodeDomainName(name: self.name, messageLength: messageLength, nameOffsets: &nameOffsets)
         
@@ -537,7 +575,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
         var ttl: UInt32 = ttl.bigEndian
         bytes.append(Data(bytes: &ttl, count: 4))
         
-        /// It is the position where the data ends. The current position of the "writer".
+        /// It is the position where the data ends, the current position of the "writer".
         /// It is used to know where to point to when compressing
         var offset = messageLength + bytes.count
         
@@ -667,51 +705,43 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
             }
             
             rdata.append(algorithm)
-            // rdata[offset] = algorithm
             offset += 1
             
             rdata.append(fingerprintType)
-            // rdata[offset] = fingerprintType
             offset += 1
             
             let fingerprint = try Data(hex: String(values[2]))
             offset += fingerprint.count
             rdata.append(contentsOf: fingerprint)
-         /*
         case .RRSIG:
-            let typeCovered = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
-            offset += 2
+            let values = value.split(separator: " ")
+            guard values.count == 9 else {
+                throw DNSError.invalidData("RRSIG record value must contain 9 values separated by space. Contains \(values.count) values")
+            }
             
-            let algorithm: UInt8 = data[offset]
-            offset += 1
+            guard let typeCovered = UInt16(values[0]),
+                  let algorithm = UInt8(values[1]),
+                  let labels = UInt8(values[2]),
+                  let originalTTL = UInt32(values[3]),
+                  let signatureExpiration = UInt32(values[4]),
+                  let signatureInception = UInt32(values[5]),
+                  let keyTag = UInt16(values[6]),
+                  let signature = Data(base64Encoded: String(values[8]))
+            else {
+                throw DNSError.invalidData("Failed to parse RRSIG record values")
+            }
             
-            let labels: UInt8 = data[offset]
-            offset += 1
+            let signerName = try QuestionSection.encodeDomainName(name: String(values[7]))
             
-            let originalTTL = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
-            offset += 4
-            
-            let signatureExpiration = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
-            offset += 4
-            
-            let signatureInception = UInt32(bigEndian: data.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) })
-            offset += 4
-            
-            let keyTag = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
-            offset += 2
-            
-            let (signerName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
-            offset += domainLength
-            
-            // depends on the algorithm
-            let signature = data.subdata(in: offset..<Int(rdlength))
-            offset += signature.count
-            
-            let value = "\(typeCovered) \(algorithm) \(labels) \(originalTTL) \(signatureExpiration) \(signatureInception) \(keyTag) \(signerName) \(signature.base64EncodedString())"
-            
-            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: value)
-            return
-         */
+            rdata.append(contentsOf: withUnsafeBytes(of: typeCovered.bigEndian) { Data($0) })
+            rdata.append(contentsOf: withUnsafeBytes(of: algorithm.bigEndian) { Data($0) })
+            rdata.append(contentsOf: withUnsafeBytes(of: labels.bigEndian) { Data($0) })
+            rdata.append(contentsOf: withUnsafeBytes(of: originalTTL.bigEndian) { Data($0) })
+            rdata.append(contentsOf: withUnsafeBytes(of: signatureExpiration.bigEndian) { Data($0) })
+            rdata.append(contentsOf: withUnsafeBytes(of: signatureInception.bigEndian) { Data($0) })
+            rdata.append(contentsOf: withUnsafeBytes(of: keyTag.bigEndian) { Data($0) })
+            rdata.append(contentsOf: signerName)
+            rdata.append(contentsOf: signature)
         case .NSEC:
             let values = value.split(separator: " ")
             guard values.count >= 2 else {
@@ -768,8 +798,6 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                 throw DNSError.invalidData("Protocol for DNSKEY record must be 3: \(Protocol)")
             }
             
-            print("pubkey_out: \(publicKey.hexEncodedString())")
-            
             rdata.append(contentsOf: withUnsafeBytes(of: flags.bigEndian) { Data($0) })
             offset += 2
             
@@ -811,7 +839,13 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                 
                 switch svcParamKey {
                 case .mandatory:
-                    throw DNSError.invalidData("Not Implemented yet")
+                    let items = svcParamValue.split(separator: ",")
+                    for item in items {
+                        guard let key = SVCParamKeys(String(item)) else {
+                            throw DNSError.invalidData("Invalid mandatory SVCParamKey: '\(item)'")
+                        }
+                        paramValue.append(contentsOf: withUnsafeBytes(of: key.rawValue.bigEndian) { Data($0) })
+                    }
                 case .alpn:
                     let items = svcParamValue.split(separator: ",")
                     for item in items {
@@ -820,9 +854,15 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                         paramValue.append(contentsOf: val)
                     }
                 case .noDefaultAlpn:
-                    throw DNSError.invalidData("Not Implemented yet")
+                    if !svcParamValue.isEmpty {
+                        let data = try Data(hex: String(svcParamValue.dropFirst(2)))
+                        paramValue.append(data)
+                    }
                 case .port:
-                    throw DNSError.invalidData("Not Implemented yet")
+                    guard let port = UInt16(svcParamValue) else {
+                        throw DNSError.invalidData("Failed to parse SVCB port value")
+                    }
+                    paramValue.append(contentsOf: withUnsafeBytes(of: port.bigEndian) { Data($0) })
                 case .ipv4hint:
                     let items = svcParamValue.split(separator: ",")
                     for item in items {
@@ -830,15 +870,24 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                         paramValue.append(contentsOf: bytes)
                     }
                 case .ech:
-                    throw DNSError.invalidData("Not Implemented yet")
+                    guard let bytes = Data(base64Encoded: svcParamValue) else {
+                        throw DNSError.invalidData("Failed to parse SVCB ECH value")
+                    }
+                    paramValue.append(contentsOf: bytes)
                 case .ipv6hint:
                     let items = svcParamValue.split(separator: ",")
                     for item in items {
                         let bytes = try ResourceRecord.encodeIPv6(String(item))
                         paramValue.append(contentsOf: bytes)
                     }
-                case .unknown(let value):
-                    throw DNSError.invalidData("Not Implemented yet. \(value)")
+                case .dohpath:
+                    paramValue.append(Data(svcParamValue.utf8))
+                default: // case .unknown(_), .ohttp:
+                    if svcParamValue.hasPrefix("0x") {
+                        paramValue.append(try Data(hex: String(svcParamValue.dropFirst(2))))
+                    } else {
+                        paramValue.append(contentsOf: svcParamValue.utf8)
+                    }
                 }
                 
                 rdata.append(contentsOf: withUnsafeBytes(of: UInt16(paramValue.count).bigEndian) { Data($0) })
