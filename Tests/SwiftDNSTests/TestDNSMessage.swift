@@ -1065,7 +1065,7 @@ struct TestDNSMessage {
         
         let expectedQuestion = QuestionSection(host: "google.com.", type: .AAAA, CLASS: .internet)
         
-        let expectedEDNS = EDNSMessage(extendedRcode: 0, version: 0, zField: 0, doBit: false, options: [])
+        let expectedEDNS = EDNSMessage(extendedRcode: 0, doBit: false, options: [])
         
         guard let ednsRecord = parsedAnswer.EDNSData else {
             Issue.record("EDNS data is nil")
@@ -1121,7 +1121,7 @@ struct TestDNSMessage {
         // google.com.        91    IN    AAAA    2607:f8b0:4012:81d::200e
         let expectedAnswer = ResourceRecord(name: "google.com.", ttl: 91, Class: DNSClass.internet, type: DNSRecordType.AAAA, value: "2607:f8b0:4012:81d:0:0:0:200e")
         
-        let expectedEDNS = EDNSMessage(extendedRcode: 0, version: 0, zField: 0, doBit: false, options: [])
+        let expectedEDNS = EDNSMessage(extendedRcode: 0, doBit: false, options: [])
         
         guard let ednsRecord = parsedAnswer.EDNSData else {
             Issue.record("EDNS data is nil")
@@ -1182,7 +1182,7 @@ struct TestDNSMessage {
         EXT_RCODE=0, VERSION=0, DO=false
         OPTIONS: Client Subnet: Family=1, SourceMask=21, ScopeMask=0, IP=189.159.104.0
          */
-        let expectedEDNS = EDNSMessage(extendedRcode: 0, version: 0, zField: 0, doBit: false, options: [EDNSOption(code: .ClientSubnet, values: ["Family": "1", "SourceMask": "21", "ScopeMask": "0", "IP": "189.159.104.0"])], udpPayloadSize: 4096)
+        let expectedEDNS = EDNSMessage(extendedRcode: 0, doBit: false, options: [EDNSOption(family: 1, IP: "189.159.104.0", sourceMask: 21, scopeMask: 0)], udpPayloadSize: 4096)
         
         guard let ednsRecord = parsedAnswer.EDNSData else {
             Issue.record("EDNS data is nil")
@@ -1242,7 +1242,7 @@ struct TestDNSMessage {
         EXT_RCODE=0, VERSION=0, DO=false
         OPTIONS: Client Subnet: Family=1, SourceMask=21, ScopeMask=17, IP=189.159.104.0
         */
-        let expectedEDNS = EDNSMessage(extendedRcode: 0, version: 0, zField: 0, doBit: false, options: [EDNSOption(code: .ClientSubnet, values: ["Family": "1", "SourceMask": "21", "ScopeMask": "17", "IP": "189.159.104.0"])], udpPayloadSize: 512)
+        let expectedEDNS = EDNSMessage(extendedRcode: 0, doBit: false, options: [EDNSOption(family: 1, IP: "189.159.104.0", sourceMask: 21, scopeMask: 17)], udpPayloadSize: 512)
         
         guard let ednsRecord = parsedAnswer.EDNSData else {
             Issue.record("EDNS data is nil")
@@ -1304,7 +1304,7 @@ struct TestDNSMessage {
          EXT_RCODE=0, VERSION=0, DO=false
          OPTIONS: Client Subnet: Family=2, SourceMask=48, ScopeMask=49, IP=2a11:f2c0:fff7:0:0:0:0:0
          */
-        let expectedEDNS = EDNSMessage(extendedRcode: 0, version: 0, zField: 0, doBit: false, options: [EDNSOption(code: .ClientSubnet, values: ["Family": "2", "SourceMask": "48", "ScopeMask": "49", "IP": "2a11:f2c0:fff7:0:0:0:0:0"])], udpPayloadSize: 512)
+        let expectedEDNS = EDNSMessage(extendedRcode: 0, doBit: false, options: [EDNSOption(family: 2, IP: "2a11:f2c0:fff7:0:0:0:0:0", sourceMask: 48, scopeMask: 49)], udpPayloadSize: 512)
         
         guard let ednsRecord = parsedAnswer.EDNSData else {
             Issue.record("EDNS data is nil")
@@ -1389,7 +1389,7 @@ struct TestDNSMessage {
          EXT_RCODE=0, VERSION=0, DO=false
          OPTIONS: "
         */
-        let expectedEDNS = EDNSMessage(extendedRcode: 0, version: 0, zField: 0, doBit: false, options: [EDNSOption(code: .COOKIE, values: ["Client": "5526d20e26f1dce8", "Server": "5416d50f12fedae3"])], udpPayloadSize: 1232)
+        let expectedEDNS = EDNSMessage(extendedRcode: 0, doBit: false, options: [EDNSOption(clientCookie: "5526d20e26f1dce8", serverCookie: "5416d50f12fedae3")])
         
         guard let ednsRecord = parsedAnswer.EDNSData else {
             Issue.record("EDNS data is nil")

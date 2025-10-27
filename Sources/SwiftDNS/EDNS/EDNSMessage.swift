@@ -23,7 +23,15 @@ public struct EDNSMessage: Sendable, CustomStringConvertible {
     /// The EDNS options
     public let options: [EDNSOption]
     
-    public init(extendedRcode: UInt8, version: UInt8 = 0, zField: UInt16, doBit: Bool, options: [EDNSOption], udpPayloadSize: UInt16 = 1232) {
+    /// Initislizes an EDNS Message
+    /// - Parameters:
+    ///   - extendedRcode: The extended RCODE. Value 0 indicates that an unextended RCODE is in use (values 0 through 15).
+    ///   - doBit: DNSSEC OK bit as defined by [RFC3225](https://www.rfc-editor.org/rfc/rfc3225). Setting the DO bit to true in a query indicates to the server that the client is able to accept DNSSEC RRs.
+    ///   - options: The EDNS options
+    ///   - udpPayloadSize: It is the largest UDP payload that can be reassembled and delivered in the requestor's network stack. The default value is 1232 bytes as recommended by [DNS Flag Day 2020](https://www.dnsflagday.net/2020/)
+    ///   - zField: Z bits, currently unused and set to zero
+    ///   - version: The EDNS version. Currently the only version is 0
+    public init(extendedRcode: UInt8, doBit: Bool, options: [EDNSOption], udpPayloadSize: UInt16 = 1232, zField: UInt16 = 0, version: UInt8 = 0) {
         self.udpPayloadSize = udpPayloadSize
         self.extendedRcode = extendedRcode
         self.version = version

@@ -10,7 +10,10 @@ import Foundation
 @testable import SwiftDNS
 
 struct TestEDNSOption {
+    // MARK: Test EDNSExtendedError initliazers and values
+    
     @Test func EDNSExtendedErrorFromString() {
+        #expect(EDNSExtendedError.allCases.count == 31)
         for type in EDNSExtendedError.allCases {
             let description = type.description
             #expect(EDNSExtendedError(description) == type)
@@ -26,7 +29,27 @@ struct TestEDNSOption {
         let type128 = EDNSExtendedError.unknown(128)
         #expect(type128.description == "ExtendedError128")
         #expect(EDNSExtendedError("ExtendedError128") == type128)
-        #expect(EDNSExtendedError("ExtendedError128") == type128)
+    }
+    
+    // MARK: Test DNSRecordType initliazers and values
+    
+    @Test func EDNSOptionCodeFromString() {
+        #expect(EDNSOptionCode.allCases.count == 13)
+        for type in EDNSOptionCode.allCases {
+            let description = type.description
+            #expect(EDNSOptionCode(description)! == type)
+        }
+    }
+    
+    @Test func EDNSOptionCodeFromValue() {
+        for type in EDNSOptionCode.allCases {
+            #expect(EDNSOptionCode(type.rawValue) == type)
+        }
+        
+        // Test an unknown value
+        let type128 = EDNSOptionCode.unknown(128)
+        #expect(type128.description == "OPTION128")
+        #expect(EDNSOptionCode("OPTION128")! == type128)
     }
 
     @Test func testIPv4ClientSubnet() async throws {
@@ -53,7 +76,7 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "1", "SourceMask": "21", "ScopeMask": "0", "IP": "189.159.104.0"])
+        let expectedOption = EDNSOption(family: 1, IP: "189.159.104.0", sourceMask: 21, scopeMask: 0)
         
         #expect(parsedOption == expectedOption)
     }
@@ -83,7 +106,6 @@ struct TestEDNSOption {
         #expect(parsedOption == parsedOut)
     
         let expectedOption = EDNSOption(family: 1, IP: "189.159.104.0", sourceMask: 21, scopeMask: 17)
-        // let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "1", "SourceMask": "21", "ScopeMask": "17", "IP": "189.159.104.0"])
         
         #expect(parsedOption == expectedOption)
     }
@@ -113,7 +135,6 @@ struct TestEDNSOption {
         #expect(parsedOption == parsedOut)
     
         let expectedOption = EDNSOption(family: 2, IP: "2a11:f2c0:fff7:0:0:0:0:0", sourceMask: 48, scopeMask: 0)
-        // let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "2", "SourceMask": "48", "ScopeMask": "0", "IP": "2a11:f2c0:fff7:0:0:0:0:0"])
         
         #expect(parsedOption == expectedOption)
     }
@@ -142,7 +163,7 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .ClientSubnet, values: ["Family": "2", "SourceMask": "48", "ScopeMask": "49", "IP": "2a11:f2c0:fff7:0:0:0:0:0"])
+        let expectedOption = EDNSOption(family: 2, IP: "2a11:f2c0:fff7:0:0:0:0:0", sourceMask: 48, scopeMask: 49)
         
         #expect(parsedOption == expectedOption)
     }
@@ -168,7 +189,7 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .COOKIE, values: ["Client": "5526d20e26f1dce8", "Server": "None"])
+        let expectedOption = EDNSOption(clientCookie: "5526d20e26f1dce8", serverCookie: "")
         
         #expect(parsedOption == expectedOption)
     }
@@ -196,7 +217,7 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .COOKIE, values: ["Client": "5526d20e26f1dce8", "Server": "5416d50f12fedae3"])
+        let expectedOption = EDNSOption(clientCookie: "5526d20e26f1dce8", serverCookie: "5416d50f12fedae3")
         
         #expect(parsedOption == expectedOption)
     }
@@ -227,7 +248,7 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .COOKIE, values: ["Client": "5526d20e26f1dce8", "Server": "5416d54f12fedae34446a53f24feaaf83436022f36fe9dc52426f51f48feffb6"])
+        let expectedOption = EDNSOption(clientCookie: "5526d20e26f1dce8", serverCookie: "5416d54f12fedae34446a53f24feaaf83436022f36fe9dc52426f51f48feffb6")
         
         #expect(parsedOption == expectedOption)
     }
@@ -276,7 +297,7 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .Padding, values: ["Padding": "5526d20e26f1dce85416d54f12fedae3"])
+        let expectedOption = EDNSOption(padding: try Data(hex: "5526d20e26f1dce85416d54f12fedae3"))
         
         #expect(parsedOption == expectedOption)
     }
@@ -300,7 +321,7 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .ExtendedDNSError, values: ["Extended Error Code": "filtered"])
+        let expectedOption = EDNSOption(ExtendedDNSError: .filtered)
         
         #expect(parsedOption == expectedOption)
     }
@@ -329,9 +350,13 @@ struct TestEDNSOption {
         let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
         #expect(parsedOption == parsedOut)
     
-        let expectedOption = EDNSOption(code: .ExtendedDNSError, values: ["Extended Error Code": "filtered", "Extra Text": "Hello, World! This is an extended edns error message"])
+        let expectedOption = EDNSOption(ExtendedDNSError: .filtered, ExtraText: "Hello, World! This is an extended edns error message")
         
         #expect(parsedOption == expectedOption)
+    }
+    
+    @Test func testNSID() async throws {
+        #expect(false)
     }
     
     // TODO: Test unknown option

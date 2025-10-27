@@ -8,9 +8,16 @@
 import Foundation
 import Network
 
+/// Represents an EDNS Option
 public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
     public let code: EDNSOptionCode
     public let values: [String: String]
+    
+    /// /// Initislizes an EDNS NSID Option
+    /// - Parameter NSID: The NSID. For a server to respond with it's NSID, the request should contain an empty NSID
+    public init(NSID: String) {
+        self = EDNSOption(code: .NSID, values: ["NSID": "\(NSID)"])
+    }
     
     /// Initislizes an EDNS Client Subnet Option
     /// - Parameters:
@@ -22,6 +29,44 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
         self = EDNSOption(code: .ClientSubnet, values: ["Family": "\(family)", "SourceMask": "\(sourceMask)", "ScopeMask": "\(scopeMask)", "IP": "\(IP)"])
     }
     
+    /// Initislizes an EDNS Cookie Option
+    /// - Parameters:
+    ///   - clientCookie: The client's cookie sent to the server
+    ///   - serverCookie: The server cookie included in responses from the server
+    public init(clientCookie: String, serverCookie: String) {
+        self = EDNSOption(code: .COOKIE, values: ["Client": "\(clientCookie)", "Server": "\(serverCookie)"])
+    }
+    
+    /// Initislizes an EDN Keep Alive Option
+    /// - Parameter KeepAliveTimeout: The Keep Alive timeout in units of 100 milliseconds
+    public init(KeepAliveTimeout: UInt16) {
+        self = EDNSOption(code: .KeepAlive, values: ["Timeout": KeepAliveTimeout.description])
+    }
+    
+    /// Initislizes an EDNS PaddingOption
+    /// - Parameter padding: The padding itself
+    public init(padding: Data) {
+        self = EDNSOption(code: .Padding, values: ["Padding": padding.hexEncodedString()])
+    }
+    
+    /// Initislizes an EDNS Extended DNS Error Option
+    /// - Parameters:
+    ///   - ExtendedDNSError: The Extended DNS Error
+    ///   - ExtraText: Optional extra text to describe the error
+    public init(ExtendedDNSError: EDNSExtendedError, ExtraText: String? = nil) {
+        var values = ["Extended Error Code": ExtendedDNSError.description]
+        if let ExtraText = ExtraText {
+            values["Extra Text"] = ExtraText
+        }
+        self = EDNSOption(code: .ExtendedDNSError, values: values)
+    }
+    
+    /// Initializes an EDNS Option for Key value pairs.
+    ///
+    /// You should use the initializer for the specific option that you want.
+    /// - Parameters:
+    ///   - code: The EDNS Code that represents this EDNS Option
+    ///   - values: The key value pairs
     public init(code: EDNSOptionCode, values: [String: String]) {
         self.code = code
         self.values = values
@@ -53,9 +98,7 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
         
         // offset += Int(optionLength)
         
-        guard let optionCode = EDNSOptionCode(rawValue: rawOptionCode) else {
-            throw DNSError.invalidData("invalid EDNS option code: '\(rawOptionCode)'")
-        }
+        let optionCode = EDNSOptionCode(rawOptionCode)
         
         // print("[decodeEDNSOption]: rawOptionCode: \(rawOptionCode). optionCode: \(optionCode.description)")
         
@@ -124,7 +167,7 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
             }
             
             let clientCookie = optionData.subdata(in: 0..<8).hexEncodedString()
-            let serverCookie = optionLength > 8 ? optionData.subdata(in: 8..<Int(optionLength)).hexEncodedString() : "None"
+            let serverCookie = optionLength > 8 ? optionData.subdata(in: 8..<Int(optionLength)).hexEncodedString() : ""
             offset += Int(optionLength)
             
             self.values = ["Client": clientCookie, "Server": serverCookie]
@@ -239,7 +282,7 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
             }
             
             optionData.append(try Data(hex: clientCookie))
-            if serverCookie != "None" {
+            if serverCookie != "" {
                 optionData.append(try Data(hex: serverCookie))
             }
         case .KeepAlive:

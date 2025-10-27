@@ -26,6 +26,9 @@ public enum EDNSOptionCode: Sendable, LosslessStringConvertible, CaseIterable {
     case EDNSExpire // = 9
     /// The EDNS Cookie option as defined in [RFC 7873](https://datatracker.ietf.org/doc/html/rfc7873)
     case COOKIE // = 10
+    /// The EDNS Keep Alive option as defined in [RFC 7828](https://datatracker.ietf.org/doc/html/rfc7828)
+    ///
+    /// The timeout value is in units of 100 milliseconds
     case KeepAlive // = 11
     case Padding // = 12
     /// The EDNS Extended DNS Error option as defined in [RFC 8914](https://datatracker.ietf.org/doc/html/rfc8914)
