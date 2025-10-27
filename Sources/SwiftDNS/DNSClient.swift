@@ -411,13 +411,26 @@ final public actor DNSClient: Sendable {
             
             let task = URLSession.shared.dataTask(with: request, completionHandler: { responseData, response, error in
                 guard error == nil, let responseData = responseData else {
+                    if let error = error {
+                        completion(.failure(DNSError.connectionFailed(error)))
+                        return
+                    }
                     completion(.failure(DNSError.parsingError(error)))
                     return
                 }
                 
                 do {
                     let status = (response as! HTTPURLResponse).statusCode
-                    self.logger.debug("[sendHTTPS] HTTP Response", metadata: ["status": "\(status)", "mime": "\(response?.mimeType ?? "<nil>")"])
+                    
+                    guard let mimeType = response?.mimeType, mimeType == "application/dns-message" else {
+                        throw DNSError.invalidData("Unsuported MIME type in response: '\(response?.mimeType ?? "<nil>")'. Status: \(status)")
+                    }
+                    
+                    guard status == 200 else {
+                        throw DNSError.invalidData("HTTPS Status Code is not 200: \(status)")
+                    }
+                    
+                    self.logger.debug("[sendHTTPS] HTTP Response", metadata: ["status": "\(status)", "mime": "\(mimeType)"])
                     self.logger.trace("[sendHTTPS] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
                     
                     let result = try DNSMessage(data: responseData)
