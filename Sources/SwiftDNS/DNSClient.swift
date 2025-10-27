@@ -90,9 +90,9 @@ final public actor DNSClient: Sendable {
     ///   - Class: The class to query
     /// - Returns: The DNS response
     @available(macOS 10.15, iOS 13.0, *)
-    public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet) async throws -> DNSMessage {
+    public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet, EDNS: EDNSMessage? = nil) async throws -> DNSMessage {
         return try await withCheckedThrowingContinuation { continuation in
-            self.query(host: host, type: type, Class: Class, completion: { result in
+            self.query(host: host, type: type, Class: Class, EDNS: EDNS, completion: { result in
                 continuation.resume(with: result)
             })
         }
@@ -116,7 +116,7 @@ final public actor DNSClient: Sendable {
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+    public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet, EDNS: EDNSMessage? = nil, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         do {
             if host.isEmpty || !host.isDNSSafe {
                 completion(.failure(DNSError.invalidDomainName))
@@ -128,7 +128,7 @@ final public actor DNSClient: Sendable {
             let header = DNSHeader(id: id, flags: flags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
             
             let question = QuestionSection(host: host, type: type, CLASS: Class)
-            let message = DNSMessage(header: header, Question: [question], Answer: [], Authority: [], Additional: [])
+            let message = DNSMessage(header: header, Question: [question], Answer: [], Authority: [], Additional: [], EDNSData: EDNS)
             
             return query(message: message, completion: completion)
         } catch(let error) {
