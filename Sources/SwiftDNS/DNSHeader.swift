@@ -200,7 +200,7 @@ public enum DNSResponseCode: Equatable, Sendable, CustomStringConvertible, Custo
     case NotAuth // = 9
     case NotZone // = 10
     case DSOTYPENI // = 11
-    // The next ones are in EDNS
+    // The next ones are in EDNS Extended Error
     case BADSIG // = 16
     case BADKEY // = 17
     case BADTIME // = 18
@@ -401,6 +401,14 @@ public enum DNSResponseCode: Equatable, Sendable, CustomStringConvertible, Custo
         case .unknown(let value):
             return "unknown. Value: '\(value)'"
         }
+    }
+    
+    
+    /// Returns a user friendly string that shows the error
+    ///
+    /// Format "name - short description"
+    public var displayString: String {
+        return "\(self.description) - \(self.debugDescription)"
     }
     
     public static func ==(lhs: DNSResponseCode, rhs: DNSResponseCode) -> Bool {
