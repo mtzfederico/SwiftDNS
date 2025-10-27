@@ -10,8 +10,10 @@ import Foundation
 @testable import SwiftDNS
 
 struct TestResourceRecord {
+    // MARK: Test DNSRecordType initliazers and values
     
-    @Test func recordTypeFromString() {
+    @Test func DNSRecordTypeFromString() {
+        #expect(DNSRecordType.allCases.count == 23)
         for type in DNSRecordType.allCases {
             let description = type.description
             #expect(DNSRecordType(description) == type)
@@ -19,7 +21,7 @@ struct TestResourceRecord {
         }
     }
     
-    @Test func recordTypeFromValue() {
+    @Test func DNSRecordTypeFromValue() {
         for type in DNSRecordType.allCases {
             #expect(DNSRecordType(type.rawValue) == type)
         }
@@ -31,7 +33,10 @@ struct TestResourceRecord {
         #expect(DNSRecordType("type128") == type128)
     }
     
-    @Test func classFromString() {
+    // MARK: Test DNSClass initliazers and values
+    
+    @Test func DNSClassFromString() {
+        #expect(DNSClass.allCases.count == 5)
         for type in DNSClass.allCases {
             let description = type.description
             #expect(DNSClass(description) == type)
@@ -39,7 +44,7 @@ struct TestResourceRecord {
         }
     }
     
-    @Test func classFromValue() {
+    @Test func DNSClassFromValue() {
         for type in DNSClass.allCases {
             #expect(DNSClass(type.rawValue) == type)
         }
@@ -49,6 +54,30 @@ struct TestResourceRecord {
         #expect(type128.description == "CLASS128")
         #expect(DNSClass("CLASS128") == type128)
         #expect(DNSClass("class128") == type128)
+    }
+    
+    // MARK: Test SVCParamKeys initliazers and values
+    
+    @Test func SVCParamKeysFromString() {
+        #expect(SVCParamKeys.allCases.count == 11)
+        
+        for type in SVCParamKeys.allCases {
+            let description = type.description
+            #expect(SVCParamKeys(description) == type)
+            #expect(SVCParamKeys(description.uppercased()) == type)
+        }
+    }
+    
+    @Test func SVCParamKeysFromValue() {
+        for type in SVCParamKeys.allCases {
+            #expect(SVCParamKeys(type.rawValue) == type)
+        }
+        
+        // Test an unknown value
+        let type128 = SVCParamKeys.unknown(128)
+        #expect(type128.description == "key128")
+        #expect(SVCParamKeys("key128") == type128)
+        #expect(SVCParamKeys("KEY128") == type128)
     }
     
     /// Parse an A record
