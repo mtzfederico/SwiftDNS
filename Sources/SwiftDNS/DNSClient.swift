@@ -10,15 +10,14 @@ import Network
 import Logging
 
 /// The connection type used to send DNS requests
-public enum DNSConnectionType: Sendable {
+public enum DNSConnectionType: Sendable, CustomStringConvertible, CaseIterable {
     case dnsOverTLS
     case dnsOverHTTPS
     case dnsOverUDP
     case dnsOverTCP
     
-    /// Describes the connection type in a short string
-    /// - Returns: A short string with no spaces that describes the connection type
-    public func displayName() -> String {
+    /// Describes the connection type in a short string with no spaces
+    public var description: String {
         switch self {
         case .dnsOverTLS:
             return "DoT"
@@ -32,6 +31,9 @@ public enum DNSConnectionType: Sendable {
     }
 }
 
+/// The DNS Cient used to send DNS queries
+///
+/// Initialize it with the server's IP or hostname and the connection type and use the Query method to send DNS queries
 final public actor DNSClient: Sendable {
     private let dnsQueue: DispatchQueue
     /// The logger used
@@ -51,7 +53,7 @@ final public actor DNSClient: Sendable {
     ///   - connectionType: The DNS conecction type to use. UDP, TCP, TLS, or HTTPS
     ///   - logger: The logger used
     public init(server: String, connectionType: DNSConnectionType, logger: Logger = Logger(label: "com.mtzfederico.SwiftDNS")) {
-        self.dnsQueue = DispatchQueue(label: "DNSClient-\(server.replacingOccurrences(of: " ", with: "_"))_\(connectionType.displayName())", attributes: .concurrent)
+        self.dnsQueue = DispatchQueue(label: "DNSClient-\(server.replacingOccurrences(of: " ", with: "_"))_\(connectionType.description)", attributes: .concurrent)
         self.logger = logger
         self.server = server
         self.connectionType = connectionType
