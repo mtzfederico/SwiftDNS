@@ -403,10 +403,11 @@ public enum DNSResponseCode: Equatable, Sendable, CustomStringConvertible, Custo
         }
     }
     
-    
-    /// Returns a user friendly string that shows the error
+    /// A user friendly string that shows the error's name and a short description
     ///
     /// Format "name - short description"
+    ///
+    /// You can get the values separately using description and debugDescription respectively
     public var displayString: String {
         return "\(self.description) - \(self.debugDescription)"
     }
