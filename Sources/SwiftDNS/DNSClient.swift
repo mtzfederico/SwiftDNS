@@ -74,13 +74,6 @@ final public actor DNSClient: Sendable {
         }
     }
     
-    #warning("make sure this works properly and doesn't crash the app")
-    deinit {
-        Task { [self] in
-            await self.closeConnections()
-        }
-    }
-    
     private func setConnected(_ value: Bool) {
         self.isConnected = value
     }
