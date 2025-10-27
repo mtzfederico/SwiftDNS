@@ -120,7 +120,7 @@ final public actor DNSClient: Sendable {
             
             let id = UInt16.random(in: 0...UInt16.max)
             let flags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
-            let header = DNSHeader(id: id, flags: flags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
+            let header = DNSHeader(id: id, flags: flags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: EDNS != nil ? 1 : 0)
             
             let question = QuestionSection(host: host, type: type, CLASS: Class)
             let message = DNSMessage(header: header, Question: [question], Answer: [], Authority: [], Additional: [], EDNSData: EDNS)
