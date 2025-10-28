@@ -88,17 +88,23 @@ public struct DNSHeader: Sendable {
         /// Response code - this 4 bit field is set as part of responses.
         public var rcode: DNSResponseCode = .NoError
         
-        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16) throws {
+        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: DNSResponseCode, z: UInt16 = 0) throws {
             self.qr = qr
             self.opcode = opcode
             self.aa = aa
             self.tc = tc
             self.rd = rd
             self.ra = ra
-            self.rcode = DNSResponseCode(rcode)
+            // Z is 3 bits long
+            guard z <= 7 else {
+                throw DNSError.invalidData("z value too big")
+            }
+            self.z = z
+            
+            self.rcode = rcode
         }
         
-        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, z: UInt16, rcode: UInt16) throws {
+        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16, z: UInt16 = 0) throws {
             self.qr = qr
             self.opcode = opcode
             self.aa = aa
