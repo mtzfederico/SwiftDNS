@@ -190,7 +190,7 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
             var values: [String: String] = ["Extended Error Code": extendedError.description]
             
             if optionLength > 2 {
-                let textData = optionData.subdata(in: (offset-4)..<(offset + Int(optionLength-6)))
+                let textData = optionData.subdata(in: 2..<optionData.count)
                 offset += textData.count
                 let extraText = String(data: textData, encoding: .utf8)
                 values["Extra Text"] = extraText

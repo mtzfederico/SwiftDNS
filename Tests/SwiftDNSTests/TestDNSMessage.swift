@@ -1408,6 +1408,77 @@ struct TestDNSMessage {
         #expect(ednsRecord == expectedEDNS)
     }
     
+    @Test func edns_ExtendedDNSError() async throws {
+        let data: Data = Data([
+            0xcf, 0x7a, 0x81, 0x82, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x08,
+            0x6e, 0x6f, 0x74, 0x2d, 0x61, 0x75, 0x74, 0x68,                                             // not-auth
+            0x13,
+            0x65, 0x78, 0x74, 0x65, 0x6e, 0x64, 0x65, 0x64, 0x2d, 0x64, 0x6e, 0x73, 0x2d, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x73,  // extended-dns-errors
+            0x03,
+            0x63, 0x6f, 0x6d,                                                                           // com
+            0x00,
+            0x00, 0x01,
+            0x00, 0x01,
+            0x00,
+            0x00, 0x29,                                                                                 // 41 = OPT
+            0x02, 0x00,                                                                                 // UDPMaxPayloadSize = 512
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0xd7,                                                                                 // RDLength = 215
+            
+            0x00, 0x03,                                                                                 // First Option code 3 = NSID
+            0x00, 0x09,                                                                                 // Option length = 9
+            0x67, 0x70, 0x64, 0x6e, 0x73, 0x2d, 0x61, 0x6d, 0x73,                                       // gpdns-ams
+            
+            0x00, 0x0f,                                                                                 // Second Option Code 15 = EDE
+            0x00, 0x6b,                                                                                 // Option Length = 107
+            0x00, 0x00,                                                                                 // Extended DNS Error = other
+            0x5b, 0x36, 0x35, 0x2e, 0x32, 0x31, 0x2e, 0x35, 0x31, 0x2e, 0x31, 0x31, 0x37, 0x5d, 0x20,   // "[65.21.51.117]"
+            0x4c, 0x61, 0x6d, 0x65, 0x20, 0x64, 0x65, 0x6c, 0x65, 0x67, 0x61, 0x74, 0x69, 0x6f, 0x6e,   // "Lame delegation"
+            0x20, 0x61, 0x74, 0x20, 0x6e, 0x6f, 0x74, 0x2d, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x65, 0x78,   // " at not-auth.ex"
+            0x74, 0x65, 0x6e, 0x64, 0x65, 0x64, 0x2d, 0x64, 0x6e, 0x73, 0x2d, 0x65, 0x72, 0x72, 0x6f,   // "tended-dns-erro"
+            0x72, 0x73, 0x2e, 0x63, 0x6f, 0x6d, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x6e, 0x6f, 0x74, 0x2d,   // "rs.com for not-"
+            0x61, 0x75, 0x74, 0x68, 0x2e, 0x65, 0x78, 0x74, 0x65, 0x6e, 0x64, 0x65, 0x64, 0x2d, 0x64,   // "auth.extended-d"
+            0x6e, 0x73, 0x2d, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x73, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x61,   // "ns-errors.com/a"
+            
+            0x00, 0x0f,                                                                                 // Third Option Code 15 = EDE
+            0x00, 0x57,                                                                                 // Option Length = 87
+            0x00, 0x16,                                                                                 // Extended DNS Error = noReachableAuthority
+            0x41, 0x74, 0x20, 0x64, 0x65, 0x6c, 0x65, 0x67, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x6e,   // "At delegation n"
+            0x6f, 0x74, 0x2d, 0x61, 0x75, 0x74, 0x68, 0x2e, 0x65, 0x78, 0x74, 0x65, 0x6e, 0x64, 0x65,   // "ot-auth.extende"
+            0x64, 0x2d, 0x64, 0x6e, 0x73, 0x2d, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x73, 0x2e, 0x63, 0x6f,   // "d-dns-errors.co"
+            0x6d, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x6e, 0x6f, 0x74, 0x2d, 0x61, 0x75, 0x74, 0x68, 0x2e,   // "m for not-auth."
+            0x65, 0x78, 0x74, 0x65, 0x6e, 0x64, 0x65, 0x64, 0x2d, 0x64, 0x6e, 0x73, 0x2d, 0x65, 0x72,   // "extended-dns-er"
+            0x72, 0x6f, 0x72, 0x73, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x61                                  // "rors.com/a"
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        let dataOut = try parsedAnswer.toData()
+        #expect(dataOut == data)
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: .ServFail)
+        let expectedHeader = DNSHeader(id: 0xcf7a, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 0)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 0)
+        #expect(parsedAnswer.EDNSData != nil)
+        #expect(parsedAnswer.EDNSData?.options.count == 3)
+        
+    
+        let expectedOption0 = EDNSOption(NSID: "gpdns-ams")
+        let expectedOption1 = EDNSOption(ExtendedDNSError: .otherError, ExtraText: "[65.21.51.117] Lame delegation at not-auth.extended-dns-errors.com for not-auth.extended-dns-errors.com/a")
+        let expectedOption2 = EDNSOption(ExtendedDNSError: .noReachableAuthority, ExtraText: "At delegation not-auth.extended-dns-errors.com for not-auth.extended-dns-errors.com/a")
+        
+        #expect(parsedAnswer.EDNSData?.options[0] == expectedOption0)
+        #expect(parsedAnswer.EDNSData?.options[1] == expectedOption1)
+        #expect(parsedAnswer.EDNSData?.options[2] == expectedOption2)
+    }
+    
     /// Tests parsing a DNSMessage that is only a DNS Header
     @Test func onlyHeader() throws {
 
