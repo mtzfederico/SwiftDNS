@@ -89,7 +89,7 @@ public struct DNSMessage: Sendable, CustomStringConvertible {
     public func toData() throws -> Data {
         var data: Data = header.toData()
         
-        if header.QDCOUNT == 1 && header.ANCOUNT == 0 && header.NSCOUNT == 0 && header.ARCOUNT == 0 {
+        if header.QDCOUNT == 1 && header.ANCOUNT == 0 && header.NSCOUNT == 0 && Additional.count == 0 {
             guard let question = Question.first else {
                 throw DNSError.invalidData("No question in message")
             }
