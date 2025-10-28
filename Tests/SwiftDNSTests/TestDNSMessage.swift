@@ -1060,7 +1060,7 @@ struct TestDNSMessage {
         #expect(parsedAnswer == parsedOut)
         // print("----------------------------\nOutput:\n\(parsedOut.description)\n\nReference:\n\(parsedAnswer.description)\n----------------------------")
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, z: 2, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0, z: 2)
         let expectedHeader = DNSHeader(id: 0xff78, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
         
         let expectedQuestion = QuestionSection(host: "google.com.", type: .AAAA, CLASS: .internet)

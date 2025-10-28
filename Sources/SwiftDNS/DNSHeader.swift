@@ -119,22 +119,6 @@ public struct DNSHeader: Sendable {
             
             self.rcode = DNSResponseCode(rcode)
         }
-        
-        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, z: UInt16, rcode: DNSResponseCode) throws {
-            self.qr = qr
-            self.opcode = opcode
-            self.aa = aa
-            self.tc = tc
-            self.rd = rd
-            self.ra = ra
-            // Z is 3 bits long
-            guard z <= 7 else {
-                throw DNSError.invalidData("z value too big")
-            }
-            self.z = z
-            
-            self.rcode = rcode
-        }
 
         public init(from raw: UInt16) throws {
             /*
