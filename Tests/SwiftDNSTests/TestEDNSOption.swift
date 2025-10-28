@@ -356,7 +356,28 @@ struct TestEDNSOption {
     }
     
     @Test func testNSID() async throws {
-        #expect(false)
+        let data: Data = Data([
+            0x00, 0x03,                                     // OP Code = 3
+            0x00, 0x18,                                     // OP Length = 24
+            // res760.lga.rrdns.pch.net
+            0x72, 0x65, 0x73, 0x37, 0x36, 0x30, 0x2e, 0x6c,
+            0x67, 0x61, 0x2e, 0x72, 0x72, 0x64, 0x6e, 0x73,
+            0x2e, 0x70, 0x63, 0x68, 0x2e, 0x6e, 0x65, 0x74
+        ])
+        
+        var offset: Int = 0
+        let parsedOption = try EDNSOption(data: data, offset: &offset)
+        
+        let dataOut = try parsedOption.toData()
+        #expect(dataOut == data)
+        
+        var offset2: Int = 0
+        let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
+        #expect(parsedOption == parsedOut)
+    
+        let expectedOption = EDNSOption(NSID: "res760.lga.rrdns.pch.net")
+        
+        #expect(parsedOption == expectedOption)
     }
     
     // TODO: Test unknown option
