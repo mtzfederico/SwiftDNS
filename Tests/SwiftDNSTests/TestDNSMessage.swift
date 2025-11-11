@@ -431,6 +431,134 @@ struct TestDNSMessage {
         #expect(firstQuestion == expectedQuestion)
     }
     
+    @Test func svcb() throws {
+        let data: Data = Data([
+            0x46, 0x3c, 0x81, 0xa0, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01,
+            
+            0x03,
+            0x5f, 0x37, 0x30,                                                       // _70
+            0x07,
+            0x5f, 0x67, 0x6f, 0x70, 0x68, 0x65, 0x72,                               // _gopher
+            0x0a,
+            0x63, 0x6f, 0x6c, 0x69, 0x6e, 0x63, 0x6f, 0x67, 0x6c, 0x65,             // colincogle
+            0x04,
+            0x6e, 0x61, 0x6d, 0x65,                                                 // name
+            0x00,
+            0x00, 0x40,                                                             // type 64 = SVCB
+            0x00, 0x01,                                                             // class IN
+            
+            0xc0, 0x0c,                                                             // pointer to QNAME
+            0x00, 0x40,                                                             // type 64 = SVCB
+            0x00, 0x01,                                                             // class IN
+            0x00, 0x00, 0xa8, 0xc0,                                                 // TTL = 43200
+            0x00, 0x48,                                                             // RDLength = 72
+            0x00, 0x01,                                                             // SVCB Priority = 1
+            0x38,                                                                   // targetName begins. Length = 56
+            0x63, 0x6f, 0x6c, 0x69, 0x6e, 0x63, 0x78, 0x76, 0x7a, 0x34, 0x34, 0x74, // colincxvz44t
+            0x6f, 0x6a, 0x6a, 0x64, 0x7a, 0x62, 0x70, 0x65, 0x73, 0x65, 0x62, 0x6d, // ojjdzbpesebm
+            0x6c, 0x35, 0x70, 0x6e, 0x79, 0x7a, 0x6c, 0x32, 0x67, 0x32, 0x71, 0x63, // l5pnyzl2g2qc
+            0x79, 0x37, 0x69, 0x78, 0x68, 0x6d, 0x67, 0x68, 0x68, 0x6b, 0x66, 0x71, // y7ixhmghhkfq
+            0x6f, 0x36, 0x34, 0x7a, 0x6d, 0x64, 0x79, 0x64,                         // o64zmdyd
+            0x05,
+            0x6f, 0x6e, 0x69, 0x6f, 0x6e,                                           // onion
+            0x00,                                                                   // targetName ends
+            
+            0x00, 0x03,                                                             // port
+            0x00, 0x02,                                                             // SvcParamValue length = 2
+            0x00, 0x46,                                                             // 70
+            
+            0xc0, 0x0c,                                                             // pointer to QNAME
+            0x00, 0x40,                                                             // type 64 = SVCB
+            0x00, 0x01,                                                             // class IN
+            0x00, 0x00, 0xa8, 0xc0,                                                 // TTL = 43200
+            0x00, 0x3c,                                                             // RDLength = 60
+            0x00, 0x02,                                                             // SVCB Priority = 2
+            0x06,                                                                   // targetName begins. Length = 6
+            0x75, 0x73, 0x65, 0x61, 0x73, 0x74,                                     // useast
+            0x0a,
+            0x63, 0x6f, 0x6c, 0x69, 0x6e, 0x63, 0x6f, 0x67, 0x6c, 0x65,             // colincogle
+            0x04,
+            0x6e, 0x61, 0x6d, 0x65,                                                 // name
+            0x00,                                                                   // targetName ends
+            
+            0x00, 0x03,                                                             // port
+            0x00, 0x02,                                                             // SvcParamValue length = 2
+            0x00, 0x46,                                                             // 70
+            
+            0x00, 0x04,                                                             // ipv4hint
+            0x00, 0x04,                                                             // SvcParamValue length = 4
+            0x2d, 0x4f, 0xaa, 0xe1,                                                 // 45.79.170.225
+            
+            0x00, 0x06,                                                             // ipv6hint
+            0x00, 0x10,                                                             // SvcParamValue length = 16
+            // 2600:3c03:e000:0938:0000:0000:0000:0000
+            0x26, 0x00, 0x3c, 0x03, 0xe0, 0x00, 0x09, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            
+            0xc0, 0x0c,                                                             // pointer to QNAME
+            0x00, 0x40,                                                             // type 64 = SVCB
+            0x00, 0x01,                                                             // class IN
+            0x00, 0x00, 0xa8, 0xc0,                                                 // TTL = 43200
+            0x00, 0x38,                                                             // RDLength = 56
+            0x00, 0x04,                                                             // SVCB Priority = 4
+            0x02,                                                                   // targetName begins. Length = 2
+            0x65, 0x75,                                                             // eu
+            0x0a,
+            0x63, 0x6f, 0x6c, 0x69, 0x6e, 0x63, 0x6f, 0x67, 0x6c, 0x65,             // colincogle
+            0x04,
+            0x6e, 0x61, 0x6d, 0x65,                                                 // name
+            0x00,                                                                   // targetName ends
+            
+            0x00, 0x03,                                                             // port
+            0x00, 0x02,                                                             // SvcParamValue length = 2
+            0x00, 0x46,                                                             // 70
+            
+            0x00, 0x04,                                                             // ipv4hint
+            0x00, 0x04,                                                             // SvcParamValue length = 4
+            0x33, 0x9f, 0xba, 0x55,
+            
+            0x00, 0x06,                                                             // ipv6hints
+            0x00, 0x10,                                                             // SvcParamValue length = 16
+            // 2001:0bc8:1200:fa28:0000:0000:0000:0001
+            0x20, 0x01, 0x0b, 0xc8, 0x12, 0x00, 0xfa, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            
+            0x00,
+            0x00, 0x29,                                                             // type 41 = OPT
+            0x04, 0xd0,                                                             // requestor's UDP payload size = 1232
+            0x00, 0x00, 0x00, 0x00,                                                 // extended RCODE and flags
+            0x00, 0x00,                                                             // RDLength = 0
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        let dataOut = try parsedAnswer.toData()
+        #expect(dataOut == data)
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: .NoError)
+        let expectedHeader = DNSHeader(id: 0x463c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 3, NSCOUNT: 0, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 3)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 0)
+        #expect(parsedAnswer.EDNSData != nil)
+        
+        let expectedQuestion = QuestionSection(host: "_70._gopher.colincogle.name.", type: .SVCB, CLASS: .internet)
+        
+        let expectedAnswer0 = ResourceRecord(name: "_70._gopher.colincogle.name.", ttl: 43200, Class: .internet, type: .SVCB, value: "1 colincxvz44tojjdzbpesebml5pnyzl2g2qcy7ixhmghhkfqo64zmdyd.onion. port=70")
+        let expectedAnswer1 = ResourceRecord(name: "_70._gopher.colincogle.name.", ttl: 43200, Class: .internet, type: .SVCB, value: "2 useast.colincogle.name. port=70 ipv4hint=45.79.170.225 ipv6hint=2600:3c03:e000:938:0:0:0:0")
+        let expectedAnswer2 = ResourceRecord(name: "_70._gopher.colincogle.name.", ttl: 43200, Class: .internet, type: .SVCB, value: "4 eu.colincogle.name. port=70 ipv4hint=51.159.186.85 ipv6hint=2001:bc8:1200:fa28:0:0:0:1")
+        
+        let expectedEDNS = EDNSMessage(extendedRcode: 0, doBit: false, options: [])
+        
+        #expect(parsedAnswer.Question[0] == expectedQuestion)
+        #expect(parsedAnswer.Answer[0] == expectedAnswer0)
+        #expect(parsedAnswer.Answer[1] == expectedAnswer1)
+        #expect(parsedAnswer.Answer[2] == expectedAnswer2)
+        #expect(parsedAnswer.EDNSData! == expectedEDNS)
+    }
+    
     /// Tests the response of an A query that returns a CNAME
     @Test func a_cname0() throws {
         // 86fd8180000100040000000003777777056170706c6503636f6d0000010001c00c000500010000012c001a0d7777772d6170706c652d636f6d0176076161706c696d67c016c02b000500010000012c001b03777777056170706c6503636f6d07656467656b6579036e657400c051000500010000012c00190565363835380564736365390a616b616d616965646765c067c0780001000100000014000468518d2c
