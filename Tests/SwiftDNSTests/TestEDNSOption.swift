@@ -380,7 +380,53 @@ struct TestEDNSOption {
         #expect(parsedOption == expectedOption)
     }
     
-    // TODO: Test unknown option
+    @Test func testUnknown0() async throws {
+        let data: Data = Data([
+            0x00, 0x7b,                                     // OP Code = 123
+            0x00, 0x1e,                                     // OP Length = 30
+            0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20,
+            0x61, 0x6E, 0x20, 0x75, 0x6E, 0x6B, 0x6E, 0x6F,
+            0x77, 0x6E, 0x20, 0x45, 0x44, 0x4E, 0x53, 0x20,
+            0x6F, 0x70, 0x74, 0x69, 0x6F, 0x6E
+        ])
+        
+        var offset: Int = 0
+        let parsedOption = try EDNSOption(data: data, offset: &offset)
+        
+        let dataOut = try parsedOption.toData()
+        #expect(dataOut == data)
+        
+        var offset2: Int = 0
+        let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
+        #expect(parsedOption == parsedOut)
+    
+        let expectedOption = EDNSOption(code: .unknown(123), values: ["Unknown": "This is an unknown EDNS option"])
+        
+        #expect(parsedOption == expectedOption)
+    }
+    
+    @Test func testUnknown1() async throws {
+        let data: Data = Data([
+            0x00, 0x7b,                                     // OP Code = 123
+            0x00, 0x0c,                                     // OP Length = 12
+            0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x0d, 0x57, 0x6F,
+            0x72, 0x6C, 0x64, 0x21
+        ])
+        
+        var offset: Int = 0
+        let parsedOption = try EDNSOption(data: data, offset: &offset)
+        
+        let dataOut = try parsedOption.toData()
+        #expect(dataOut == data)
+        
+        var offset2: Int = 0
+        let parsedOut = try EDNSOption(data: dataOut, offset: &offset2)
+        #expect(parsedOption == parsedOut)
+    
+        let expectedOption = EDNSOption(code: .unknown(123), values: ["Unknown": "0x48656c6c6f0d576f726c6421"])
+        
+        #expect(parsedOption == expectedOption)
+    }
     
     // MARK: Errors
     
