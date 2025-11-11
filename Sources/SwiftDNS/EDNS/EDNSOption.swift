@@ -10,13 +10,15 @@ import Network
 
 /// Represents an EDNS Option
 public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
+    /// The EDNS Option Code
     public let code: EDNSOptionCode
+    /// The values of the EDNS option
     public let values: [String: String]
     
     /// /// Initislizes an EDNS NSID Option
     /// - Parameter NSID: The NSID. For a server to respond with it's NSID, the request should contain an empty NSID
     public init(NSID: String) {
-        self = EDNSOption(code: .NSID, values: ["NSID": "\(NSID)"])
+        self = EDNSOption(code: .NSID, values: ["ID": "\(NSID)"])
     }
     
     /// Initislizes an EDNS Client Subnet Option
@@ -46,7 +48,7 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
     /// Initislizes an EDNS PaddingOption
     /// - Parameter padding: The padding itself
     public init(padding: Data) {
-        self = EDNSOption(code: .Padding, values: ["Padding": padding.hexEncodedString()])
+        self = EDNSOption(code: .Padding, values: ["Bytes": padding.hexEncodedString()])
     }
     
     /// Initislizes an EDNS Extended DNS Error Option
@@ -108,11 +110,11 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
         case .NSID:
             offset += Int(optionLength)
             if let str = String(data: optionData, encoding: .utf8), str.isPrintable {
-                self.values = ["NSID": str]
+                self.values = ["ID": str]
                 return
             }
             // fallback to hex representation
-            self.values = ["NSID": "0x\(optionData.hexEncodedString())"]
+            self.values = ["ID": "0x\(optionData.hexEncodedString())"]
         case .ClientSubnet:
             guard optionLength >= 4 else {
                 throw DNSError.invalidData("Invalid EDNS Client Subnet. Data too short: \(optionLength)")
@@ -179,7 +181,7 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
             self.values = ["Timeout": timeout.description]
         case .Padding:
             offset += Int(optionLength)
-            self.values = ["Padding": optionData.hexEncodedString()]
+            self.values = ["Bytes": optionData.hexEncodedString()]
         case .ExtendedDNSError:
             guard optionLength >= 2 else { throw DNSError.invalidData("Invalid EDNS Extended Error. Bad length: \(optionLength)") }
             
@@ -214,7 +216,7 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
         var optionData = Data()
         switch code {
         case .NSID:
-            guard let nsid = values["NSID"] else {
+            guard let nsid = values["ID"] else {
                 throw DNSError.invalidData("Unknown NSID value")
             }
             
@@ -292,7 +294,7 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
             
             optionData.append(contentsOf: withUnsafeBytes(of: timeout.bigEndian) { Data($0) })
         case .Padding:
-            guard let padding = values["Padding"] else {
+            guard let padding = values["Bytes"] else {
                 throw DNSError.invalidData("Invalid EDNS padding")
             }
             
