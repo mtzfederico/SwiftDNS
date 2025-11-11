@@ -160,6 +160,23 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: domain)
             return
+        case .HINFO:
+            guard rdlength >= 2 else {
+                offset += Int(rdlength)
+                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for HINFO record: '\(rdlength)'"))
+            }
+            
+            let cpuLen = Int(data[offset])
+            offset += 1
+            let cpu = String(data: data.subdata(in: offset..<offset+cpuLen), encoding: .utf8) ?? ""
+            offset += cpuLen
+            
+            let osLen = Int(data[offset])
+            offset += 1
+            let os = String(data: data.subdata(in: offset..<offset+osLen), encoding: .utf8) ?? ""
+            offset += osLen
+            self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(cpu), \(os)")
+            return
         case .TXT:
             guard offset + Int(rdlength) <= data.count else {
                 // print("Failed to parse TXT record")
@@ -445,7 +462,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                         
                         // get the number of keys
                         // each key is a UInt16 (2 bytes)
-                        for i in 0...svcParamValueLength/2 {
+                        for _ in 0...svcParamValueLength/2 {
                             let rawKey = UInt16(bigEndian: svcParamValueData.subdata(in: mandatoryOffset..<mandatoryOffset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
                             mandatoryOffset += 2
                             
@@ -601,6 +618,21 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
             let domain = try DNSMessage.encodeDomainName(name: self.value, messageLength: offset, nameOffsets: &nameOffsets)
             offset += domain.count
             rdata.append(domain)
+        case .HINFO:
+            let values = self.value.components(separatedBy: ", ")
+            guard values.count == 2 else {
+                throw DNSError.parsingError(DNSError.invalidData("Invalid HINFO record format. CPU and OS must be separated by a ', '. \(values.count)"))
+            }
+            
+            let cpuBytes = Array(values[0].utf8)
+            rdata.append(UInt8(cpuBytes.count))
+            rdata.append(contentsOf: cpuBytes)
+            offset += cpuBytes.count
+            
+            let osBytes = Array(values[1].utf8)
+            rdata.append(UInt8(osBytes.count))
+            rdata.append(contentsOf: osBytes)
+            offset += osBytes.count
         case .MX:
             let parts = self.value.split(separator: " ", maxSplits: 1)
             guard parts.count == 2, let preference = UInt16(parts[0]) else {

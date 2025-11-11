@@ -11,13 +11,14 @@ import Foundation
 ///
 /// [Defined by iana](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4)
 public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseIterable, Hashable {
-    public static let allCases: [DNSRecordType] = [ .A, .NS, .CNAME, .SOA, .PTR, .MX, .TXT, .AAAA, .SRV, .DNAME, .OPT, .DS, .SSHFP, .RRSIG, .NSEC, .DNSKEY, .NSEC3, .SVCB, .HTTPS, .NXNAME, .IXFR, .AXFR, .ANY]
+    public static let allCases: [DNSRecordType] = [ .A, .NS, .CNAME, .SOA, .PTR, .HINFO, .MX, .TXT, .AAAA, .SRV, .DNAME, .OPT, .DS, .SSHFP, .RRSIG, .NSEC, .DNSKEY, .NSEC3, .SVCB, .HTTPS, .NXNAME, .IXFR, .AXFR, .ANY]
     
     case A // = 1
     case NS // = 2
     case CNAME // = 5
     case SOA // = 6
     case PTR // = 12
+    case HINFO // = 13
     case MX // = 15
     case TXT // = 16
     case AAAA // = 28
@@ -59,6 +60,7 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
         case 5: self = .CNAME
         case 6: self = .SOA
         case 12: self = .PTR
+        case 13: self = .HINFO
         case 15: self = .MX
         case 16: self = .TXT
         case 28: self = .AAAA
@@ -88,6 +90,7 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
         case .CNAME: return 5
         case .SOA: return 6
         case .PTR: return 12
+        case .HINFO: return 13
         case .MX: return 15
         case .TXT: return 16
         case .AAAA: return 28
@@ -122,6 +125,7 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
         case "CNAME": self = .CNAME
         case "SOA": self = .SOA
         case "PTR": self = .PTR
+        case "HINFO": self = .HINFO
         case "MX": self = .MX
         case "TXT": self = .TXT
         case "AAAA": self = .AAAA
@@ -167,6 +171,7 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
         case .CNAME: return "CNAME"
         case .SOA: return "SOA"
         case .PTR: return "PTR"
+        case .HINFO: return "HINFO"
         case .MX: return "MX"
         case .TXT: return "TXT"
         case .AAAA: return "AAAA"

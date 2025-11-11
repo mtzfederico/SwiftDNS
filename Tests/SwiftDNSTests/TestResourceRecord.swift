@@ -13,7 +13,7 @@ struct TestResourceRecord {
     // MARK: Test DNSRecordType initliazers and values
     
     @Test func DNSRecordTypeFromString() {
-        #expect(DNSRecordType.allCases.count == 23)
+        #expect(DNSRecordType.allCases.count == 24)
         for type in DNSRecordType.allCases {
             let description = type.description
             #expect(DNSRecordType(description) == type)
@@ -322,6 +322,36 @@ struct TestResourceRecord {
         let parsedRR = try ResourceRecord(data: data, offset: &offset)
         
         let expectedRR = ResourceRecord(name: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa.", ttl: 3600, Class: .internet, type: .PTR, value: "edge0.ams0.as209245.net.")
+        #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
+        
+        var nameOffsets: [String: Int] = [:]
+        let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
+        #expect(rrOut == data)
+    }
+    
+    @Test func HINFO() throws {
+        let data: Data = Data([
+            0x08,
+            0x30, 0x31, 0x30, 0x30, 0x30, 0x31, 0x31, 0x30,                               // 01000110
+            0x03,
+            0x78, 0x79, 0x7a,                                                             // xyz
+            0x00,                                                                         // name ends
+            0x00, 0x0d,                                                                   // Type 13 = HINFO
+            0x00, 0x01,                                                                   // Class IN
+            0x00, 0x00, 0x21, 0x22,                                                       // TTL = 8482
+            0x00, 0x1b,                                                                   // RDLength = 27
+            0x0d,                                                                         // CPU Length = 13
+            0x41, 0x4e, 0x59, 0x20, 0x6f, 0x62, 0x73, 0x6f, 0x6c, 0x65, 0x74, 0x65, 0x64, // ANY obsoleted
+            0x0c,                                                                         // OS Length = 12
+            0x53, 0x65, 0x65, 0x20, 0x52, 0x46, 0x43, 0x20, 0x38, 0x34, 0x38, 0x32,       // See RFC 8482
+        ])
+        
+        var offset = 0
+        let parsedRR = try ResourceRecord(data: data, offset: &offset)
+        
+        let expectedRR = ResourceRecord(name: "01000110.xyz.", ttl: 8482, Class: .internet, type: .HINFO, value: "ANY obsoleted, See RFC 8482")
         #expect(parsedRR == expectedRR)
         
         #expect(ResourceRecord(expectedRR.description) == expectedRR)
