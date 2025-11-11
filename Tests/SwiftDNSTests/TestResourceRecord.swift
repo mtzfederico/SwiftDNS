@@ -691,12 +691,60 @@ struct TestResourceRecord {
     
     // SVCB 64
     @Test func SVCB() throws {
-        #expect(false)
+        let data: Data = Data([
+            0x03,
+            0x5F, 0x37, 0x30,                                                   // _70
+            0x07,
+            0x5F, 0x67, 0x6F, 0x70, 0x68, 0x65, 0x72,                           // _gopher
+            0x0a,
+            0x63, 0x6F, 0x6C, 0x69, 0x6E, 0x63, 0x6F, 0x67, 0x6C, 0x65,         // colincogle
+            0x04,
+            0x6E, 0x61, 0x6D, 0x65,                                             // name
+            0x00,
+            0x00, 0x40,                                                         // type 64 = SVCB
+            0x00, 0x01,                                                         // class in
+            0x00, 0x00, 0xa7, 0x18,                                             // TTL = 42776
+            0x00, 0x38,                                                         // RDLength = 56
+            0x00, 0x04,                                                         // SvcPriority = 4
+            0x02,                                                               // targetName begins
+            0x65, 0x75,                                                         // eu
+            0x0a,
+            0x63, 0x6F, 0x6C, 0x69, 0x6E, 0x63, 0x6F, 0x67, 0x6C, 0x65,         // colincogle
+            0x04,
+            0x6E, 0x61, 0x6D, 0x65,                                             // name
+            0x00,                                                               // targetName ends
+            
+            0x00, 0x03,                                                         // port
+            0x00, 0x02,                                                         // SvcParamValue length = 2
+            0x00, 0x46,                                                         // 70
+            
+            0x00, 0x04,                                                         // ipv4hint
+            0x00, 0x04,                                                         // SvcParamValue length = 4
+            0x33, 0x9f, 0xba, 0x55,                                             // 51.159.186.85
+            
+            0x00, 0x06,                                                         // ipv6hint
+            0x00, 0x10,                                                         // SvcParamValue length = 16
+            // 2001:0bc8:1200:fa28::1
+            0x20, 0x01, 0x0b, 0xc8, 0x12, 0x00, 0xfa, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        ])
+        
+        var offset = 0
+        let parsedRR = try ResourceRecord(data: data, offset: &offset)
+        print("parsedRR: \(parsedRR.description)")
+        
+        let expectedRR = ResourceRecord(name: "_70._gopher.colincogle.name.", ttl: 42776, Class: .internet, type: .SVCB, value: "4 eu.colincogle.name. port=70 ipv4hint=51.159.186.85 ipv6hint=2001:bc8:1200:fa28:0:0:0:1")
+        #expect(parsedRR == expectedRR)
+        
+        #expect(ResourceRecord(expectedRR.description) == expectedRR)
+        
+        var nameOffsets: [String: Int] = [:]
+        let rrOut = try parsedRR.toData(messageLength: 0, nameOffsets: &nameOffsets)
+        print("rrOut: \(rrOut.hexEncodedString())")
+        #expect(rrOut == data)
     }
     
     // HTTPS 65
     @Test func HTTPS() throws {
-        
         let data: Data = Data([
             0x0a,
             0x63, 0x6c, 0x6f, 0x75, 0x64, 0x66, 0x6c, 0x61, 0x72, 0x65,         // cloudflare
