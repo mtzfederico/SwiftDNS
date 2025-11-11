@@ -24,7 +24,7 @@ extension String {
             
             // hypen (-): 2D
             // period (.): 2E
-            // underscore (_): 5F // Can be seen in srv record queries
+            // underscore (_): 5F // Can be seen in SRV and SVCB record queries (AttrLeaf, rfc8552)
             // 0 to 9: 30 to 39
             // A to Z: 41 to 5A
             // a to z: 61 to 7A

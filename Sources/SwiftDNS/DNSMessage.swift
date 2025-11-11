@@ -106,6 +106,7 @@ public struct DNSMessage: Sendable, CustomStringConvertible {
         for question in Question {
             let encodedDomain = try DNSMessage.encodeDomainName(name: question.QNAME, messageLength: data.count, nameOffsets: &nameOffsets)
             data.append(encodedDomain)
+            // This is the only case where includeName is false
             data.append(try question.toData(includeName: false))
         }
         
