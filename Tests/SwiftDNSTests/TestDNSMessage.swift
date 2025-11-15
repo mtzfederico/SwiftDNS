@@ -559,6 +559,90 @@ struct TestDNSMessage {
         #expect(parsedAnswer.EDNSData! == expectedEDNS)
     }
     
+    @Test func HTTPS() throws {
+        // b1c3818000010001000000010e636c6f7564666c6172652d65636803636f6d0000410001c00c00410001000001240088000100000100060268330268320004000868120a7668120b76000500470045fe0d0041db00200020c3fc117dfd94c638549bbdcf1e4b517e19f3d1dab62800ef5528204dc75317520004000100010012636c6f7564666c6172652d6563682e636f6d00000006002026064700000000000000000068120a7626064700000000000000000068120b7600002904d0000000000000
+        let data: Data = Data([
+            0xb1, 0xc3, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            
+            0x0e,
+            0x63, 0x6c, 0x6f, 0x75, 0x64, 0x66, 0x6c, 0x61, 0x72, 0x65, 0x2d, 0x65, 0x63, 0x68, // cloudflare-ech
+            0x03,
+            0x63, 0x6f, 0x6d,                                                                   // com
+            0x00,
+            0x00, 0x41,                                                                         // type 65 = HTTPS
+            0x00, 0x01,                                                                         // class IN
+            
+            0xc0, 0x0c,                                                                         // Pointer to QNAME
+            0x00, 0x41,                                                                         // type 65 = HTTPS
+            0x00, 0x01,                                                                         // class IN
+            0x00, 0x00, 0x01, 0x24,                                                             // TTL = 292
+            0x00, 0x88,                                                                         // RDLength = 136
+            0x00, 0x01,                                                                         // SvcPriority = 1
+            0x00,                                                                               // targetName
+            
+            0x00, 0x01,                                                                         // alpn
+            0x00, 0x06,                                                                         // SvcParamValue length = 6
+            0x02,                                                                               // len = 2
+            0x68, 0x33,                                                                         // h3
+            0x02,                                                                               // len = 2
+            0x68, 0x32,                                                                         // h2
+            
+            0x00, 0x04,                                                                         // ipv4hint
+            0x00, 0x08,                                                                         // SvcParamValue length = 8
+            0x68, 0x12, 0x0a, 0x76,                                                             // 104.18.10.118
+            0x68, 0x12, 0x0b, 0x76,                                                             // 104.18.11.118
+            
+            0x00, 0x05,                                                                         // ech
+            0x00, 0x47,                                                                         // SvcParamValue length = 71
+            // base64: AEX+DQBB2wAgACDD/BF9/ZTGOFSbvc8eS1F+GfPR2rYoAO9VKCBNx1MXUgAEAAEAAQASY2xvdWRmbGFyZS1lY2guY29tAAA=
+            0x00, 0x45, 0xfe, 0x0d, 0x00, 0x41, 0xdb, 0x00, 0x20, 0x00, 0x20, 0xc3,
+            0xfc, 0x11, 0x7d, 0xfd, 0x94, 0xc6, 0x38, 0x54, 0x9b, 0xbd, 0xcf, 0x1e,
+            0x4b, 0x51, 0x7e, 0x19, 0xf3, 0xd1, 0xda, 0xb6, 0x28, 0x00, 0xef, 0x55,
+            0x28, 0x20, 0x4d, 0xc7, 0x53, 0x17, 0x52, 0x00, 0x04, 0x00, 0x01, 0x00,
+            0x01, 0x00, 0x12, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x66, 0x6c, 0x61, 0x72,
+            0x65, 0x2d, 0x65, 0x63, 0x68, 0x2e, 0x63, 0x6f, 0x6d, 0x00, 0x00,
+            
+            0x00, 0x06,                                                                         // ipv6hint
+            0x00, 0x20,                                                                         // SvcParamValue length = 32
+            // 2606:4700:0000:0000:0000:0000:6812:0a76
+            0x26, 0x06, 0x47, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x12, 0x0a, 0x76,
+            // 2606:4700:0000:0000:0000:0000:6812:0b76
+            0x26, 0x06, 0x47, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x12, 0x0b, 0x76,
+            
+            0x00,
+            0x00, 0x29,                                                                         // type 41 = OPT
+            0x04, 0xd0,                                                                         // requestor's UDP payload size = 1232
+            0x00, 0x00, 0x00, 0x00,                                                             // extended RCODE and flags
+            0x00, 0x00,                                                                         // RDlength = 0
+        ])
+        
+        let parsedAnswer = try DNSMessage(data: data)
+        
+        let dataOut = try parsedAnswer.toData()
+        #expect(dataOut == data)
+        
+        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: .NoError)
+        let expectedHeader = DNSHeader(id: 0xb1c3, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 1)
+        
+        #expect(parsedAnswer.header == expectedHeader)
+        
+        #expect(parsedAnswer.Question.count == 1)
+        #expect(parsedAnswer.Answer.count == 1)
+        #expect(parsedAnswer.Authority.count == 0)
+        #expect(parsedAnswer.Additional.count == 0)
+        #expect(parsedAnswer.EDNSData != nil)
+        
+        let expectedQuestion = QuestionSection(host: "cloudflare-ech.com.", type: .HTTPS, CLASS: .internet)
+        
+        let expectedAnswer = ResourceRecord(name: "cloudflare-ech.com.", ttl: 292, Class: .internet, type: .HTTPS, value: "1 . alpn=h3,h2 ipv4hint=104.18.10.118,104.18.11.118 ech=AEX+DQBB2wAgACDD/BF9/ZTGOFSbvc8eS1F+GfPR2rYoAO9VKCBNx1MXUgAEAAEAAQASY2xvdWRmbGFyZS1lY2guY29tAAA= ipv6hint=2606:4700:0:0:0:0:6812:a76,2606:4700:0:0:0:0:6812:b76")
+        
+        let expectedEDNS = EDNSMessage(extendedRcode: 0, doBit: false, options: [])
+        
+        #expect(parsedAnswer.Question[0] == expectedQuestion)
+        #expect(parsedAnswer.Answer[0] == expectedAnswer)
+        #expect(parsedAnswer.EDNSData! == expectedEDNS)
+    }
+    
     /// Tests the response of an A query that returns a CNAME
     @Test func a_cname0() throws {
         // 86fd8180000100040000000003777777056170706c6503636f6d0000010001c00c000500010000012c001a0d7777772d6170706c652d636f6d0176076161706c696d67c016c02b000500010000012c001b03777777056170706c6503636f6d07656467656b6579036e657400c051000500010000012c00190565363835380564736365390a616b616d616965646765c067c0780001000100000014000468518d2c
