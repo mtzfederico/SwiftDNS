@@ -440,7 +440,6 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                 }
                 
                 while offset < max {
-                    print("** while offset < max begins **")
                     // Defined in https://www.rfc-editor.org/rfc/rfc9460.html#iana-keys
                     let svcParamKey = SVCParamKeys(UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) }))
                     offset += 2
@@ -860,14 +859,20 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
             
             // Each svcParam's value has items separated by a comma and there should be no space inside. Each param is separated by a space
             for param in values.dropFirst(2) {
-                let keyVal = param.split(separator: "=")
+                // The value may contain an '=' symbol and it could be empty
+                let keyVal = param.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+                guard keyVal.count == 2 else {
+                    throw DNSError.invalidData("\(type.description) record values must be in the format 'key=value'.")
+                }
+                
                 guard let svcParamKey = SVCParamKeys(String(keyVal[0])) else {
                     throw DNSError.invalidData("Invalid SVCParamKey: '\(keyVal[0])'")
                 }
-                let svcParamValue = String(keyVal[1])
                 
                 rdata.append(contentsOf: withUnsafeBytes(of: svcParamKey.rawValue.bigEndian) { Data($0) })
                 var paramValue: Data = Data()
+                
+                let svcParamValue = String(keyVal[1])
                 
                 switch svcParamKey {
                 case .mandatory:
@@ -886,6 +891,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                         paramValue.append(contentsOf: val)
                     }
                 case .noDefaultAlpn:
+                    // there should be no data for this key
                     if !svcParamValue.isEmpty {
                         let data = try Data(hex: String(svcParamValue.dropFirst(2)))
                         paramValue.append(data)
@@ -903,7 +909,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
                     }
                 case .ech:
                     guard let bytes = Data(base64Encoded: svcParamValue) else {
-                        throw DNSError.invalidData("Failed to parse SVCB ECH value")
+                        throw DNSError.invalidData("Failed to encode SVCB ECH value: '\(svcParamValue)'")
                     }
                     paramValue.append(contentsOf: bytes)
                 case .ipv6hint:
@@ -993,7 +999,6 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
         let ip = segments.joined(separator: ":")
         return ip
     }
-    
     
     /// Encodes an IPv6 address into Data
     /// - Parameter address: The IPv6 address as a string
