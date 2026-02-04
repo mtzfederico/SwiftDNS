@@ -28,6 +28,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
     case IDMismatch(got: UInt16, expected: UInt16)
     /// The domain name used in the query is invalid
     case invalidDomainName
+    /// The connection type attempted doesn't match the one of the DNSClient
+    case connectionTypeMismatch
     
     
     public var errorDescription: String? {
@@ -59,6 +61,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return String(format: format, got, expected)
         case .invalidDomainName:
             return NSLocalizedString("DNSError.invalidDomainName", bundle: .module, comment: "")
+        case .connectionTypeMismatch:
+            return NSLocalizedString("DNSError.connectionTypeMismatch", bundle: .module, comment: "")
         }
     }
     
@@ -82,7 +86,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return lhsValue == rhsValue
         case (.IDMismatch(let lhsGot, let lhsExpected), .IDMismatch(let rhsGot, let rhsExpected)):
             return lhsGot == rhsGot && lhsExpected == rhsExpected
-        case (.noDataReceived, .noDataReceived), (.invalidDomainName, .invalidDomainName):
+        case (.noDataReceived, .noDataReceived), (.invalidDomainName, .invalidDomainName), (.connectionTypeMismatch, .connectionTypeMismatch):
             return true
         case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil):
             return true

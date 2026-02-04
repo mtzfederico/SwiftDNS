@@ -33,6 +33,22 @@
         }
       }
     },
+    "DNSError.connectionTypeMismatch" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The connection type for the query doesn’t match the type of the DNSClient"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El tipo de conexión para la consulta no coincide con el tipo de DNSClient"
+          }
+        }
+      }
+    },
     "DNSError.IDMismatch %u %u" : {
       "localizations" : {
         "en" : {

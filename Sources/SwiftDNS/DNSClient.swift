@@ -44,6 +44,8 @@ final public actor DNSClient: Sendable {
     private let connectionType: DNSConnectionType
     /// The server used to send the query to
     private let server: String
+    /// The URL Session used when sending queries over HTTPS
+    private var urlSession: URLSession?
     
     private var isConnected: Bool = false
     
@@ -51,8 +53,9 @@ final public actor DNSClient: Sendable {
     /// - Parameters:
     ///   - server: The server to send the query to. For UDP and TCP, it can be an IP or a domain. For TLS it should be a domain name (Ex: "dns.quad9.net" or "one.one.one.one"), and for HTTPS it sould be a URL (Ex: "https://cloudflare-dns.com/dns-query" or "https://dns.quad9.net/dns-query")
     ///   - connectionType: The DNS conecction type to use. UDP, TCP, TLS, or HTTPS
+    ///   - urlSession: An optional instance of URLSession to use for DoH. If the connectionType is not dnsOverHTTPS, it is ignored.
     ///   - logger: The logger used
-    public init(server: String, connectionType: DNSConnectionType, logger: Logger = Logger(label: "com.mtzfederico.SwiftDNS")) {
+    public init(server: String, connectionType: DNSConnectionType, urlSession: URLSession? = nil,  logger: Logger = Logger(label: "com.mtzfederico.SwiftDNS")) {
         self.dnsQueue = DispatchQueue(label: "DNSClient-\(server.replacingOccurrences(of: " ", with: "_"))_\(connectionType.description)", attributes: .concurrent)
         self.logger = logger
         self.server = server
@@ -70,6 +73,9 @@ final public actor DNSClient: Sendable {
         case .dnsOverTCP:
             self.connection = NWConnection(host: .name(server, nil), port: 53, using: .tcp)
         case .dnsOverHTTPS:
+            let config = URLSessionConfiguration.default
+            config.httpAdditionalHeaders = ["User-Agent": "SwiftDNS/1.0 (+https://github.com/mtzfederico/SwiftDNS)"]
+            self.urlSession = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
             self.connection = nil
         }
     }
@@ -388,6 +394,11 @@ final public actor DNSClient: Sendable {
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
     private func sendHTTPS(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+        guard let urlSession = urlSession else {
+            completion(.failure(DNSError.connectionTypeMismatch))
+            return
+        }
+        
         guard let url = URL(string: server) else {
             completion(.failure(DNSError.invalidServerAddress))
             return
@@ -404,7 +415,7 @@ final public actor DNSClient: Sendable {
             request.setValue("application/dns-message", forHTTPHeaderField: "Content-Type")
             request.httpBody = data
             
-            let task = URLSession.shared.dataTask(with: request, completionHandler: { responseData, response, error in
+            let task = urlSession.dataTask(with: request, completionHandler: { responseData, response, error in
                 guard error == nil, let responseData = responseData else {
                     if let error = error {
                         completion(.failure(DNSError.connectionFailed(error)))
