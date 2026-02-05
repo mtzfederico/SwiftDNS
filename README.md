@@ -7,7 +7,7 @@ SwiftDNS is a DNS client library written in Swift. It is able to decode, encode,
 
 # Installation
 
-The preferred way of installing is via the [Swift Package Manager](https://swift.org/package-manager/).
+You can install it with [Swift Package Manager](https://swift.org/package-manager/).
 
 ```swift
 /// Package.swift
@@ -26,11 +26,11 @@ dependencies: [
 
 # Usage
 
-  ```swift
-  let server = "https://dns.quad9.net/dns-query"
-  var client = DNSClient(server: server, connectionType: .dnsOverHTTPS)
+```swift
+let server = "https://dns.quad9.net/dns-query"
+var client = DNSClient(server: server, connectionType: .dnsOverHTTPS)
   
-  Task {
+Task {
     do {
         let result = try await client.query(host: "google.com", type: .AAAA)
         print(result.description)
@@ -38,5 +38,5 @@ dependencies: [
         print("Error: \(error)")
     }
 }
-  ```
+```
 
