@@ -595,6 +595,7 @@ struct TestResourceRecord {
          J5D6fwFm8nN+6pBzeDQfsS3Ap3o= )
          */
         
+        // Not implemented yet
         #expect(false)
     }
     
@@ -686,6 +687,7 @@ struct TestResourceRecord {
     
     // NSEC3 50
     @Test func NSEC3() throws {
+        // Not implemented yet
         #expect(false)
     }
     
