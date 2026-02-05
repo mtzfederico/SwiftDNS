@@ -84,7 +84,7 @@ struct TestResourceRecord {
     @Test func A() throws {
         let data: Data = Data([
             0x03,
-            0x6e, 0x73, 0x33,
+            0x6e, 0x73, 0x33,                   // ns3
             0x06,
             0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, // google
             0x03,
