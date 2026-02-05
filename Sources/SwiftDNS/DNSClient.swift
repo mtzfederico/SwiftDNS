@@ -491,6 +491,8 @@ final public actor DNSClient: Sendable {
 
             // Compressed label (pointer: 11xx xxxx)
             // https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4
+            
+            #warning("Make sure an infinite loop can't happen here")
             if length & 0xC0 == 0xC0 {
                 // TODO: handle pointer loops
                 if currentOffset + 1 >= data.count {
@@ -498,6 +500,15 @@ final public actor DNSClient: Sendable {
                 }
                 let byte2 = Int(data[currentOffset + 1])
                 let pointer = ((length & 0x3F) << 8) | byte2
+                
+                if currentOffset == pointer {
+                    throw DNSError.invalidData("Name pointer references itself")
+                }
+                
+                if pointer > data.count {
+                    throw DNSError.invalidData("Name pointer out of bounds")
+                }
+                
                 let (jumpedName, _) = try parseDomainName(data: data, offset: pointer)
                 labels.append(jumpedName)
                 consumed = currentOffset - offset + 2
