@@ -197,4 +197,8 @@ public enum DNSRecordType: Equatable, LosslessStringConvertible, Sendable, CaseI
     public static func == (lhs: DNSRecordType, rhs: DNSRecordType) -> Bool {
         return lhs.rawValue == rhs.rawValue
     }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(rawValue)
+    }
 }

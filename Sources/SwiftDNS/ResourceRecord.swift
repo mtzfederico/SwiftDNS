@@ -9,7 +9,7 @@ import Foundation
 import Network
 
 /// The data format used for the answer, authority, and additional sections of a DNS packet.
-public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
+public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Hashable {
     /*
      The answer, authority, and additional sections share the same format.
      There is a variable number of resource records, the number of
@@ -1035,5 +1035,13 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible {
     
     public static func ==(lhs: ResourceRecord, rhs: ResourceRecord) -> Bool {
         return lhs.name == rhs.name && lhs.ttl == rhs.ttl && lhs.Class == rhs.Class && lhs.type == rhs.type && lhs.value == rhs.value
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(name)
+        hasher.combine(ttl)
+        hasher.combine(Class)
+        hasher.combine(type)
+        hasher.combine(value)
     }
 }

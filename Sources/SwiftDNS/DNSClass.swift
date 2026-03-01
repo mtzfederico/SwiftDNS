@@ -8,7 +8,7 @@
 import Foundation
 
 /// The DNS Class as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2)
-public enum DNSClass: Equatable, LosslessStringConvertible, Sendable, CaseIterable {
+public enum DNSClass: Equatable, LosslessStringConvertible, Sendable, CaseIterable, Hashable {
     public static let allCases: [DNSClass] = [.internet, .chaos, .hesiod, .none, .any]
     
     case internet // = 1
@@ -103,5 +103,9 @@ public enum DNSClass: Equatable, LosslessStringConvertible, Sendable, CaseIterab
     
     public static func ==(lhs: DNSClass, rhs: DNSClass) -> Bool {
         return lhs.rawValue == rhs.rawValue
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(rawValue)
     }
 }
