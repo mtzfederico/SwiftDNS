@@ -19,21 +19,17 @@ public enum DNSConnectionType: Sendable, CustomStringConvertible, CaseIterable {
     /// Describes the connection type in a short string with no spaces
     public var description: String {
         switch self {
-        case .dnsOverTLS:
-            return "DoT"
-        case .dnsOverHTTPS:
-            return "DoH"
-        case .dnsOverUDP:
-            return "DoUDP"
-        case .dnsOverTCP:
-            return "DoTCP"
+        case .dnsOverTLS:   return "DoT"
+        case .dnsOverHTTPS: return "DoH"
+        case .dnsOverUDP:   return "DoUDP"
+        case .dnsOverTCP:   return "DoTCP"
         }
     }
 }
 
-/// The DNS Cient used to send DNS queries
+/// The DNS Client used to send DNS queries
 ///
-/// Initialize it with the server's IP or hostname and the connection type and use the Query method to send DNS queries
+/// Initialize it with the server's IP or hostname and the connection type and use the Query method to send DNS queries.
 final public actor DNSClient: Sendable {
     private let dnsQueue: DispatchQueue
     /// The logger used
@@ -48,14 +44,20 @@ final public actor DNSClient: Sendable {
     private var urlSession: URLSession?
     
     private var isConnected: Bool = false
+    /// Maximum number of times sendTCP/sendUDP will retry on transient connection errors
+    private let maxRetries: Int = 3
+    
+    // MARK: - Init
     
     /// DNSClass Initialiser
     /// - Parameters:
-    ///   - server: The server to send the query to. For UDP and TCP, it can be an IP or a domain. For TLS it should be a domain name (Ex: "dns.quad9.net" or "one.one.one.one"), and for HTTPS it sould be a URL (Ex: "https://cloudflare-dns.com/dns-query" or "https://dns.quad9.net/dns-query")
-    ///   - connectionType: The DNS conecction type to use. UDP, TCP, TLS, or HTTPS
-    ///   - urlSession: An optional instance of URLSession to use for DoH. If the connectionType is not dnsOverHTTPS, it is ignored.
+    ///   - server: The server to send the query to. For UDP and TCP, it can be an IP or a domain.
+    ///     For TLS it should be a domain name (Ex: "dns.quad9.net" or "one.one.one.one"),
+    ///     and for HTTPS it should be a URL (Ex: "https://cloudflare-dns.com/dns-query")
+    ///   - connectionType: The DNS connection type to use: UDP, TCP, TLS, or HTTPS
+    ///   - urlSession: An optional URLSession for DoH. Ignored for other connection types.
     ///   - logger: The logger used
-    public init(server: String, connectionType: DNSConnectionType, urlSession: URLSession? = nil,  logger: Logger = Logger(label: "com.mtzfederico.SwiftDNS")) {
+    public init(server: String, connectionType: DNSConnectionType, urlSession: URLSession? = nil, logger: Logger = Logger(label: "com.mtzfederico.SwiftDNS")) {
         self.dnsQueue = DispatchQueue(label: "DNSClient-\(server.replacingOccurrences(of: " ", with: "_"))_\(connectionType.description)", attributes: .concurrent)
         self.logger = logger
         self.server = server
@@ -63,7 +65,6 @@ final public actor DNSClient: Sendable {
         
         switch connectionType {
         case .dnsOverTLS:
-            // self.connection = NWConnection(host: .name(server, nil), port: 853, using: .tls)
             let parameters = NWParameters.tls
             parameters.serviceClass = .responsiveData
             parameters.expiredDNSBehavior = .allow
@@ -80,22 +81,27 @@ final public actor DNSClient: Sendable {
         }
     }
     
+    // MARK: - Connection state
+    
     private func setConnected(_ value: Bool) {
         self.isConnected = value
     }
+    
+    // MARK: - Public query API
     
     /// Sends a DNS request to the server using the connection type of the DNSClient
     /// - Parameters:
     ///   - host: The host to query, the QNAME.
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
+    ///   - EDNS: An opptional EDNSMessage to send
     /// - Returns: The DNS response
     @available(macOS 10.15, iOS 13.0, *)
     public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet, EDNS: EDNSMessage? = nil) async throws -> DNSMessage {
         return try await withCheckedThrowingContinuation { continuation in
-            self.query(host: host, type: type, Class: Class, EDNS: EDNS, completion: { result in
+            self.query(host: host, type: type, Class: Class, EDNS: EDNS) { result in
                 continuation.resume(with: result)
-            })
+            }
         }
     }
     
@@ -105,9 +111,9 @@ final public actor DNSClient: Sendable {
     @available(macOS 10.15, iOS 13.0, *)
     public func query(message: DNSMessage) async throws -> DNSMessage {
         return try await withCheckedThrowingContinuation { continuation in
-            self.query(message: message, completion: { result in
+            self.query(message: message) { result in
                 continuation.resume(with: result)
-            })
+            }
         }
     }
     
@@ -116,10 +122,11 @@ final public actor DNSClient: Sendable {
     ///   - host: The host to query, the QNAME.
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
+    ///   - EDNS: An opptional EDNSMessage to send
     ///   - completion: The DNS response or an Error
     public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet, EDNS: EDNSMessage? = nil, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         do {
-            if host.isEmpty || !host.isDNSSafe {
+            guard !host.isEmpty, host.isDNSSafe else {
                 completion(.failure(DNSError.invalidDomainName))
                 return
             }
@@ -130,57 +137,53 @@ final public actor DNSClient: Sendable {
             
             let question = QuestionSection(host: host, type: type, CLASS: Class)
             let message = DNSMessage(header: header, Question: [question], Answer: [], Authority: [], Additional: [], EDNSData: EDNS)
-            
-            return query(message: message, completion: completion)
+            query(message: message, completion: completion)
         } catch(let error) {
             completion(.failure(error))
         }
     }
     
-    /// /// Sends a DNS request to the server using the connection type of the DNSClient
+    /// Sends a DNS request to the server using the connection type of the DNSClient
     /// - Parameters:
     ///   - message: The DNS Message to send
     ///   - completion: The DNS response or an Error
     public func query(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         switch connectionType {
         case .dnsOverTLS, .dnsOverTCP:
-            return sendTCP(message: message, completion: completion)
+            sendTCP(message: message, retryCount: 0, completion: completion)
         case .dnsOverUDP:
-            return sendUDP(message: message, completion: completion)
+            sendUDP(message: message, retryCount: 0, completion: completion)
         case .dnsOverHTTPS:
-            return sendHTTPS(message: message, completion: completion)
+            sendHTTPS(message: message, completion: completion)
         }
     }
     
+    // MARK: - helper functions
+    
+    /// Starts the NWConnection if it isn't already running.
     private func startConnection() throws {
-        // if isConnected { return }
-        guard let connection else {
-            throw DNSError.connectionIsNil
-        }
-        
+        guard !isConnected else { return }
+        guard let connection else { throw DNSError.connectionIsNil }
         connection.start(queue: dnsQueue)
         setConnected(true)
-        
-        // #warning("Implement me")
-        // use this to start the connection
-        // keep isConnected state, call it when sending a request.
-        // if not connected, connect. On connection failure restart the connection
     }
     
-    /// Closes all connections  gracefully.
+    /// Closes all connections gracefully.
     public func closeConnections() {
         logger.trace("Closing Connection")
-        self.connection?.cancel()
+        connection?.cancel()
         setConnected(false)
     }
     
-    /// Sends a DNS request to the server using TCP
+    // MARK: - TCP / TLS
+    
+    /// Sends a DNS request to the server using TCP or TLS
     /// - Parameters:
     ///   - host: The host to query, the QNAME.
     ///   - type: The DNS recoord type to query for
     ///   - Class: The class to query
     ///   - completion: The DNS response or an Error
-    private func sendTCP(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+    private func sendTCP(message: DNSMessage, retryCount: Int, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
@@ -189,68 +192,70 @@ final public actor DNSClient: Sendable {
         do {
             let id = message.header.id
             let query = try message.toData()
+            let length = UInt16(query.count)
+            let data: Data = Data(withUnsafeBytes(of: length.bigEndian, Array.init)) + query
             
-            // TCP has a 2-byte prefix with the length because it is a stram of data and it needs to know how long all of it is
-            // In UDP, the whole packet is a single request. In TCP (and TLS) the data can go over multiple packets/frames
-            let lengthPrefix = UInt16(query.count)
+            logger.trace("[sendTCP] Sending query", metadata: [
+                "host": "\(message.Question[0].QNAME)",
+                "id": "0x\(String(format:"%02x", id))",
+                "data": "\(data.hexEncodedString())"
+            ])
             
-            let data: Data = Data(withUnsafeBytes(of: lengthPrefix.bigEndian, Array.init)) + query
+            /// Clears the handler and calls completion exactly once.
+            @Sendable func finish(_ result: Result<DNSMessage, Error>) {
+                connection.stateUpdateHandler = nil
+                completion(result)
+            }
             
-            logger.trace("[sendTCP] Sending query", metadata: ["host": "\(message.Question[0].QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
+            /// Retries up to maxRetries times, then fails.
+            @Sendable func retryOrFail(reason: String, error: Error) {
+                if retryCount < maxRetries {
+                    logger.error("[sendTCP: retryOrFail] \(reason). Retrying (\(retryCount + 1)/\(maxRetries))", metadata: ["error": "\(error.localizedDescription)"])
+                    Task {
+                        await self.closeConnections()
+                        await self.sendTCP(message: message, retryCount: retryCount + 1, completion: completion)
+                    }
+                } else {
+                    logger.error("[sendTCP: retryOrFail] \(reason). Max retries reached.", metadata: ["error": "\(error.localizedDescription)"])
+                    finish(.failure(error))
+                }
+            }
             
-            connection.stateUpdateHandler = { state in
+            // Set handler before calling startConnection().
+            connection.stateUpdateHandler = { [weak self] state in
+                guard let self else { return }
                 switch state {
                 case .ready:
-                    Task {
-                        await self.setConnected(true)
-                    }
+                    Task { await self.setConnected(true) }
                     self.logger.debug("[sendTCP] Connection ready, sending data...")
-                    // Send DNS query
+                    
                     connection.send(content: data, completion: .contentProcessed { sendError in
-                        if let error = sendError {
-                            #warning("if the connection fails, it should be restarted. Add some logic to only run this a few times")
-                            Task {
-                                await self.closeConnections()
-                                self.logger.error("[sendTCP] Send failed. Restarting...",  metadata: ["error": "\(error.localizedDescription)"])
-                                // restart the connection
-                                await self.sendTCP(message: message, completion: completion)
-                            }
-                            
+                        if let sendError {
+                            retryOrFail(reason: "Send failed", error: DNSError.connectionFailed(sendError))
                             return
-                            
-                            // completion(.failure(DNSError.connectionFailed(error)))
-                            // return
                         }
                         
-                        connection.receive(minimumIncompleteLength: 2, maximumLength: 2) { lengthData, _, _, error in
-                            if let error = error {
-                                completion(.failure(DNSError.connectionFailed(error)))
+                        // Get the 2-byte length prefix first
+                        connection.receive(minimumIncompleteLength: 2, maximumLength: 2) { lengthData, _, _, recvError in
+                            if let recvError {
+                                finish(.failure(DNSError.connectionFailed(recvError)))
+                                return
+                            }
+                            guard let lengthData, lengthData.count == 2 else {
+                                finish(.failure(DNSError.invalidData("Failed to parse response length prefix")))
                                 return
                             }
                             
-                            guard let lengthData = lengthData else {
-                                completion(.failure(DNSError.noDataReceived))
-                                return
-                            }
-                            
-                            if lengthData.count != 2 {
-                                self.logger.trace("[sendTCP] Received invalid lengthData", metadata: ["response": "\(lengthData.hexEncodedString())"])
-                                completion(.failure(DNSError.invalidData("Failed to parse length of data")))
-                                return
-                            }
-                            
-                            let length = Int(lengthData.withUnsafeBytes { $0.load(as: UInt16.self).bigEndian })
+                            let responseLength = Int(lengthData.withUnsafeBytes { $0.load(as: UInt16.self).bigEndian })
                             
                             // Get the actual data
-                            connection.receive(minimumIncompleteLength: length, maximumLength: length) { responseData, _, _, error in
-                                if let error = error {
-                                    completion(.failure(DNSError.connectionFailed(error)))
+                            connection.receive(minimumIncompleteLength: responseLength, maximumLength: responseLength) { responseData, _, _, recvError2 in
+                                if let recvError2 {
+                                    finish(.failure(DNSError.connectionFailed(recvError2)))
                                     return
                                 }
-                                
-                                guard let responseData = responseData else {
-                                    self.logger.trace("[sendTCP] Received data is nil")
-                                    completion(.failure(DNSError.invalidData("Response is empty")))
+                                guard let responseData else {
+                                    finish(.failure(DNSError.invalidData("Response body is empty")))
                                     return
                                 }
                                 
@@ -258,49 +263,34 @@ final public actor DNSClient: Sendable {
                                 
                                 do {
                                     let result = try DNSMessage(data: responseData)
-                                    // check that the id in the response is the same as the one sent in the query
-                                    if result.header.id != id {
-                                        self.logger.trace("[sendTCP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
-                                        completion(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
+                                    guard result.header.id == id else {
+                                        self.logger.trace("[sendTCP] ID mismatch", metadata: [
+                                            "sent": "0x\(String(format:"%02x", id))",
+                                            "received": "0x\(String(format:"%02x", result.header.id))"
+                                        ])
+                                        
+                                        finish(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
                                         return
                                     }
-                                    completion(.success(result))
+                                    finish(.success(result))
                                 } catch {
-                                    completion(.failure(error))
+                                    finish(.failure(error))
                                 }
                             }
                         }
                     })
+                    
                 case .failed(let error):
-                    #warning("make sure this works")
-                    // _Concurrency/CheckedContinuation.swift:196: Fatal error: SWIFT TASK CONTINUATION MISUSE: query(host:type:Class:) tried to resume its continuation more than once, throwing connectionFailed(POSIXErrorCode(rawValue: 54): Connection reset by peer)!
-                    
-                    // if error  == POSIXErrorCode(rawValue: 54) { }
-                    Task {
-                        await self.closeConnections()
-                        self.logger.error("[sendTCP] Connection failed. Restarting...",  metadata: ["error": "\(error.localizedDescription)"])
-                        // restart the connection
-                        await self.sendTCP(message: message, completion: completion)
-                    }
-                    
-                    // completion(.failure(DNSError.connectionFailed(error)))
-                    return
+                    retryOrFail(reason: "Connection failed", error: DNSError.connectionFailed(error))
                 case .cancelled:
-                    Task {
-                        await self.closeConnections()
-                        #warning("check this")
-                        // maybe setConnected(false)
-                        self.logger.error("[sendTCP] Connection cancelled. Restarting...")
-                        // restart the connection
-                        await self.sendTCP(message: message, completion: completion)
-                    }
+                    // Cancelled is triggered by closeConnections(). no extra action needed.
+                    self.logger.debug("[sendTCP] Connection cancelled.")
                 case .waiting(let error):
                     self.logger.info("[sendTCP] Connection waiting", metadata: ["error": "\(error.localizedDescription)"])
                 case .preparing:
                     self.logger.debug("[sendTCP] Connection preparing...")
                 default:
-                    completion(.failure(DNSError.unknownState(state)))
-                    break
+                    finish(.failure(DNSError.unknownState(state)))
                 }
             }
             
@@ -308,17 +298,17 @@ final public actor DNSClient: Sendable {
             try startConnection()
         } catch(let error) {
             completion(.failure(error))
-            return
         }
     }
     
+    // MARK: - UDP
+    
     /// Sends a DNS request to the server using UDP
     /// - Parameters:
-    ///   - host: The host to query, the QNAME.
-    ///   - type: The DNS recoord type to query for
-    ///   - Class: The class to query
+    ///   - message: The DNSMessage to send to the server
+    ///   - retryCount: The number of times to try again
     ///   - completion: The DNS response or an Error
-    private func sendUDP(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+    private func sendUDP(message: DNSMessage, retryCount: Int, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
         guard let connection = self.connection else {
             completion(.failure(DNSError.connectionIsNil))
             return
@@ -328,73 +318,88 @@ final public actor DNSClient: Sendable {
             let id = message.header.id
             let data = try message.toData()
             
-            logger.trace("[sendUDP] Sending query", metadata: ["host": "\(message.Question[0].QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
+            logger.trace("[sendUDP] Sending query", metadata: [
+                "host": "\(message.Question[0].QNAME)",
+                "id": "0x\(String(format:"%02x", id))",
+                "data": "\(data.hexEncodedString())"
+            ])
             
-            connection.stateUpdateHandler = { state in
+            connection.stateUpdateHandler = { [weak self] state in
+                guard let self else { return }
                 switch state {
                 case .ready:
                     self.logger.debug("[sendUDP] Connection ready, sending data...")
                     
-                    // Send DNS query
                     connection.send(content: data, completion: .contentProcessed { sendError in
-                        if let error = sendError {
-                            completion(.failure(DNSError.connectionFailed(error)))
+                        if let sendError {
+                            completion(.failure(DNSError.connectionFailed(sendError)))
                             return
                         }
+                        
+                        // Only call receive after send succeeds
+                        connection.receive(minimumIncompleteLength: 1, maximumLength: 512) { responseData, _, _, recvError in
+                            if let recvError {
+                                completion(.failure(DNSError.connectionFailed(recvError)))
+                                return
+                            }
+                            guard let responseData else {
+                                completion(.failure(DNSError.noDataReceived))
+                                return
+                            }
+                            
+                            self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
+                            do {
+                                let result = try DNSMessage(data: responseData)
+                                
+                                guard result.header.id == id else {
+                                    self.logger.trace("[sendUDP] ID mismatch", metadata: [
+                                        "sent": "0x\(String(format:"%02x", id))",
+                                        "received": "0x\(String(format:"%02x", result.header.id))"
+                                    ])
+                                    completion(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
+                                    return
+                                }
+                                
+                                // Detect truncated responses (TC bit). tc is 1 when the response was truncated.
+                                if result.header.flags.tc == 1 {
+                                    completion(.failure(DNSError.responseTruncated))
+                                    return
+                                }
+                                
+                                completion(.success(result))
+                            } catch {
+                                completion(.failure(DNSError.parsingError(error)))
+                            }
+                        }
                     })
+                    
                 case .failed(let error):
                     completion(.failure(DNSError.connectionFailed(error)))
-                    return
                 case .waiting(let error):
-                    self.logger.info("[sendUDP] Connection waiting", metadata: ["error": "\(error.localizedDescription)"])
+                    self.logger.info("[sendUDP] Connection waiting",
+                                     metadata: ["error": "\(error.localizedDescription)"])
                 case .preparing:
                     self.logger.debug("[sendUDP] Connection preparing...")
                 default:
                     completion(.failure(DNSError.unknownState(state)))
-                    break
                 }
             }
-            
-            // Wait for response (asynchronously)
-            connection.receive(minimumIncompleteLength: 1, maximumLength: 512) { responseData, context, isComplete, error in
-                do {
-                    if let error = error {
-                        completion(.failure(DNSError.connectionFailed(error)))
-                        return
-                    }
-                    if let responseData = responseData {
-                        self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
-                        
-                        let result = try DNSMessage(data: responseData)
-                        // check that the id in the response is the same as the one sent in the query
-                        if result.header.id != id {
-                            self.logger.trace("[sendUDP] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
-                            completion(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
-                            return
-                        }
-                        completion(.success(result))
-                    }
-                } catch {
-                    completion(.failure(DNSError.parsingError(error)))
-                }
-            }
-            
             logger.debug("[sendUDP] Starting connection...")
             connection.start(queue: dnsQueue)
+            
         } catch(let error) {
             completion(.failure(error))
-            return
         }
     }
     
+    // MARK: - HTTPS
+    
     /// Sends a DNS request to the server using HTTPS
     /// - Parameters:
-    ///   - host: The host to query, the QNAME.
-    ///   - type: The DNS recoord type to query for
-    ///   - Class: The class to query
+    ///   - message: The DNSMessage to send to the server
     ///   - completion: The DNS response or an Error
     private func sendHTTPS(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
-        guard let urlSession = urlSession else {
+        guard let urlSession else {
             completion(.failure(DNSError.connectionTypeMismatch))
             return
         }
@@ -408,32 +413,33 @@ final public actor DNSClient: Sendable {
             let id = message.header.id
             let data = try message.toData()
             
-            logger.trace("[sendHTTPS] Sending query", metadata: ["host": "\(message.Question[0].QNAME)", "id": "0x\(String(format:"%02x", id))", "Data": "\(data.hexEncodedString())"])
+            logger.trace("[sendHTTPS] Sending query", metadata: [
+                "host": "\(message.Question[0].QNAME)",
+                "id": "0x\(String(format:"%02x", id))",
+                "data": "\(data.hexEncodedString())"
+            ])
             
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("application/dns-message", forHTTPHeaderField: "Content-Type")
             request.httpBody = data
             
-            let task = urlSession.dataTask(with: request, completionHandler: { responseData, response, error in
-                guard error == nil, let responseData = responseData else {
-                    if let error = error {
-                        completion(.failure(DNSError.connectionFailed(error)))
-                        return
-                    }
-                    completion(.failure(DNSError.parsingError(error)))
+            let task = urlSession.dataTask(with: request) { responseData, response, error in
+                guard error == nil, let responseData else {
+                    completion(.failure(error.map { DNSError.connectionFailed($0) } ?? DNSError.noDataReceived))
                     return
                 }
                 
                 do {
-                    let status = (response as! HTTPURLResponse).statusCode
+                    let httpResponse = response as! HTTPURLResponse
+                    let status = httpResponse.statusCode
                     
                     guard let mimeType = response?.mimeType, mimeType == "application/dns-message" else {
-                        throw DNSError.invalidData("Unsuported MIME type in response: '\(response?.mimeType ?? "<nil>")'. Status: \(status)")
+                        throw DNSError.invalidData("Unsupported MIME type: '\(response?.mimeType ?? "<nil>")'. Status: \(status)")
                     }
                     
                     guard status == 200 else {
-                        throw DNSError.invalidData("HTTPS Status Code is not 200: \(status)")
+                        throw DNSError.invalidData("HTTPS status is not 200: \(status)")
                     }
                     
                     self.logger.debug("[sendHTTPS] HTTP Response", metadata: ["status": "\(status)", "mime": "\(mimeType)"])
@@ -441,8 +447,11 @@ final public actor DNSClient: Sendable {
                     
                     let result = try DNSMessage(data: responseData)
                     // check that the id in the response is the same as the one sent in the query
-                    if result.header.id != id {
-                        self.logger.trace("[sendHTTPS] ID Mismatch", metadata: ["sent": "0x\(String(format:"%02x", id))", "received": "0x\(String(format:"%02x", result.header.id))"])
+                    guard result.header.id == id else {
+                        self.logger.trace("[sendHTTPS] ID mismatch", metadata: [
+                            "sent": "0x\(String(format:"%02x", id))",
+                            "received": "0x\(String(format:"%02x", result.header.id))"
+                        ])
                         completion(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
                         return
                     }
@@ -450,23 +459,14 @@ final public actor DNSClient: Sendable {
                 } catch(let error) {
                     completion(.failure(error))
                 }
-            })
+            }
             task.resume()
         } catch(let error) {
             completion(.failure(error))
-            return
         }
-        
-        /*
-        let (responseData, response) = try await URLSession.shared.data(for: request)
-        let status = (response as! HTTPURLResponse).statusCode
-        self.logger.debug("[sendHTTPS] Status: \(status), mime: \(response.mimeType ?? "<nil>")")
-        self.logger.trace("[sendHTTPS] Received DNS response: \(responseData.hexEncodedString())")
-        // print("[sendHTTPS] response header: \(responseHeader.description())")
-        
-        return try self.DNSClient.parseDNSResponse(responseData)
-         */
     }
+    
+    // MARK: - Domain name parsing
     
     /// Parses a domain name in Data
     /// - Parameters:
@@ -477,10 +477,10 @@ final public actor DNSClient: Sendable {
         var labels: [String] = []
         var currentOffset = offset
         var consumed = 0
-
+        
         while currentOffset < data.count {
             let length = Int(data[currentOffset])
-
+            
             // Null label
             if length == 0 {
                 consumed = currentOffset - offset + 1
@@ -488,24 +488,23 @@ final public actor DNSClient: Sendable {
                 labels.append("")
                 break
             }
-
+            
             // Compressed label (pointer: 11xx xxxx)
             // https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4
             
-            #warning("Make sure an infinite loop can't happen here")
+            // Pointer (compressed label): top two bits are 11
             if length & 0xC0 == 0xC0 {
-                // TODO: handle pointer loops
-                if currentOffset + 1 >= data.count {
-                    throw DNSError.invalidData("Name pointer over bounds")
+                guard currentOffset + 1 < data.count else {
+                    throw DNSError.invalidData("Name pointer out of bounds")
                 }
                 let byte2 = Int(data[currentOffset + 1])
                 let pointer = ((length & 0x3F) << 8) | byte2
                 
-                if currentOffset == pointer {
+                guard currentOffset != pointer else {
                     throw DNSError.invalidData("Name pointer references itself")
                 }
                 
-                if pointer > data.count {
+                guard pointer < data.count else {
                     throw DNSError.invalidData("Name pointer out of bounds")
                 }
                 
@@ -517,10 +516,10 @@ final public actor DNSClient: Sendable {
                 let labelStart = currentOffset + 1
                 let labelEnd = labelStart + length
                 guard labelEnd <= data.count else {
-                    throw DNSError.invalidData("End of Name label (\(labelEnd)) over bounds (\(data.count)). offset: \(offset), currentOffset: \(currentOffset)")
+                    throw DNSError.invalidData("Label end (\(labelEnd)) out of bounds (\(data.count)). offset: \(offset), currentOffset: \(currentOffset)")
                 }
-                let labelData = data[labelStart..<labelEnd]
-                if let label = String(data: labelData, encoding: .utf8) {
+                
+                if let label = String(data: data[labelStart..<labelEnd], encoding: .utf8) {
                     labels.append(label)
                 }
                 currentOffset = labelEnd

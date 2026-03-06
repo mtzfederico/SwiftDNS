@@ -24,6 +24,7 @@ struct TestDNSError {
         #expect(DNSError.invalidData("") != DNSError.parsingError(nil))
         #expect(DNSError.invalidData("") != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.invalidData("") != DNSError.connectionTypeMismatch)
+        #expect(DNSError.invalidData("") != DNSError.responseTruncated)
         
         #expect(DNSError.connectionIsNil != DNSError.invalidData(""))
         #expect(DNSError.connectionIsNil != DNSError.invalidData("Out of bounds"))
@@ -39,6 +40,7 @@ struct TestDNSError {
         #expect(DNSError.connectionIsNil != DNSError.parsingError(nil))
         #expect(DNSError.connectionIsNil != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.connectionIsNil != DNSError.connectionTypeMismatch)
+        #expect(DNSError.connectionIsNil != DNSError.responseTruncated)
         
         #expect(DNSError.invalidServerAddress != DNSError.invalidData(""))
         #expect(DNSError.invalidServerAddress != DNSError.unknownState(nil))
@@ -54,6 +56,7 @@ struct TestDNSError {
         #expect(DNSError.invalidServerAddress != DNSError.parsingError(nil))
         #expect(DNSError.invalidServerAddress != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.invalidServerAddress != DNSError.connectionTypeMismatch)
+        #expect(DNSError.invalidServerAddress != DNSError.responseTruncated)
         
         #expect(DNSError.parsingError(nil) != DNSError.invalidData(""))
         #expect(DNSError.parsingError(nil) != DNSError.invalidData("Out of bounds"))
@@ -71,6 +74,7 @@ struct TestDNSError {
         #expect(DNSError.parsingError(DNSError.noDataReceived) == DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.parsingError(nil) != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.parsingError(nil) != DNSError.connectionTypeMismatch)
+        #expect(DNSError.parsingError(nil) != DNSError.responseTruncated)
         
         #expect(DNSError.unknownState(nil) != DNSError.invalidData(""))
         #expect(DNSError.unknownState(nil) != DNSError.invalidData("Out of bounds"))
@@ -86,6 +90,7 @@ struct TestDNSError {
         #expect(DNSError.unknownState(nil) != DNSError.parsingError(nil))
         #expect(DNSError.unknownState(nil) != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.unknownState(nil) != DNSError.connectionTypeMismatch)
+        #expect(DNSError.unknownState(nil) != DNSError.responseTruncated)
         
         #expect(DNSError.connectionFailed(DNSError.noDataReceived) != DNSError.invalidData(""))
         #expect(DNSError.connectionFailed(DNSError.noDataReceived) != DNSError.connectionFailed(DNSError.invalidData("Out of bounds")))
@@ -101,6 +106,7 @@ struct TestDNSError {
         #expect(DNSError.connectionFailed(DNSError.noDataReceived) != DNSError.parsingError(nil))
         #expect(DNSError.connectionFailed(DNSError.noDataReceived) != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.connectionFailed(DNSError.noDataReceived) != DNSError.connectionTypeMismatch)
+        #expect(DNSError.connectionFailed(DNSError.noDataReceived) != DNSError.responseTruncated)
         
         #expect(DNSError.noDataReceived != DNSError.invalidData(""))
         #expect(DNSError.noDataReceived != DNSError.invalidData("Out of bounds"))
@@ -114,6 +120,7 @@ struct TestDNSError {
         #expect(DNSError.noDataReceived != DNSError.parsingError(nil))
         #expect(DNSError.noDataReceived != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.noDataReceived != DNSError.connectionTypeMismatch)
+        #expect(DNSError.noDataReceived != DNSError.responseTruncated)
         
         #expect(DNSError.IDMismatch(got: 0, expected: 0) != DNSError.invalidData(""))
         #expect(DNSError.IDMismatch(got: 0, expected: 0) != DNSError.invalidData("Out of bounds"))
@@ -132,6 +139,7 @@ struct TestDNSError {
         #expect(DNSError.IDMismatch(got: 0, expected: 0) != DNSError.parsingError(nil))
         #expect(DNSError.IDMismatch(got: 0, expected: 0) != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.IDMismatch(got: 0, expected: 0) != DNSError.connectionTypeMismatch)
+        #expect(DNSError.IDMismatch(got: 0, expected: 0) != DNSError.responseTruncated)
         
         #expect(DNSError.invalidDomainName != DNSError.invalidData(""))
         #expect(DNSError.invalidDomainName != DNSError.invalidData("Out of bounds"))
@@ -145,6 +153,7 @@ struct TestDNSError {
         #expect(DNSError.invalidDomainName != DNSError.parsingError(nil))
         #expect(DNSError.invalidDomainName != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.invalidDomainName != DNSError.connectionTypeMismatch)
+        #expect(DNSError.invalidDomainName != DNSError.responseTruncated)
         
         #expect(DNSError.connectionTypeMismatch != DNSError.invalidData(""))
         #expect(DNSError.connectionTypeMismatch != DNSError.invalidData("Out of bounds"))
@@ -158,6 +167,21 @@ struct TestDNSError {
         #expect(DNSError.connectionTypeMismatch != DNSError.parsingError(nil))
         #expect(DNSError.connectionTypeMismatch != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.connectionTypeMismatch == DNSError.connectionTypeMismatch)
+        #expect(DNSError.connectionTypeMismatch != DNSError.responseTruncated)
+        
+        #expect(DNSError.responseTruncated != DNSError.invalidData(""))
+        #expect(DNSError.responseTruncated != DNSError.invalidData("Out of bounds"))
+        #expect(DNSError.responseTruncated != DNSError.unknownState(nil))
+        #expect(DNSError.responseTruncated != DNSError.unknownState(.preparing))
+        #expect(DNSError.responseTruncated != DNSError.noDataReceived)
+        #expect(DNSError.responseTruncated != DNSError.IDMismatch(got: 0, expected: 0))
+        #expect(DNSError.responseTruncated != DNSError.invalidDomainName)
+        #expect(DNSError.responseTruncated != DNSError.connectionIsNil)
+        #expect(DNSError.responseTruncated != DNSError.invalidServerAddress)
+        #expect(DNSError.responseTruncated != DNSError.parsingError(nil))
+        #expect(DNSError.responseTruncated != DNSError.parsingError(DNSError.noDataReceived))
+        #expect(DNSError.responseTruncated != DNSError.connectionTypeMismatch)
+        #expect(DNSError.responseTruncated == DNSError.responseTruncated)
     }
 }
 

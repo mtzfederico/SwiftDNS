@@ -30,7 +30,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
     case invalidDomainName
     /// The connection type attempted doesn't match the one of the DNSClient
     case connectionTypeMismatch
-    
+    /// UDP response was truncated (TC bit set). You should retry over TCP
+    case responseTruncated
     
     public var errorDescription: String? {
         switch self {
@@ -63,6 +64,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return NSLocalizedString("DNSError.invalidDomainName", bundle: .module, comment: "")
         case .connectionTypeMismatch:
             return NSLocalizedString("DNSError.connectionTypeMismatch", bundle: .module, comment: "")
+        case .responseTruncated:
+            return NSLocalizedString("DNSError.responseTruncated", bundle: .module, comment: "")
         }
     }
     
@@ -88,7 +91,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return lhsGot == rhsGot && lhsExpected == rhsExpected
         case (.noDataReceived, .noDataReceived), (.invalidDomainName, .invalidDomainName), (.connectionTypeMismatch, .connectionTypeMismatch):
             return true
-        case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil):
+        case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil), (.responseTruncated, .responseTruncated):
             return true
         default:
             return false
