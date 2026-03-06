@@ -10,6 +10,7 @@ import Foundation
 /// The EDNS Options Codes
 /// [Defined by iana](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11)
 public enum EDNSOptionCode: Sendable, LosslessStringConvertible, CaseIterable {
+public enum EDNSOptionCode: Sendable, Equatable, Hashable, LosslessStringConvertible, CaseIterable {
     public static let allCases: [EDNSOptionCode] = [.reserved, .LLQ, .updateLease, .NSID, .DAU, .DHU, .N3U, .ClientSubnet, .EDNSExpire, .COOKIE, .KeepAlive, .Padding, .ExtendedDNSError]
     
     case reserved // = 0
@@ -168,5 +169,9 @@ public enum EDNSOptionCode: Sendable, LosslessStringConvertible, CaseIterable {
     
     public static func == (lhs: EDNSOptionCode, rhs: EDNSOptionCode) -> Bool {
         return lhs.rawValue == rhs.rawValue
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(rawValue)
     }
 }

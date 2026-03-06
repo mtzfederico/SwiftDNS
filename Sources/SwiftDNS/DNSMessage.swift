@@ -12,7 +12,7 @@ import Foundation
 /// It represents a DNS Message that includes the DNS header alongside, Questions, Answers, Authority, and Additional records.
 ///
 /// EDNS data (which uses an OPT additional record) is stored as an `EDNSMessage`.
-public struct DNSMessage: Sendable, CustomStringConvertible {
+public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible {
     /// The DNS response headers
     public var header: DNSHeader
     
@@ -227,5 +227,14 @@ public struct DNSMessage: Sendable, CustomStringConvertible {
         }()
         
         return lhs.header == rhs.header && lhs.Question == rhs.Question && lhs.Answer == rhs.Answer && lhs.Authority == rhs.Authority && lhs.Additional == rhs.Additional && edns
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(header)
+        hasher.combine(Question)
+        hasher.combine(Answer)
+        hasher.combine(Authority)
+        hasher.combine(Additional)
+        hasher.combine(EDNSData)
     }
 }

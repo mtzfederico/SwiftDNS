@@ -9,7 +9,7 @@ import Foundation
 import Network
 
 /// Represents an EDNS Option
-public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
+public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible {
     /// The EDNS Option Code
     public let code: EDNSOptionCode
     /// The values of the EDNS option
@@ -344,5 +344,10 @@ public struct EDNSOption: Sendable, Equatable, CustomStringConvertible {
     
     public static func ==(lhs: EDNSOption, rhs: EDNSOption) -> Bool {
         return lhs.code == rhs.code && lhs.values == rhs.values
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(code)
+        hasher.combine(values)
     }
 }

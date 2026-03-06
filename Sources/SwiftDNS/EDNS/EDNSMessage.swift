@@ -8,7 +8,7 @@
 import Foundation
 
 /// The EDNS data as defined in [RFC 6891](https://www.rfc-editor.org/rfc/rfc6891)
-public struct EDNSMessage: Sendable, CustomStringConvertible {
+public struct EDNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible {
     /// The max UDP payload size
     ///
     /// The default value is 1232 bytes as recommended by [DNS Flag Day 2020](https://www.dnsflagday.net/2020/)
@@ -174,5 +174,13 @@ public struct EDNSMessage: Sendable, CustomStringConvertible {
     
     public static func ==(lhs: EDNSMessage, rhs: EDNSMessage) -> Bool {
         return lhs.extendedRcode == rhs.extendedRcode && lhs.version == rhs.version && lhs.zField == rhs.zField && lhs.doBit == rhs.doBit && lhs.options == rhs.options
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(extendedRcode)
+        hasher.combine(version)
+        hasher.combine(zField)
+        hasher.combine(doBit)
+        hasher.combine(options)
     }
 }

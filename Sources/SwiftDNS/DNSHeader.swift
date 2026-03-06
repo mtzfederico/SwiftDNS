@@ -8,7 +8,7 @@
 import Foundation
 
 /// The Hedaer section of a DNS packet
-public struct DNSHeader: Sendable {
+public struct DNSHeader: Sendable, Equatable, Hashable {
     /// A 16 bit identifier assigned to the query.  This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries.
     public let id: UInt16
     /// The dns flags
@@ -65,9 +65,18 @@ public struct DNSHeader: Sendable {
         return lhs.id == rhs.id && lhs.flags == rhs.flags && lhs.QDCOUNT == rhs.QDCOUNT && lhs.ANCOUNT == rhs.ANCOUNT && lhs.NSCOUNT == rhs.NSCOUNT && lhs.ARCOUNT == rhs.ARCOUNT
     }
     
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(flags)
+        hasher.combine(QDCOUNT)
+        hasher.combine(ANCOUNT)
+        hasher.combine(NSCOUNT)
+        hasher.combine(ARCOUNT)
+    }
+    
     /// The Flags in the DNS header
-    public struct DNSFlags: Sendable {
         /// A one bit field that specifies whether this message is a query (0), or a response (1).
+    public struct DNSFlags: Sendable, Equatable, Hashable {
         public var qr: UInt16 = 0
         /// A four bit field that specifies kind of query in this message.  This value is set by the originator of a query and copied into the response.  The values are:
         /// 0               a standard query (QUERY)
@@ -173,11 +182,22 @@ public struct DNSHeader: Sendable {
         public static func ==(lhs: DNSFlags, rhs: DNSFlags) -> Bool {
             return lhs.qr == rhs.qr && lhs.opcode == rhs.opcode && lhs.aa == rhs.aa && lhs.tc == rhs.tc && lhs.rd == rhs.rd && lhs.ra == rhs.ra && lhs.rcode == rhs.rcode
         }
+        
+        public func hash(into hasher: inout Hasher) {
+            hasher.combine(qr)
+            hasher.combine(opcode)
+            hasher.combine(aa)
+            hasher.combine(tc)
+            hasher.combine(rd)
+            hasher.combine(ra)
+            hasher.combine(z)
+            hasher.combine(rcode)
+        }
     }
 }
 
 /// The DNS RCode as defined by [IANA](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6)
-public enum DNSResponseCode: Equatable, Sendable, CustomStringConvertible, CustomDebugStringConvertible {
+public enum DNSResponseCode: Equatable, Sendable, CustomStringConvertible, CustomDebugStringConvertible, Hashable {
     case NoError // = 0
     case FormErr // = 1
     case ServFail // = 2
@@ -404,5 +424,9 @@ public enum DNSResponseCode: Equatable, Sendable, CustomStringConvertible, Custo
     
     public static func ==(lhs: DNSResponseCode, rhs: DNSResponseCode) -> Bool {
         return lhs.rawValue == rhs.rawValue
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(rawValue)
     }
 }
