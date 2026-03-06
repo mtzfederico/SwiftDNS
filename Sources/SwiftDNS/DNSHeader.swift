@@ -43,6 +43,8 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
         offset += 12
     }
     
+    /// Encodes the DNSHeader into Data in Networking order (big-endian)
+    /// - Returns: The DNSHeader itself
     public func toData() -> Data {
         var bytes = Data()
         
@@ -75,8 +77,8 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
     }
     
     /// The Flags in the DNS header
-        /// A one bit field that specifies whether this message is a query (0), or a response (1).
     public struct DNSFlags: Sendable, Equatable, Hashable {
+        /// A one bit field that specifies whether this message is a query (0 or false), or a response (1 or true).
         public var qr: UInt16 = 0
         /// A four bit field that specifies kind of query in this message.  This value is set by the originator of a query and copied into the response.  The values are:
         /// 0               a standard query (QUERY)
@@ -90,20 +92,30 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
         public var tc: UInt16 = 0
         /// Recursion Desired - this bit may be set in a query and is copied into the response.  If RD is set, it directs the name server to pursue the query recursively. Recursive query support is optional.
         public var rd: UInt16 = 0
-        /// Recursion Available - this be is set or cleared in a response, and denotes whether recursive query support is available in the name server.
+        /// Recursion Available - this bit is set or cleared in a response, and denotes whether recursive query support is available in the name server.
         public var ra: UInt16 = 0
         /// Reserved for future use. 3 bits long.  Must be zero in all queries and responses.
         public var z: UInt16 = 0
         /// Response code - this 4 bit field is set as part of responses.
         public var rcode: DNSResponseCode = .NoError
         
-        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: DNSResponseCode, z: UInt16 = 0) throws {
-            self.qr = qr
+        /// Initializer with values. Uses Boolean for all single bit values
+        /// - Parameters:
+        ///   - qr: Specifies whether this message is a query (0 or false), or a response (1 or true).
+        ///   - opcode: A four bit field that specifies kind of query in this message.  This value is set by the originator of a query and copied into the response.
+        ///   - aa: Authoritative Answer - this is valid in responses, and specifies that the responding name server is an authority for the domain name in question section.
+        ///   - tc: Truncation - specifies that this message was truncated due to length greater than that permitted on the transmission channel.
+        ///   - rd: Recursion Desired - this may be set in a query and is copied into the response.  If RD is set, it directs the name server to pursue the query recursively. Recursive query support is optional.
+        ///   - ra: Recursion Available - this  is set or cleared in a response, and denotes whether recursive query support is available in the name server.
+        ///   - rcode: Response code - this 4 bit field is set as part of responses.
+        ///   - z: Reserved for future use. 3 bits long.  Must be zero in all queries and responses.
+        public init(qr: Bool, opcode: UInt16, aa: Bool, tc: Bool, rd: Bool, ra: Bool, rcode: DNSResponseCode, z: UInt16 = 0) throws {
+            self.qr = qr ? 1 : 0
             self.opcode = opcode
-            self.aa = aa
-            self.tc = tc
-            self.rd = rd
-            self.ra = ra
+            self.aa = aa ? 1 : 0
+            self.tc = tc ? 1 : 0
+            self.rd = rd ? 1 : 0
+            self.ra = ra ? 1 : 0
             // Z is 3 bits long
             guard z <= 7 else {
                 throw DNSError.invalidData("z value too big")
@@ -113,6 +125,16 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
             self.rcode = rcode
         }
         
+        /// Initializer with individual values
+        /// - Parameters:
+        ///   - qr: A one bit field that specifies whether this message is a query (0), or a response (1).
+        ///   - opcode: A four bit field that specifies kind of query in this message.  This value is set by the originator of a query and copied into the response.
+        ///   - aa: Authoritative Answer - this bit is valid in responses, and specifies that the responding name server is an authority for the domain name in question section.
+        ///   - tc: Truncation - specifies that this message was truncated due to length greater than that permitted on the transmission channel.
+        ///   - rd: Recursion Desired - this bit may be set in a query and is copied into the response.  If RD is set, it directs the name server to pursue the query recursively. Recursive query support is optional.
+        ///   - ra: Recursion Available - this bit is set or cleared in a response, and denotes whether recursive query support is available in the name server.
+        ///   - rcode: Response code - this 4 bit field is set as part of responses.
+        ///   - z: Reserved for future use. 3 bits long.  Must be zero in all queries and responses.
         public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16, z: UInt16 = 0) throws {
             self.qr = qr
             self.opcode = opcode
@@ -128,7 +150,9 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
             
             self.rcode = DNSResponseCode(rcode)
         }
-
+        
+        /// Initialize from a UInt16
+        /// - Parameter raw: The flags as a UInt16. You can get this value using the `DNSFlags.toRaw()` function
         public init(from raw: UInt16) throws {
             /*
                                             1  1  1  1  1  1

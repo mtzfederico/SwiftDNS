@@ -51,6 +51,11 @@ struct TestHeaders {
         
         #expect(header == expectedHeader)
         
+        let expectedFlags1 = try DNSHeader.DNSFlags(qr: false, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: .NoError)
+        let expectedHeader1 = DNSHeader(id: 0x1234, flags: expectedFlags1, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
+        
+        #expect(header == expectedHeader)
+        
         // ResourceRecord(name: "example.com", type: 0, CLASS: 0, TTL: 0, RDLENGTH: 0)
     }
 
