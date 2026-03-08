@@ -9,7 +9,6 @@ import Foundation
 
 /// The EDNS Options Codes
 /// [Defined by iana](https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11)
-public enum EDNSOptionCode: Sendable, LosslessStringConvertible, CaseIterable {
 public enum EDNSOptionCode: Sendable, Equatable, Hashable, LosslessStringConvertible, CaseIterable {
     public static let allCases: [EDNSOptionCode] = [.reserved, .LLQ, .updateLease, .NSID, .DAU, .DHU, .N3U, .ClientSubnet, .EDNSExpire, .COOKIE, .KeepAlive, .Padding, .ExtendedDNSError]
     
@@ -17,15 +16,21 @@ public enum EDNSOptionCode: Sendable, Equatable, Hashable, LosslessStringConvert
     case LLQ // = 1
     case updateLease // = 2
     /// The DNS Name Server Identifier option as defined in [RFC 5001](https://datatracker.ietf.org/doc/html/rfc5001)
+    ///
+    /// It is a single value
     case NSID // = 3
     case DAU // = 5
     case DHU // = 6
     case N3U // = 7
     /// The EDNS Client Subnet option as defined in [RFC 7871](https://datatracker.ietf.org/doc/html/rfc7871)
+    ///
+    /// Values:
     case ClientSubnet // = 8
     /// The EDNS Expire option as defined in [RFC 7314](https://www.rfc-editor.org/rfc/rfc7314.html)
     case EDNSExpire // = 9
     /// The EDNS Cookie option as defined in [RFC 7873](https://datatracker.ietf.org/doc/html/rfc7873)
+    ///
+    /// Values: The Client and and optional Server Cookie
     case COOKIE // = 10
     /// The EDNS Keep Alive option as defined in [RFC 7828](https://datatracker.ietf.org/doc/html/rfc7828)
     ///
@@ -33,6 +38,8 @@ public enum EDNSOptionCode: Sendable, Equatable, Hashable, LosslessStringConvert
     case KeepAlive // = 11
     case Padding // = 12
     /// The EDNS Extended DNS Error option as defined in [RFC 8914](https://datatracker.ietf.org/doc/html/rfc8914)
+    ///
+    /// Values: The error and an optional extra text
     case ExtendedDNSError // = 15
     case unknown(UInt16)
     
