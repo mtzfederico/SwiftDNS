@@ -213,7 +213,11 @@ final public actor DNSClient: Sendable {
     
     /// Starts the NWConnection if it isn't already running.
     private func startConnection() throws {
-        guard !isConnected else { return }
+        guard !isConnected else {
+            logger.trace("[startConnection] Connection already started")
+            return
+        }
+        
         guard let connection else { throw DNSError.connectionIsNil }
         connection.start(queue: dnsQueue)
         setConnected(true)
