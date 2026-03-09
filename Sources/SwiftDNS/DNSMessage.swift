@@ -237,4 +237,88 @@ public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible
         hasher.combine(Additional)
         hasher.combine(EDNSData)
     }
+    
+    // MARK: - Domain name parsing
+    
+    /// Parses a domain name in Data
+    /// - Parameters:
+    ///   - data: The data where the domain is
+    ///   - offset: the offset to start parsing the data at
+    /// - Returns: The domain parsed and the length (the ammount of bytes consumed). The offset can be increased by the length to know where to continue parsing the data
+    public static func parseDomainName(data: Data, offset: Int) throws -> (String, Int) {
+        // Pass an empty visited set; the private overload tracks pointer offsets to detect loops
+        return try parseDomainName(data: data, offset: offset, visitedPointers: [])
+    }
+    
+    /// Internal implementation of parseDomainName that tracks visited pointer offsets to detect loops.
+    /// - Parameters:
+    ///   - data: The data where the domain is
+    ///   - offset: the offset to start parsing the data at
+    ///   - visitedPointers: The set of pointer offsets already followed in this call chain
+    /// - Returns: The domain parsed and the length (the ammount of bytes consumed)
+    private static func parseDomainName(data: Data, offset: Int, visitedPointers: Set<Int>) throws -> (String, Int) {
+        var labels: [String] = []
+        var currentOffset = offset
+        var consumed = 0
+        
+        while currentOffset < data.count {
+            let length = Int(data[currentOffset])
+            
+            // Null label
+            if length == 0 {
+                consumed = currentOffset - offset + 1
+                // Append an empty string for the trailing dot
+                labels.append("")
+                break
+            }
+            
+            // Compressed label (pointer: 11xx xxxx)
+            // https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4
+            // Pointer (compressed label): top two bits are 11
+            if length & 0xC0 == 0xC0 {
+                guard currentOffset + 1 < data.count else {
+                    throw DNSError.invalidData("Name pointer out of bounds")
+                }
+                let byte2 = Int(data[currentOffset + 1])
+                let pointer = ((length & 0x3F) << 8) | byte2
+                
+                guard currentOffset != pointer else {
+                    throw DNSError.invalidData("Name pointer references itself")
+                }
+                
+                guard pointer < data.count else {
+                    throw DNSError.invalidData("Name pointer out of bounds")
+                }
+                
+                // Detect pointer loops (e.g. A -> B -> A).
+                // If we've already followed this pointer offset in the current call chain, it's a loop.
+                guard !visitedPointers.contains(pointer) else {
+                    throw DNSError.namePointerLoop(at: currentOffset, to: pointer)
+                }
+                
+                // Record the current offset as visited before following the pointer
+                var newVisited = visitedPointers
+                newVisited.insert(currentOffset)
+                let (jumpedName, _) = try parseDomainName(data: data, offset: pointer, visitedPointers: newVisited)
+                labels.append(jumpedName)
+                consumed = currentOffset - offset + 2
+                break
+            } else {
+                let labelStart = currentOffset + 1
+                let labelEnd = labelStart + length
+                guard labelEnd <= data.count else {
+                    throw DNSError.invalidData("Label end (\(labelEnd)) out of bounds (\(data.count)). offset: \(offset), currentOffset: \(currentOffset)")
+                }
+                
+                if let label = String(data: data[labelStart..<labelEnd], encoding: .utf8) {
+                    labels.append(label)
+                }
+                currentOffset = labelEnd
+                consumed = currentOffset - offset
+            }
+        }
+        
+        // If there is only one item and it *is* an empty string, add a trailing dot
+        return (labels.joined(separator: ".") + (labels.count == 1 && labels.first == "" ? "." : ""), consumed)
+    }
 }

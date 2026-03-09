@@ -41,7 +41,7 @@ public struct EDNSMessage: Sendable, Equatable, Hashable, CustomStringConvertibl
     }
     
     public init(data: Data, offset: inout Int) throws {
-        let (domainName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
+        let (domainName, domainLength) = try DNSMessage.parseDomainName(data: data, offset: offset)
         offset += domainLength
         
         if domainLength != 1 {

@@ -58,7 +58,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
     
     /// Returns the decoded response
     public init(data: Data, offset: inout Int) throws {
-        let (domainName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
+        let (domainName, domainLength) = try DNSMessage.parseDomainName(data: data, offset: offset)
         // print("[decodeResourceRecord] domain name: \(domainName), length: \(domainLength). at offset: \(offset)")
         offset += domainLength
         
@@ -141,7 +141,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                 $0.load(as: UInt16.self).bigEndian
             }
 
-            let (domain, _) = try DNSClient.parseDomainName(data: data, offset: offset + 2)
+            let (domain, _) = try DNSMessage.parseDomainName(data: data, offset: offset + 2)
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(preference) \(domain)")
             return
@@ -156,7 +156,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                 offset += Int(rdlength)
                 throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
             }
-            let (domain, _) = try DNSClient.parseDomainName(data: data, offset: offset)
+            let (domain, _) = try DNSMessage.parseDomainName(data: data, offset: offset)
             offset += Int(rdlength)
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: domain)
             return
@@ -227,11 +227,11 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             let start = offset
             
             // Parse MNAME
-            let (mname, mnameLen) = try DNSClient.parseDomainName(data: data, offset: offset)
+            let (mname, mnameLen) = try DNSMessage.parseDomainName(data: data, offset: offset)
             offset += mnameLen
 
             // Parse RNAME
-            let (rname, rnameLen) = try DNSClient.parseDomainName(data: data, offset: offset)
+            let (rname, rnameLen) = try DNSMessage.parseDomainName(data: data, offset: offset)
             offset += rnameLen
 
             // Check remaining size
@@ -278,7 +278,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             let port = try data.readUInt16(at: offset)
             offset += 2
 
-            let (target, targetLen) = try DNSClient.parseDomainName(data: data, offset: offset)
+            let (target, targetLen) = try DNSMessage.parseDomainName(data: data, offset: offset)
             offset += targetLen
 
             self = ResourceRecord(name: domainName, ttl: ttl, Class: Class, type: type, value: "\(priority) \(weight) \(port) \(target)")
@@ -352,7 +352,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             let keyTag = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
             offset += 2
             
-            let (signerName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
+            let (signerName, domainLength) = try DNSMessage.parseDomainName(data: data, offset: offset)
             offset += domainLength
             
             // depends on the algorithm
@@ -365,7 +365,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             return
         case .NSEC:
             // decode the name with no compression
-            let (nextDomainName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
+            let (nextDomainName, domainLength) = try DNSMessage.parseDomainName(data: data, offset: offset)
             offset += domainLength
             
             let typeBitMapsLength = Int(rdlength) - offset
@@ -426,7 +426,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .SVCB, .HTTPS:
             let svcPriority = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
             offset += 2
-            let (targetName, len) = try DNSClient.parseDomainName(data: data, offset: offset)
+            let (targetName, len) = try DNSMessage.parseDomainName(data: data, offset: offset)
             offset += len
             
             var value = "\(svcPriority) \(targetName)"

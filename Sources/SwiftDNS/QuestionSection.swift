@@ -24,7 +24,7 @@ public struct QuestionSection: Sendable, Equatable, Hashable, LosslessStringConv
     }
     
     public init(data: Data, offset: inout Int) throws {
-        let (domainName, domainLength) = try DNSClient.parseDomainName(data: data, offset: offset)
+        let (domainName, domainLength) = try DNSMessage.parseDomainName(data: data, offset: offset)
         // print("[decodeQuestion] domain name: \(domainName), length: \(domainLength)")
         offset += domainLength
         
