@@ -79,7 +79,7 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
     /// The Flags in the DNS header
     public struct DNSFlags: Sendable, Equatable, Hashable {
         /// A one bit field that specifies whether this message is a query (0 or false), or a response (1 or true).
-        public var qr: UInt16 = 0
+        public var qr: Bool = false
         /// A four bit field that specifies kind of query in this message.  This value is set by the originator of a query and copied into the response.  The values are:
         /// 0               a standard query (QUERY)
         /// 1               an inverse query (IQUERY)
@@ -87,13 +87,13 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
         /// 3-15          reserved for future use
         public var opcode: UInt16 = 0
         /// Authoritative Answer - this bit is valid in responses, and specifies that the responding name server is an authority for the domain name in question section.
-        public var aa: UInt16 = 0
+        public var aa: Bool = false
         /// Truncation - specifies that this message was truncated due to length greater than that permitted on the transmission channel.
-        public var tc: UInt16 = 0
+        public var tc: Bool = false
         /// Recursion Desired - this bit may be set in a query and is copied into the response.  If RD is set, it directs the name server to pursue the query recursively. Recursive query support is optional.
-        public var rd: UInt16 = 0
+        public var rd: Bool = false
         /// Recursion Available - this bit is set or cleared in a response, and denotes whether recursive query support is available in the name server.
-        public var ra: UInt16 = 0
+        public var ra: Bool = false
         /// Reserved for future use. 3 bits long.  Must be zero in all queries and responses.
         public var z: UInt16 = 0
         /// Response code - this 4 bit field is set as part of responses.
@@ -110,12 +110,12 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
         ///   - rcode: Response code - this 4 bit field is set as part of responses.
         ///   - z: Reserved for future use. 3 bits long.  Must be zero in all queries and responses.
         public init(qr: Bool, opcode: UInt16, aa: Bool, tc: Bool, rd: Bool, ra: Bool, rcode: DNSResponseCode, z: UInt16 = 0) throws {
-            self.qr = qr ? 1 : 0
+            self.qr = qr
             self.opcode = opcode
-            self.aa = aa ? 1 : 0
-            self.tc = tc ? 1 : 0
-            self.rd = rd ? 1 : 0
-            self.ra = ra ? 1 : 0
+            self.aa = aa
+            self.tc = tc
+            self.rd = rd
+            self.ra = ra
             // Z is 3 bits long
             guard z <= 7 else {
                 throw DNSError.invalidData("z value too big")
@@ -135,7 +135,7 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
         ///   - ra: Recursion Available - this bit is set or cleared in a response, and denotes whether recursive query support is available in the name server.
         ///   - rcode: Response code - this 4 bit field is set as part of responses.
         ///   - z: Reserved for future use. 3 bits long.  Must be zero in all queries and responses.
-        public init(qr: UInt16, opcode: UInt16, aa: UInt16, tc: UInt16, rd: UInt16, ra: UInt16, rcode: UInt16, z: UInt16 = 0) throws {
+        public init(qr: Bool, opcode: UInt16, aa: Bool, tc: Bool, rd: Bool, ra: Bool, rcode: UInt16, z: UInt16 = 0) throws {
             self.qr = qr
             self.opcode = opcode
             self.aa = aa
@@ -164,22 +164,22 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
             
             // 1 bit
             // 1000 0000 0000 0000
-            qr     = (raw & 0x8000) >> 15
+            qr     = ((raw & 0x8000) >> 15) == 1
             // 4 bits
             // 0111 1000 0000 0000
             opcode = (raw & 0x7800) >> 11
             // 1 bit
             // 0000 0100 0000 0000
-            aa     = (raw & 0x0400) >> 10
+            aa     = ((raw & 0x0400) >> 10) == 1
             // 1 bit
             // 0000 0010 0000 0000
-            tc     = (raw & 0x0200) >> 9
+            tc     = ((raw & 0x0200) >> 9) == 1
             // 1 bit
             // 0000 0001 0000 0000
-            rd     = (raw & 0x0100) >> 8
+            rd     = ((raw & 0x0100) >> 8) == 1
             // 1 bit
             // 0000 0000 1000 0000
-            ra     = (raw & 0x0080) >> 7
+            ra     = ((raw & 0x0080) >> 7) == 1
             // 3 bit
             // 0000 0000 0111 0000
             z      = (raw & 0x0070) >> 4
@@ -192,12 +192,12 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
         /// Returns the flags as a UInt16
         public func toRaw() -> UInt16 {
             var raw: UInt16 = 0
-            raw |= (qr     & 0x1) << 15
+            raw |= ((qr ? 1 : 0)     & 0x1) << 15
             raw |= (opcode & 0xF) << 11
-            raw |= (aa     & 0x1) << 10
-            raw |= (tc     & 0x1) << 9
-            raw |= (rd     & 0x1) << 8
-            raw |= (ra     & 0x1) << 7
+            raw |= ((aa ? 1 : 0)     & 0x1) << 10
+            raw |= ((tc ? 1 : 0)     & 0x1) << 9
+            raw |= ((rd ? 1 : 0)     & 0x1) << 8
+            raw |= ((ra ? 1 : 0)     & 0x1) << 7
             raw |= (z      & 0x7) << 4
             raw |= (rcode.rawValue  & 0xF)
             return raw

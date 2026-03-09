@@ -40,7 +40,7 @@ struct TestDNSMessage {
             0x00, 0x01   // QCLASS (IN class)
         ])
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: false, opcode: 0, aa: false, tc: false, rd: true, ra: false, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x7643, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "as209245.net.", type: .A, CLASS: .internet)
@@ -83,7 +83,7 @@ struct TestDNSMessage {
             0x00, 0x01                    // [29-30] QCLASS (IN)
         ])
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: false, opcode: 0, aa: false, tc: false, rd: true, ra: false, rcode: 0)
         let expectedHeader = DNSHeader(id: 0xa17c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "bandaancha.eu.", type: .AAAA, CLASS: .internet)
@@ -128,7 +128,7 @@ struct TestDNSMessage {
             0x00, 0x03    // QCLASS (CH)
         ])
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: false, opcode: 0, aa: false, tc: false, rd: true, ra: false, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x5ef4, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         let expectedQuestion = QuestionSection(host: "id.server.", type: .TXT, CLASS: .chaos)
@@ -276,7 +276,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x42d2, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 2, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -346,7 +346,7 @@ struct TestDNSMessage {
         #expect(parsedAnswer == parsedOut)
         // print("dataOut: \(dataOut.hexEncodedString())\ndata:    \(data.hexEncodedString())")
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x8b3a, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -402,7 +402,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x7d5c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -677,7 +677,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x86fd, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 4, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -736,7 +736,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0xe888, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 2, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -796,7 +796,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x3ea9, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 1, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -885,7 +885,7 @@ struct TestDNSMessage {
          ;; Additional:
          */
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x28d3, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 13, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -1085,7 +1085,7 @@ struct TestDNSMessage {
         let parsedOut = try DNSMessage(data: dataOut)
         #expect(parsedAnswer == parsedOut)
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: false, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x782c, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 13, ARCOUNT: 26)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -1272,7 +1272,7 @@ struct TestDNSMessage {
         #expect(parsedAnswer == parsedOut)
         // print("----------------------------\nOutput:\n\(parsedOut.description)\n\nReference:\n\(parsedAnswer.description)\n----------------------------")
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0, z: 2)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: false, opcode: 0, aa: false, tc: false, rd: true, ra: false, rcode: 0, z: 2)
         let expectedHeader = DNSHeader(id: 0xff78, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
         
         let expectedQuestion = QuestionSection(host: "google.com.", type: .AAAA, CLASS: .internet)
@@ -1318,7 +1318,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0xff78, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 1)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -1379,7 +1379,7 @@ struct TestDNSMessage {
         print("\nOutput:\n\(parsedOut.description)\n----------------------------")
         #expect(parsedAnswer == parsedOut)
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: false, opcode: 0, aa: false, tc: false, rd: true, ra: false, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x1e4e, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 1)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -1430,7 +1430,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x1e4e, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 1)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -1492,7 +1492,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x13b0, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 0, ARCOUNT: 1)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -1572,7 +1572,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 1, tc: 0, rd: 1, ra: 0, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: true, tc: false, rd: true, ra: false, rcode: 0)
         let expectedHeader = DNSHeader(id: 0x68ae, flags: expectedFlags, QDCOUNT: 1, ANCOUNT: 1, NSCOUNT: 3, ARCOUNT: 1)
         
         #expect(parsedAnswer.header == expectedHeader)
@@ -1708,7 +1708,7 @@ struct TestDNSMessage {
         
         // -------
         
-        let expectedFlags = try DNSHeader.DNSFlags(qr: 1, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 1, rcode: 0)
+        let expectedFlags = try DNSHeader.DNSFlags(qr: true, opcode: 0, aa: false, tc: false, rd: true, ra: true, rcode: 0)
         let expectedHeader = DNSHeader(id: 0xe888, flags: expectedFlags, QDCOUNT: 0, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: 0)
         
         #expect(parsedAnswer.header == expectedHeader)
