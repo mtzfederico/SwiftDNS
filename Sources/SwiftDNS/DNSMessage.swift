@@ -48,7 +48,7 @@ public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible
         // Make sure that there is enough data for the header.
         // 6 sections of 2 bytes (16 bits) = 6 * 2 = 12
         guard data.count >= 12 else {
-            throw DNSError.invalidData("DNS data too small. Cannot parse header.")
+            throw DNSError.invalidData(msg: "DNS data too small. Cannot parse header.", data: data)
         }
         
         var offset = 0
@@ -76,7 +76,7 @@ public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible
             do {
                 let rr = try ResourceRecord(data: data, offset: &offset)
                 self.Additional.append(rr)
-            } catch DNSError.invalidData("OPT_RECORD") {
+            } catch DNSError.invalidData(msg: "OPT_RECORD", data: nil) {
                 self.EDNSData = try EDNSMessage(data: data, offset: &offset)
             } catch(let error) {
                 throw error
@@ -91,7 +91,7 @@ public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible
         
         if header.QDCOUNT == 1 && header.ANCOUNT == 0 && header.NSCOUNT == 0 && Additional.count == 0 {
             guard let question = Question.first else {
-                throw DNSError.invalidData("No question in message")
+                throw DNSError.invalidData(msg: "No question in message", data: nil)
             }
             data.append(try question.toData(includeName: true))
             
@@ -187,7 +187,7 @@ public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible
         
         while i < labels.count {
             if labels[i].count > 63 {
-                throw DNSError.invalidData("DNS label cannot have more than 63 characters. Label has \(labels[i].count) characters")
+                throw DNSError.invalidData(msg: "DNS label cannot have more than 63 characters. Label has \(labels[i].count) characters", data: nil)
             }
             
             let suffix = labels[i...].joined(separator: ".")
@@ -277,17 +277,17 @@ public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible
             // Pointer (compressed label): top two bits are 11
             if length & 0xC0 == 0xC0 {
                 guard currentOffset + 1 < data.count else {
-                    throw DNSError.invalidData("Name pointer out of bounds")
+                    throw DNSError.invalidData(msg: "Name pointer out of bounds", data: data)
                 }
                 let byte2 = Int(data[currentOffset + 1])
                 let pointer = ((length & 0x3F) << 8) | byte2
                 
                 guard currentOffset != pointer else {
-                    throw DNSError.invalidData("Name pointer references itself")
+                    throw DNSError.invalidData(msg: "Name pointer references itself", data: data)
                 }
                 
                 guard pointer < data.count else {
-                    throw DNSError.invalidData("Name pointer out of bounds")
+                    throw DNSError.invalidData(msg: "Name pointer out of bounds", data: data)
                 }
                 
                 // Detect pointer loops (e.g. A -> B -> A).
@@ -307,7 +307,7 @@ public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible
                 let labelStart = currentOffset + 1
                 let labelEnd = labelStart + length
                 guard labelEnd <= data.count else {
-                    throw DNSError.invalidData("Label end (\(labelEnd)) out of bounds (\(data.count)). offset: \(offset), currentOffset: \(currentOffset)")
+                    throw DNSError.invalidData(msg: "Label end (\(labelEnd)) out of bounds (\(data.count)). offset: \(offset), currentOffset: \(currentOffset)", data: data)
                 }
                 
                 if let label = String(data: data[labelStart..<labelEnd], encoding: .utf8) {

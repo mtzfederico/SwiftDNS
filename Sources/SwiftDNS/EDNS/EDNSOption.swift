@@ -91,7 +91,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
         
         // Check that the data is within the length
         guard offset + Int(optionLength) <= data.count else {
-            throw DNSError.parsingError(DNSError.invalidData("EDNS option length out of bounds"))
+            throw DNSError.parsingError(DNSError.invalidData(msg: "EDNS option length out of bounds", data: nil))
         }
         
         // Read OPTION-DATA
@@ -117,7 +117,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
             self.values = ["ID": "0x\(optionData.hexEncodedString())"]
         case .ClientSubnet:
             guard optionLength >= 4 else {
-                throw DNSError.invalidData("Invalid EDNS Client Subnet. Data too short: \(optionLength)")
+                throw DNSError.invalidData(msg: "Invalid EDNS Client Subnet. Data too short: \(optionLength)", data: optionData)
             }
             
             let family = UInt16(bigEndian: optionData.subdata(in: 0..<2).withUnsafeBytes { $0.load(as: UInt16.self) })
@@ -132,7 +132,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
                 // IPv4
                 // Adds missing octets set to zero to make sure that they are printed
                 guard addressBytes.count <= 4 else {
-                    throw DNSError.invalidData("EDNS CLient Subnet IPv4 address too long: \(addressBytes.count) bytes")
+                    throw DNSError.invalidData(msg: "EDNS CLient Subnet IPv4 address too long: \(addressBytes.count) bytes", data: optionData)
                 }
                 
                 let paddedAddress = addressBytes + Data(repeating: 0, count: max(0, 4 - addressBytes.count))
@@ -143,7 +143,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
                 // IPv6
                 // Adds missing hextets set to zero to make sure that they are printed
                 guard addressBytes.count <= 16 else {
-                    throw DNSError.invalidData("EDNS CLient Subnet IPv6 address too long: \(addressBytes.count) bytes")
+                    throw DNSError.invalidData(msg: "EDNS CLient Subnet IPv6 address too long: \(addressBytes.count) bytes", data: optionData)
                 }
                 
                 let paddedAddress = addressBytes + Data(repeating: 0, count: max(0, 16 - addressBytes.count))
@@ -165,7 +165,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
             // https://datatracker.ietf.org/doc/html/rfc7873#section-4
             // The client cookie has a fixed length of 8 bytes and the server Cookie has a variable size of 8 to 32 bytes
             guard optionLength >= 8 && optionLength <= 40 else {
-                throw DNSError.invalidData("Invalid EDNS Cookie. Bad length: \(optionLength)")
+                throw DNSError.invalidData(msg: "Invalid EDNS Cookie. Bad length: \(optionLength)", data: optionData)
             }
             
             let clientCookie = optionData.subdata(in: 0..<8).hexEncodedString()
@@ -174,7 +174,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
             
             self.values = ["Client": clientCookie, "Server": serverCookie]
         case .KeepAlive:
-            guard optionLength == 2 else { throw DNSError.invalidData("Invalid EDNS KEEPALIVE. Bad length: \(optionLength)") }
+            guard optionLength == 2 else { throw DNSError.invalidData(msg: "Invalid EDNS KEEPALIVE. Bad length: \(optionLength)", data: optionData) }
             
             let timeout = UInt16(bigEndian: optionData.withUnsafeBytes { $0.load(as: UInt16.self) })
             offset += Int(optionLength)
@@ -183,7 +183,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
             offset += Int(optionLength)
             self.values = ["Bytes": optionData.hexEncodedString()]
         case .ExtendedDNSError:
-            guard optionLength >= 2 else { throw DNSError.invalidData("Invalid EDNS Extended Error. Bad length: \(optionLength)") }
+            guard optionLength >= 2 else { throw DNSError.invalidData(msg: "Invalid EDNS Extended Error. Bad length: \(optionLength)", data: optionData) }
             
             let code = UInt16(bigEndian: optionData.withUnsafeBytes { $0.load(as: UInt16.self) })
             let extendedError = EDNSExtendedError(code)
@@ -217,7 +217,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
         switch code {
         case .NSID:
             guard let nsid = values["ID"] else {
-                throw DNSError.invalidData("Unknown NSID value")
+                throw DNSError.invalidData(msg: "Unknown NSID value", data: nil)
             }
             
             if nsid.hasPrefix("0x") {
@@ -231,7 +231,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
                   let rawScopeMask = values["ScopeMask"], let scopeMask = UInt8(rawScopeMask),
                   let ipString = values["IP"]
             else {
-                throw DNSError.invalidData("Invalid EDNS Client Subnet values")
+                throw DNSError.invalidData(msg: "Invalid EDNS Client Subnet values", data: nil)
             }
             
             optionData.append(contentsOf: withUnsafeBytes(of: family.bigEndian) { Data($0) })
@@ -242,7 +242,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
             case 1:
                 let octets = ipString.split(separator: ".").compactMap { UInt8($0) }
                 guard octets.count == 4 else {
-                    throw DNSError.parsingError(DNSError.invalidData("Invalid A record IP: \(ipString)"))
+                    throw DNSError.parsingError(DNSError.invalidData(msg: "Invalid A record IP: \(ipString)", data: nil))
                 }
                 
                 // Calculate the number of bytes needed to hold the prefix bits and round up
@@ -276,11 +276,11 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
                 
                 optionData.append(contentsOf: prefix)
             default:
-                throw DNSError.invalidData("Unsupported IP family for EDNS Client Subnet: \(family)")
+                throw DNSError.invalidData(msg: "Unsupported IP family for EDNS Client Subnet: \(family)", data: nil)
             }
         case .COOKIE:
             guard let clientCookie = values["Client"], let serverCookie = values["Server"] else {
-                throw DNSError.invalidData("Invalid EDNS Client Subnet values")
+                throw DNSError.invalidData(msg: "Invalid EDNS Client Subnet values", data: nil)
             }
             
             optionData.append(try Data(hex: clientCookie))
@@ -289,19 +289,19 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
             }
         case .KeepAlive:
             guard let rawTimeout = values["Timeout"], let timeout = UInt16(rawTimeout) else {
-                throw DNSError.invalidData("Invalid EDNS KeepAlive timeout")
+                throw DNSError.invalidData(msg: "Invalid EDNS KeepAlive timeout", data: nil)
             }
             
             optionData.append(contentsOf: withUnsafeBytes(of: timeout.bigEndian) { Data($0) })
         case .Padding:
             guard let padding = values["Bytes"] else {
-                throw DNSError.invalidData("Invalid EDNS padding")
+                throw DNSError.invalidData(msg: "Invalid EDNS padding", data: nil)
             }
             
             optionData.append(try Data(hex: padding))
         case .ExtendedDNSError:
             guard let rawCode = values["Extended Error Code"], let code = EDNSExtendedError(rawCode) else {
-                throw DNSError.invalidData("Invalid EDNS Client Subnet values")
+                throw DNSError.invalidData(msg: "Invalid EDNS Client Subnet values", data: nil)
             }
             
             optionData.append(contentsOf: withUnsafeBytes(of: code.rawValue.bigEndian) { Data($0) })
@@ -311,7 +311,7 @@ public struct EDNSOption: Sendable, Equatable, Hashable, CustomStringConvertible
             }
         default:
             guard let unknownData = values["Unknown"] else {
-                throw DNSError.invalidData("Failed to get value for unknown type")
+                throw DNSError.invalidData(msg: "Failed to get value for unknown type", data: nil)
             }
             
             if unknownData.hasPrefix("0x") {

@@ -45,19 +45,19 @@ public struct EDNSMessage: Sendable, Equatable, Hashable, CustomStringConvertibl
         offset += domainLength
         
         if domainLength != 1 {
-            throw DNSError.invalidData("OPT record has a non-null label: '\(domainName)'")
+            throw DNSError.invalidData(msg: "OPT record has a non-null label: '\(domainName)'", data: data)
         }
         
         // Read TYPE, CLASS, TTL, RDLENGTH
         guard offset + 10 <= data.count else {
             offset += 10
             // print("[decodeResourceRecord] Offset over bounds. offset: \(offset), data.count: \(data.count)")
-            throw DNSError.invalidData("Offset (\(offset)) over bounds (\(data.count)) for TYPE, CLASS, TTL, and RDLENGTH")
+            throw DNSError.invalidData(msg: "Offset (\(offset)) over bounds (\(data.count)) for TYPE, CLASS, TTL, and RDLENGTH", data: data)
         }
         
         let rawType = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
         if rawType != 41 {
-            throw DNSError.invalidData("Record Type is not OPT: '\(rawType)'")
+            throw DNSError.invalidData(msg: "Record Type is not OPT: '\(rawType)'", data: data)
         }
         
         offset += 2 // type
@@ -73,7 +73,7 @@ public struct EDNSMessage: Sendable, Equatable, Hashable, CustomStringConvertibl
         
         guard offset + Int(rdlength) <= data.count else {
             offset += Int(rdlength)
-            throw DNSError.parsingError(DNSError.invalidData("Failed to parse OPT record: offset (\(offset + Int(rdlength))) out of bounds (\(data.count))"))
+            throw DNSError.parsingError(DNSError.invalidData(msg: "Failed to parse OPT record: offset (\(offset + Int(rdlength))) out of bounds (\(data.count))", data: data))
         }
 
         let start = offset

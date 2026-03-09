@@ -118,7 +118,7 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
             self.ra = ra
             // Z is 3 bits long
             guard z <= 7 else {
-                throw DNSError.invalidData("z value too big")
+                throw DNSError.invalidData(msg: "z value too big", data: nil)
             }
             self.z = z
             
@@ -144,7 +144,7 @@ public struct DNSHeader: Sendable, Equatable, Hashable {
             self.ra = ra
             // Z is 3 bits long
             guard z <= 7 else {
-                throw DNSError.invalidData("z value too big")
+                throw DNSError.invalidData(msg: "z value too big", data: nil)
             }
             self.z = z
             

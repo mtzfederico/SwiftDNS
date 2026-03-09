@@ -18,7 +18,7 @@ extension Data {
             var data = Data()
 
             guard hex.count % 2 == 0 else {
-                throw DNSError.invalidData("Hex string must have an even number of characters.")
+                throw DNSError.invalidData(msg: "Hex string must have an even number of characters.", data: nil)
             }
         
             while !hex.isEmpty {
@@ -26,7 +26,7 @@ extension Data {
                 hex = String(hex.dropFirst(2))
 
                 guard let byte = UInt8(byteStr, radix: 16) else {
-                    throw DNSError.invalidData("Character is not base 16: '\(byteStr)'")
+                    throw DNSError.invalidData(msg: "Character is not base 16: '\(byteStr)'", data: nil)
                 }
 
                 data.append(byte)
@@ -45,7 +45,7 @@ extension Data {
     /// - Returns: The UInt16 read.
     func readUInt16(at index: Int) throws -> UInt16 {
         guard index + 1 < self.count else {
-            throw DNSError.invalidData("Data out of bounds")
+            throw DNSError.invalidData(msg: "Data out of bounds", data: nil)
         }
         let high = UInt16(self[index]) << 8
         let low = UInt16(self[index + 1])

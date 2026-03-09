@@ -31,7 +31,7 @@ public struct QuestionSection: Sendable, Equatable, Hashable, LosslessStringConv
         // Read TYPE and CLASS
         guard offset + 4 <= data.count else {
             // print("[decodeQuestion] Offset over bounds. offset: \(offset), data.count: \(data.count)")
-            throw DNSError.invalidData("offset out of bounds for type and class")
+            throw DNSError.invalidData(msg: "offset out of bounds for type and class", data: nil)
         }
         
         let type = DNSRecordType(try data.readUInt16(at: offset))
@@ -119,7 +119,7 @@ public struct QuestionSection: Sendable, Equatable, Hashable, LosslessStringConv
             let length = UInt8(label.count)
             
             if length > 63 {
-                throw DNSError.invalidData("DNS label cannot have more than 63 characters. Label has \(length) characters")
+                throw DNSError.invalidData(msg: "DNS label cannot have more than 63 characters. Label has \(length) characters", data: nil)
             }
             
             bytes.append(length)

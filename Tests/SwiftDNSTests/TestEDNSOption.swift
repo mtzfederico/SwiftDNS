@@ -441,7 +441,7 @@ struct TestEDNSOption {
             0x24, 0x26, 0xf5, 0x1f, 0x48, 0xfe, 0xff, 0xb6, // Server Cookie
         ])
         
-        #expect(throws: DNSError.parsingError(DNSError.invalidData("EDNS option length out of bounds")), performing: {
+        #expect(throws: DNSError.parsingError(DNSError.invalidData(msg: "EDNS option length out of bounds", data: data)), performing: {
             var offset: Int = 0
             let _ = try EDNSOption(data: data, offset: &offset)
         })

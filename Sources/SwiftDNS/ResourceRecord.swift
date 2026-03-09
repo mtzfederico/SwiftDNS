@@ -64,7 +64,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         
         // Read TYPE, CLASS, TTL, RDLENGTH
         guard offset + 10 <= data.count else {
-            throw DNSError.invalidData("Offset (\(offset)) over bounds (\(data.count)) for TYPE, CLASS, TTL, and RDLENGTH")
+            throw DNSError.invalidData(msg: "Offset (\(offset)) over bounds (\(data.count)) for TYPE, CLASS, TTL, and RDLENGTH", data: data)
         }
         
         let rawType = UInt16(bigEndian: data.subdata(in: offset..<offset+2).withUnsafeBytes { $0.load(as: UInt16.self) })
@@ -72,7 +72,8 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         
         if type == .OPT {
             offset -= domainLength
-            throw DNSError.invalidData("OPT_RECORD")
+            // data must be nil for catch in DNSMessage
+            throw DNSError.invalidData(msg: "OPT_RECORD", data: nil)
         }
         
         offset += 2 // type
@@ -89,19 +90,19 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         let Class = DNSClass(rawClass)
         
         guard rdlength <= data.count - offset else {
-            throw DNSError.invalidData("RDLength is smaller than the data length. RDLength: \(rdlength), Data Length: \(data.count-offset)")
+            throw DNSError.invalidData(msg: "RDLength is smaller than the data length. RDLength: \(rdlength), Data Length: \(data.count-offset)", data: data)
         }
         
         switch type {
         case .A:
             guard rdlength == 4 else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("invalid rdlength for A record: '\(rdlength)'"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "invalid rdlength for A record: '\(rdlength)'", data: data))
             }
             
             guard offset + 4 <= data.count else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength out of bounds", data: data))
             }
             
             let ipBytes = data.subdata(in: offset..<offset+4)
@@ -112,13 +113,13 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .AAAA:
             guard rdlength == 16 else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("invalid rdlength for AAAA record: '\(rdlength)'"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "invalid rdlength for AAAA record: '\(rdlength)'", data: data))
             }
             
             guard offset + 16 <= data.count else {
                 // print("failed to parse AAAA record")
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength out of bounds", data: data))
             }
             
             let ipBytes = data.subdata(in: offset..<offset+16)
@@ -129,12 +130,12 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .MX:
             guard rdlength >= 3 else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for MX record: '\(rdlength)'"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength too small for MX record: '\(rdlength)'", data: data))
             }
             
             guard offset + Int(rdlength) <= data.count else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength out of bounds", data: data))
             }
 
             let preference = data.subdata(in: offset..<offset+2).withUnsafeBytes {
@@ -148,13 +149,13 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .NS, .CNAME, .PTR, .DNAME:
             guard rdlength >= 2 else { // was 3, but it breaks CNAMES pointing to the root. www.example.net --> example.net
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for \(type.description) record: '\(rdlength)'"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength too small for \(type.description) record: '\(rdlength)'", data: data))
             }
             
             guard offset + Int(rdlength) <= data.count else {
                 // print("failed to parse CNAME record")
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength out of bounds", data: data))
             }
             let (domain, _) = try DNSMessage.parseDomainName(data: data, offset: offset)
             offset += Int(rdlength)
@@ -163,7 +164,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .HINFO:
             guard rdlength >= 2 else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for HINFO record: '\(rdlength)'"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength too small for HINFO record: '\(rdlength)'", data: data))
             }
             
             let cpuLen = Int(data[offset])
@@ -181,7 +182,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             guard offset + Int(rdlength) <= data.count else {
                 // print("Failed to parse TXT record")
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("txt rdlength out of bounds. '\(rdlength)'"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "txt rdlength out of bounds. '\(rdlength)'", data: data))
             }
 
             let txtData = data.subdata(in: offset..<offset+Int(rdlength))
@@ -194,7 +195,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
 
                 guard position + length <= txtData.count else {
                     offset += Int(rdlength)
-                    throw DNSError.parsingError(DNSError.invalidData("length of position in txt record out of bounds"))
+                    throw DNSError.parsingError(DNSError.invalidData(msg: "length of position in txt record out of bounds", data: data))
                 }
 
                 let stringData = txtData[position..<position+length]
@@ -221,7 +222,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             guard offset + Int(rdlength) <= data.count else {
                 // print("Failed to parse SOA record: offset out of bounds")
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength out of bounds", data: data))
             }
 
             let start = offset
@@ -239,7 +240,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             guard remaining >= 20 else {
                 // print("SOA RDATA too short after domain names")
                 offset = start + Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("soa rdata too short after domain names: \(remaining) bytes left"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "soa rdata too short after domain names: \(remaining) bytes left", data: data))
             }
 
             // Parse the 5 UInt32 values
@@ -261,12 +262,12 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .SRV:
             guard rdlength >= 7 else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for SRV record: '\(rdlength)'"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength too small for SRV record: '\(rdlength)'", data: data))
             }
             
             guard offset + Int(rdlength) <= data.count else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength out of bounds", data: data))
             }
 
             let priority = try data.readUInt16(at: offset)
@@ -294,7 +295,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             offset += 1
             
             guard digestType == 1 else {
-                throw DNSError.invalidData("Digest Type for DS record not suported: \(digestType)")
+                throw DNSError.invalidData(msg: "Digest Type for DS record not suported: \(digestType)", data: data)
             }
             
             // SHA-1 (digest type 1) is 20 bytes long
@@ -309,12 +310,12 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .SSHFP:
             guard rdlength >= 2 else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength too small for SSHFP record: '\(rdlength)'"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength too small for SSHFP record: '\(rdlength)'", data: data))
             }
             
             guard offset + Int(rdlength) <= data.count else {
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength out of bounds", data: data))
             }
             
             let algorithm: UInt8 = data[offset]
@@ -371,7 +372,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             let typeBitMapsLength = Int(rdlength) - offset
             
             guard data.count >= (offset + typeBitMapsLength) else {
-                throw DNSError.invalidData("Failed to parse NSEC record: offset (\(offset + typeBitMapsLength)) out of bounds (\(data.count))")
+                throw DNSError.invalidData(msg: "Failed to parse NSEC record: offset (\(offset + typeBitMapsLength)) out of bounds (\(data.count))", data: data)
             }
             
             var types: [String] = []
@@ -410,7 +411,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             offset += 1
             
             guard Protocol == 3 else {
-                throw DNSError.invalidData("Protocol for DNSKEY record must be 3: \(Protocol)")
+                throw DNSError.invalidData(msg: "Protocol for DNSKEY record must be 3: \(Protocol)", data: data)
             }
             
             let algorithm: UInt8 = data[offset]
@@ -436,7 +437,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                 let max = svcParams.count + offset
                 
                 guard max <= Int(rdlength)+offset else {
-                    throw DNSError.invalidData("\(type.description) record parametrs over bounds \(max)")
+                    throw DNSError.invalidData(msg: "\(type.description) record parametrs over bounds \(max)", data: data)
                 }
                 
                 while offset < max {
@@ -447,7 +448,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                     offset += 2
                     
                     guard svcParamValueLength <= data.count else {
-                        throw DNSError.invalidData("SVC Param value length out of bounds")
+                        throw DNSError.invalidData(msg: "SVC Param value length out of bounds", data: data)
                     }
                     
                     let svcParamValueData = data.subdata(in: offset..<offset+Int(svcParamValueLength))
@@ -493,7 +494,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                     case .ipv4hint:
                         guard svcParamValueLength % 4 == 0 else {
                             offset += Int(rdlength)
-                            throw DNSError.parsingError(DNSError.invalidData("invalid length for ipv4hint: \(svcParamValueLength)"))
+                            throw DNSError.parsingError(DNSError.invalidData(msg: "invalid length for ipv4hint: \(svcParamValueLength)", data: data))
                         }
                         
                         var ips: [String] = []
@@ -514,7 +515,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                     case .ipv6hint:
                         guard svcParamValueLength % 16 == 0 else {
                             offset += Int(rdlength)
-                            throw DNSError.parsingError(DNSError.invalidData("invalid length for ipv6hint: \(svcParamValueLength)"))
+                            throw DNSError.parsingError(DNSError.invalidData(msg: "invalid length for ipv6hint: \(svcParamValueLength)", data: data))
                         }
                         
                         var ips: [String] = []
@@ -531,7 +532,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                         value.append(" \(svcParamKey.description)=\(ips.joined(separator: ","))")
                     case .dohpath:
                         guard let path = String(data: svcParamValueData, encoding: .utf8) else {
-                            throw DNSError.invalidData("Failed to parse doh path")
+                            throw DNSError.invalidData(msg: "Failed to parse doh path", data: data)
                         }
                         
                         // TODO: validate the input and escape some characters
@@ -557,7 +558,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             guard offset + Int(rdlength) <= data.count else {
                 // print("default: failed to read RDATA, skipping. Type: \(type.rawValue), class: \(Class), length: \(rdlength), ttl: \(ttl)")
                 offset += Int(rdlength)
-                throw DNSError.parsingError(DNSError.invalidData("rdlength out of bounds"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "rdlength out of bounds", data: data))
             }
             
             let rdata = data.subdata(in: offset..<offset+Int(rdlength))
@@ -580,7 +581,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         var bytes: Data = try DNSMessage.encodeDomainName(name: self.name, messageLength: messageLength, nameOffsets: &nameOffsets)
         
         guard type != .OPT else {
-            throw DNSError.invalidData("Use EDNSMessage for OPT records")
+            throw DNSError.invalidData(msg: "Use EDNSMessage for OPT records", data: nil)
         }
         var qtype: UInt16 = type.rawValue.bigEndian
         bytes.append(Data(bytes: &qtype, count: 2))
@@ -605,7 +606,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             // let octets = self.value.split(separator: ".").compactMap { UInt8($0) }
             let octets = try ResourceRecord.encodeIPv4(self.value)
             guard octets.count == 4 else {
-                throw DNSError.parsingError(DNSError.invalidData("Invalid A record IP: \(value)"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "Invalid A record IP: \(value)", data: nil))
             }
             rdata.append(contentsOf: octets)
         case .AAAA:
@@ -620,7 +621,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .HINFO:
             let values = self.value.components(separatedBy: ", ")
             guard values.count == 2 else {
-                throw DNSError.parsingError(DNSError.invalidData("Invalid HINFO record format. CPU and OS must be separated by a ', '. \(values.count)"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "Invalid HINFO record format. CPU and OS must be separated by a ', '. \(values.count)", data: nil))
             }
             
             let cpuBytes = Array(values[0].utf8)
@@ -635,7 +636,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .MX:
             let parts = self.value.split(separator: " ", maxSplits: 1)
             guard parts.count == 2, let preference = UInt16(parts[0]) else {
-                throw DNSError.parsingError(DNSError.invalidData("Invalid MX record value: \(value)"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "Invalid MX record value: \(value)", data: nil))
             }
             
             rdata.append(contentsOf: withUnsafeBytes(of: preference.bigEndian) { Data($0) })
@@ -646,18 +647,18 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .TXT:
             let txtBytes = Array(self.value.utf8)
             guard txtBytes.count <= 255 else {
-                throw DNSError.parsingError(DNSError.invalidData("TXT record too long"))
+                throw DNSError.parsingError(DNSError.invalidData(msg: "TXT record too long", data: nil))
             }
             rdata.append(UInt8(txtBytes.count))
             rdata.append(contentsOf: txtBytes)
         case .SOA:
             let values = value.split(separator: " ")
             guard values.count == 7 else {
-                throw DNSError.invalidData("SOA record value must contain 7 values separated by space")
+                throw DNSError.invalidData(msg: "SOA record value must contain 7 values separated by space", data: nil)
             }
             
             guard let serial = UInt32(values[2]), let refresh = UInt32(values[3]), let retry = UInt32(values[4]), let expire = UInt32(values[5]), let minimum = UInt32(values[6]) else {
-                throw DNSError.invalidData("SOA record values must be convertible to UInt32")
+                throw DNSError.invalidData(msg: "SOA record values must be convertible to UInt32", data: nil)
             }
             
             let MNAME = String(values[0])
@@ -683,7 +684,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .SRV:
             let values = value.split(separator: " ")
             guard values.count == 4 else {
-                throw DNSError.invalidData("SRV record value must contain 4 values separated by space")
+                throw DNSError.invalidData(msg: "SRV record value must contain 4 values separated by space", data: nil)
             }
 
             // priority
@@ -702,15 +703,15 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .DS:
             let values = value.split(separator: " ")
             guard values.count == 4 else {
-                throw DNSError.invalidData("DS record value must contain 4 values separated by space. Contains \(values.count) values")
+                throw DNSError.invalidData(msg: "DS record value must contain 4 values separated by space. Contains \(values.count) values", data: nil)
             }
             
             guard let keyTag = UInt16(values[0]), let algorithm = UInt8(values[1]), let digestType = UInt8(values[2]) else {
-                throw DNSError.invalidData("Failed to parse DS record")
+                throw DNSError.invalidData(msg: "Failed to parse DS record", data: nil)
             }
             
             guard digestType == 1 else {
-                throw DNSError.invalidData("Digest Type for DS record not suported: \(digestType)")
+                throw DNSError.invalidData(msg: "Digest Type for DS record not suported: \(digestType)", data: nil)
             }
             
             rdata.append(contentsOf: withUnsafeBytes(of: keyTag.bigEndian) { Data($0) })
@@ -728,11 +729,11 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .SSHFP:
             let values = value.split(separator: " ")
             guard values.count == 3 else {
-                throw DNSError.invalidData("SSHFP record value must contain 4 values separated by space. Contains \(values.count) values")
+                throw DNSError.invalidData(msg: "SSHFP record value must contain 4 values separated by space. Contains \(values.count) values", data: nil)
             }
             
             guard let algorithm = UInt8(values[0]), let fingerprintType = UInt8(values[1]) else {
-                throw DNSError.invalidData("Failed to parse SSHFP record")
+                throw DNSError.invalidData(msg: "Failed to parse SSHFP record", data: nil)
             }
             
             rdata.append(algorithm)
@@ -747,7 +748,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .RRSIG:
             let values = value.split(separator: " ")
             guard values.count == 9 else {
-                throw DNSError.invalidData("RRSIG record value must contain 9 values separated by space. Contains \(values.count) values")
+                throw DNSError.invalidData(msg: "RRSIG record value must contain 9 values separated by space. Contains \(values.count) values", data: nil)
             }
             
             guard let typeCovered = UInt16(values[0]),
@@ -759,7 +760,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                   let keyTag = UInt16(values[6]),
                   let signature = Data(base64Encoded: String(values[8]))
             else {
-                throw DNSError.invalidData("Failed to parse RRSIG record values")
+                throw DNSError.invalidData(msg: "Failed to parse RRSIG record values", data: nil)
             }
             
             let signerName = try QuestionSection.encodeDomainName(name: String(values[7]))
@@ -776,7 +777,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .NSEC:
             let values = value.split(separator: " ")
             guard values.count >= 2 else {
-                throw DNSError.invalidData("DS record value must contain 4 values separated by space. Contains: \(values.count) values")
+                throw DNSError.invalidData(msg: "DS record value must contain 4 values separated by space. Contains: \(values.count) values", data: nil)
             }
             
             // encode the name with no compression
@@ -791,7 +792,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                 var rawType: UInt16 = 0
                 let strValue = String(value)
                 guard let type = DNSRecordType(strValue) else {
-                    throw DNSError.invalidData("Failed to parse NSEC record: unknown type: \(strValue)")
+                    throw DNSError.invalidData(msg: "Failed to parse NSEC record: unknown type: \(strValue)", data: nil)
                 }
                 rawType = type.rawValue
                 
@@ -818,15 +819,15 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .DNSKEY:
             let values = value.split(separator: " ")
             guard values.count == 4 else {
-                throw DNSError.invalidData("DNSKEY record value must contain 4 values separated by space. Contains: \(values.count) values")
+                throw DNSError.invalidData(msg: "DNSKEY record value must contain 4 values separated by space. Contains: \(values.count) values", data: nil)
             }
             
             guard let flags = UInt16(values[0]), let Protocol = UInt8(values[1]), let algorithm = UInt8(values[2]), let publicKey = Data(base64Encoded: String(values[3])) else {
-                throw DNSError.invalidData("Failed to parse DNSKEY record")
+                throw DNSError.invalidData(msg: "Failed to parse DNSKEY record", data: nil)
             }
             
             guard Protocol == 3 else {
-                throw DNSError.invalidData("Protocol for DNSKEY record must be 3: \(Protocol)")
+                throw DNSError.invalidData(msg: "Protocol for DNSKEY record must be 3: \(Protocol)", data: nil)
             }
             
             rdata.append(contentsOf: withUnsafeBytes(of: flags.bigEndian) { Data($0) })
@@ -843,11 +844,11 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
         case .SVCB, .HTTPS:
             let values = value.split(separator: " ")
             guard values.count >= 2 else {
-                throw DNSError.invalidData("\(type.description) record value must at least contain 2 values separated by space. Contains: \(values.count) values")
+                throw DNSError.invalidData(msg: "\(type.description) record value must at least contain 2 values separated by space. Contains: \(values.count) values", data: nil)
             }
             
             guard let svcPriority = UInt16(values[0]) else {
-                throw DNSError.invalidData("Failed to parse \(type.description) record")
+                throw DNSError.invalidData(msg: "Failed to parse \(type.description) record", data: nil)
             }
             
             rdata.append(contentsOf: withUnsafeBytes(of: svcPriority.bigEndian) { Data($0) })
@@ -862,11 +863,11 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                 // The value may contain an '=' symbol and it could be empty
                 let keyVal = param.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
                 guard keyVal.count == 2 else {
-                    throw DNSError.invalidData("\(type.description) record values must be in the format 'key=value'.")
+                    throw DNSError.invalidData(msg: "\(type.description) record values must be in the format 'key=value'.", data: nil)
                 }
                 
                 guard let svcParamKey = SVCParamKeys(String(keyVal[0])) else {
-                    throw DNSError.invalidData("Invalid SVCParamKey: '\(keyVal[0])'")
+                    throw DNSError.invalidData(msg: "Invalid SVCParamKey: '\(keyVal[0])'", data: nil)
                 }
                 
                 rdata.append(contentsOf: withUnsafeBytes(of: svcParamKey.rawValue.bigEndian) { Data($0) })
@@ -879,7 +880,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                     let items = svcParamValue.split(separator: ",")
                     for item in items {
                         guard let key = SVCParamKeys(String(item)) else {
-                            throw DNSError.invalidData("Invalid mandatory SVCParamKey: '\(item)'")
+                            throw DNSError.invalidData(msg: "Invalid mandatory SVCParamKey: '\(item)'", data: nil)
                         }
                         paramValue.append(contentsOf: withUnsafeBytes(of: key.rawValue.bigEndian) { Data($0) })
                     }
@@ -898,7 +899,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                     }
                 case .port:
                     guard let port = UInt16(svcParamValue) else {
-                        throw DNSError.invalidData("Failed to parse SVCB port value")
+                        throw DNSError.invalidData(msg: "Failed to parse SVCB port value", data: nil)
                     }
                     paramValue.append(contentsOf: withUnsafeBytes(of: port.bigEndian) { Data($0) })
                 case .ipv4hint:
@@ -909,7 +910,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
                     }
                 case .ech:
                     guard let bytes = Data(base64Encoded: svcParamValue) else {
-                        throw DNSError.invalidData("Failed to encode SVCB ECH value: '\(svcParamValue)'")
+                        throw DNSError.invalidData(msg: "Failed to encode SVCB ECH value: '\(svcParamValue)'", data: nil)
                     }
                     paramValue.append(contentsOf: bytes)
                 case .ipv6hint:
@@ -958,7 +959,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
             let values = self.value.split(separator: " ")
             
             guard values.count >= 2, values.first == ("\\#"), let length = UInt16(values[1]) else {
-                throw DNSError.invalidData("Encoding for \(type) not implemented and RDATA doesn't follow the format in rfc3597 section 5")
+                throw DNSError.invalidData(msg: "Encoding for \(type) not implemented and RDATA doesn't follow the format in rfc3597 section 5", data: nil)
             }
             
             if length != 0 {
@@ -983,7 +984,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
     internal static func encodeIPv4(_ address: String) throws -> Data {
         let octets = address.split(separator: ".").compactMap { UInt8($0) }
         guard octets.count == 4 else {
-            throw DNSError.parsingError(DNSError.invalidData("Invalid A record IP: \(address)"))
+            throw DNSError.parsingError(DNSError.invalidData(msg: "Invalid A record IP: \(address)", data: nil))
         }
         return Data(octets)
     }
@@ -1005,7 +1006,7 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
     /// - Returns: The Data that represents the IPv6 address
     internal static func encodeIPv6(_ address: String) throws -> Data {
         guard let ipv6 = IPv6Address(address) else {
-            throw DNSError.parsingError(DNSError.invalidData("Invalid IPv6 address: \(address)"))
+            throw DNSError.parsingError(DNSError.invalidData(msg: "Invalid IPv6 address: \(address)", data: nil))
         }
         
         return ipv6.rawValue

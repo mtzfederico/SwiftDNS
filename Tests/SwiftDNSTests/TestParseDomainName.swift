@@ -27,7 +27,7 @@ struct TestParseDomainName {
             0xd8, 0xef, 0x24, 0x0a              // 216.239.36.10
         ])
         
-        #expect(throws: DNSError.invalidData("Name pointer out of bounds"), performing: {
+        #expect(throws: DNSError.invalidData(msg: "Name pointer out of bounds", data: data), performing: {
             let _ = try DNSMessage.parseDomainName(data: data, offset: 0)
         })
     }
@@ -49,7 +49,7 @@ struct TestParseDomainName {
             0xd8, 0xef, 0x24, 0x0a              // 216.239.36.10
         ])
         
-        #expect(throws: DNSError.invalidData("Name pointer references itself"), performing: {
+        #expect(throws: DNSError.invalidData(msg: "Name pointer references itself", data: data), performing: {
             let _ = try DNSMessage.parseDomainName(data: data, offset: 0)
         })
     }

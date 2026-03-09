@@ -6,14 +6,17 @@
 // 
 
 import Testing
+import Foundation
 @testable import SwiftDNS
 
 struct TestDNSError {
     
     /// Verifies that two errors with the same associated values are equal.
     /// Covers every case's equality exactly once.
-    @Test func testSameValues() {
-        #expect(DNSError.invalidData("Out of bounds") == DNSError.invalidData("Out of bounds"))
+    @Test func testSameValues() throws {
+        #expect(DNSError.invalidData(msg: "Out of bounds", data: nil) == DNSError.invalidData(msg: "Out of bounds", data: nil))
+        let someData = try Data(hex: "002a8f1f0100000100000000000105617070")
+        #expect(DNSError.invalidData(msg: "Out of bounds", data: someData) == DNSError.invalidData(msg: "Out of bounds", data: someData))
         #expect(DNSError.unknownState(.preparing) == DNSError.unknownState(.preparing))
         #expect(DNSError.unknownState(nil) == DNSError.unknownState(nil))
         #expect(DNSError.noDataReceived == DNSError.noDataReceived)
@@ -31,12 +34,13 @@ struct TestDNSError {
     }
     
     /// Verifies that errors with different associated values of the same type are not equal.
-    @Test func testDifferentAssociatedValues() {
-        #expect(DNSError.invalidData("") != DNSError.invalidData("Out of bounds"))
+    @Test func testDifferentAssociatedValues() throws {
+        let someData = try Data(hex: "002a8f1f0100000100000000000105617070")
+        #expect(DNSError.invalidData(msg: "", data: nil) != DNSError.invalidData(msg: "Out of bounds", data: someData))
         #expect(DNSError.unknownState(nil) != DNSError.unknownState(.preparing))
         #expect(DNSError.IDMismatch(got: 0, expected: 0xbb) != DNSError.IDMismatch(got: 0, expected: 0xaa))
         #expect(DNSError.IDMismatch(got: 0xaa, expected: 0) != DNSError.IDMismatch(got: 0xbb, expected: 0))
-        #expect(DNSError.connectionFailed(DNSError.noDataReceived) != DNSError.connectionFailed(DNSError.invalidData("Out of bounds")))
+        #expect(DNSError.connectionFailed(DNSError.noDataReceived) != DNSError.connectionFailed(DNSError.invalidData(msg: "Out of bounds", data: nil)))
         #expect(DNSError.parsingError(nil) != DNSError.parsingError(DNSError.noDataReceived))
         #expect(DNSError.namePointerLoop(at: 0, to: 2) != DNSError.namePointerLoop(at: 2, to: 4))
     }
@@ -45,7 +49,7 @@ struct TestDNSError {
     /// Each unordered pair is checked exactly once.
     @Test func testDifferentCases() {
         // Use one representative per case type to keep cross-case checks unambiguous
-        let invalidData = DNSError.invalidData("")
+        let invalidData = DNSError.invalidData(msg: "", data: nil)
         let unknownState = DNSError.unknownState(nil)
         let noDataReceived = DNSError.noDataReceived
         let idMismatch = DNSError.IDMismatch(got: 0, expected: 0)

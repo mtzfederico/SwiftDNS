@@ -1238,7 +1238,7 @@ struct TestDNSMessage {
             0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e
         ])
         
-        #expect(throws: DNSError.invalidData("offset out of bounds for type and class"), performing: {
+        #expect(throws: DNSError.invalidData(msg: "offset out of bounds for type and class", data: nil), performing: {
             let _ = try DNSMessage(data: data)
         })
     }
