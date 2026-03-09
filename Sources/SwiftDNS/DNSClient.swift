@@ -359,7 +359,9 @@ final public actor DNSClient: Sendable {
                             return
                         }
                         guard let lengthData, lengthData.count == 2 else {
-                            finish(.failure(DNSError.invalidData("Failed to parse response length prefix")))
+                            
+                            self.logger.trace("[sendTCP] Failed to parse response length prefix", metadata: ["data": "\(lengthData?.hexEncodedString() ?? "<nil>")"])
+                            finish(.failure(DNSError.invalidData(msg: "Failed to parse response length prefix", data: lengthData)))
                             return
                         }
                         
@@ -377,7 +379,7 @@ final public actor DNSClient: Sendable {
                                 return
                             }
                             guard let responseData else {
-                                finish(.failure(DNSError.invalidData("Response body is empty")))
+                                finish(.failure(DNSError.invalidData(msg: "Response body is empty", data: responseData)))
                                 return
                             }
                             
@@ -430,7 +432,7 @@ final public actor DNSClient: Sendable {
             logger.debug("[sendTCP] Starting connection...")
             if isConnected {
                 // Connection is already ready, .ready will not fire again, so send directly
-                logger.debug("[sendTCP] Connection already ready, sending directly...")
+                logger.debug("[sendTCP] Connection ready, sending query...")
                 performTCPSend()
             } else {
                 // The stateUpdateHandler will call .ready
@@ -579,7 +581,7 @@ final public actor DNSClient: Sendable {
             logger.debug("[sendUDP] Starting connection...")
             if isConnected {
                 // Connection is already ready. .ready will not fire again, so send directly
-                logger.debug("[sendUDP] Connection already ready, sending directly...")
+                logger.debug("[sendUDP] Connection ready, sending query...")
                 performUDPSend()
             } else {
                 // Use startConnection() to avoid calling start() on an already-running connection
@@ -634,11 +636,11 @@ final public actor DNSClient: Sendable {
                     let status = httpResponse.statusCode
                     
                     guard let mimeType = response?.mimeType, mimeType == "application/dns-message" else {
-                        throw DNSError.invalidData("Unsupported MIME type: '\(response?.mimeType ?? "<nil>")'. Status: \(status)")
+                        throw DNSError.invalidData(msg: "Unsupported MIME type: '\(response?.mimeType ?? "<nil>")'. Status: \(status)", data: responseData)
                     }
                     
                     guard status == 200 else {
-                        throw DNSError.invalidData("HTTPS status is not 200: \(status)")
+                        throw DNSError.invalidData(msg: "HTTPS status is not 200: \(status)", data: responseData)
                     }
                     
                     self.logger.debug("[sendHTTPS] HTTP Response", metadata: ["status": "\(status)", "mime": "\(mimeType)"])
