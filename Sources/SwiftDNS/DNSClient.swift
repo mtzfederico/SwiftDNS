@@ -359,8 +359,6 @@ final public actor DNSClient: Sendable {
                             return
                         }
                         guard let lengthData, lengthData.count == 2 else {
-                            
-                            self.logger.trace("[sendTCP] Failed to parse response length prefix", metadata: ["data": "\(lengthData?.hexEncodedString() ?? "<nil>")"])
                             finish(.failure(DNSError.invalidData(msg: "Failed to parse response length prefix", data: lengthData)))
                             return
                         }
