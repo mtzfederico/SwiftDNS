@@ -295,6 +295,9 @@ final public actor DNSClient: Sendable {
             }
             
             /// Retries up to maxRetries times, then fails.
+            /// - Parameters:
+            ///   - reason: A description of the reason for retrying.
+            ///   - error: The error that caused the retry, returned if unable to retry.
             @Sendable func retryOrFail(reason: String, error: Error) {
                 if retryCount < maxRetries {
                     logger.error("[sendTCP: retryOrFail] \(reason). Retrying (\(retryCount + 1)/\(maxRetries))", metadata: ["error": "\(error.localizedDescription)"])
@@ -433,6 +436,9 @@ final public actor DNSClient: Sendable {
             }
             
             /// Retries up to maxRetries times, then fails.
+            /// - Parameters:
+            ///   - reason: A description of the reason for retrying.
+            ///   - error: The error that caused the retry, returned if unable to retry.
             @Sendable func retryOrFail(reason: String, error: Error) {
                 if retryCount < maxRetries {
                     logger.error("[sendUDP: retryOrFail] \(reason). Retrying (\(retryCount + 1)/\(maxRetries))", metadata: ["error": "\(error.localizedDescription)"])
