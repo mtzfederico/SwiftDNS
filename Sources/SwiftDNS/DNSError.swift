@@ -68,7 +68,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
         case .responseTruncated:
             return NSLocalizedString("DNSError.responseTruncated", bundle: .module, comment: "")
         case .namePointerLoop(let at, let to):
-            let format = NSLocalizedString("DNSError.IDMismatch %ld %ld", bundle: .module, comment: "")
+            let format = NSLocalizedString("DNSError.namePointerLoop %ld %ld", bundle: .module, comment: "")
             return String(format: format, at, to)
         }
     }

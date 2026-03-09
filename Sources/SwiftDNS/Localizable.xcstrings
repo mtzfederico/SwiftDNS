@@ -49,18 +49,18 @@
         }
       }
     },
-    "DNSError.IDMismatch %u %u" : {
+    "DNSError.IDMismatch %hu %hu" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Response ID doesn’t match query ID. Got: ‘%1$u’ Expected: ‘%2$u’"
+            "value" : "Response ID doesn’t match query ID. Got: ‘%1$hu’ Expected: ‘%2$hu’"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El ID de respuesta no coincide con el ID de la consulta. Respuesta: ‘%1$u’ Consulta: ‘%2$u’"
+            "value" : "El ID de respuesta no coincide con el ID de la consulta. Respuesta: ‘%1$hu’ Consulta: ‘%2$hu’"
           }
         }
       }
@@ -113,6 +113,22 @@
         }
       }
     },
+    "DNSError.namePointerLoop %ld %ld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name decompression loop at %1$ld pointing to %2$ld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bucle de descompresión de nombre en %1$ld que apunta a %2$ld"
+          }
+        }
+      }
+    },
     "DNSError.noDataReceived" : {
       "localizations" : {
         "en" : {
@@ -141,6 +157,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo procesar la respuesta: ‘%@’"
+          }
+        }
+      }
+    },
+    "DNSError.responseTruncated" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DNS Response Truncated. Retry using TCP."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respuesta DNS truncada. Reinténtelo usando TCP."
           }
         }
       }
