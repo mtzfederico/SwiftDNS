@@ -117,6 +117,20 @@ final public actor DNSClient: Sendable {
         }
     }
     
+    /// Returns true if the error represents a server-side connection closure (e.g. after idle timeout).
+    ///
+    /// These errors are transient and should trigger a reconnect + retry rather than a hard failure.
+    /// Covers both POSIXError and NWError wrappers for ENODATA (stream closed) and ECONNRESET (reset by peer).
+    private static func isConnectionClosedError(_ error: Error) -> Bool {
+        if let posixError = error as? POSIXError {
+            return posixError.code == .ENODATA || posixError.code == .ECONNRESET
+        }
+        if let nwError = error as? NWError, case .posix(let code) = nwError {
+            return code == .ENODATA || code == .ECONNRESET
+        }
+        return false
+    }
+    
     // MARK: - Public query API
     
     /// Sends a DNS request to the server using the connection type of the DNSClient
@@ -323,7 +337,12 @@ final public actor DNSClient: Sendable {
                     // Get the 2-byte length prefix first
                     connection.receive(minimumIncompleteLength: 2, maximumLength: 2) { lengthData, _, _, recvError in
                         if let recvError {
-                            finish(.failure(DNSError.connectionFailed(recvError)))
+                            // If the server closed the connection after idle, reconnect and retry transparently
+                            if DNSClient.isConnectionClosedError(recvError) {
+                                retryOrFail(reason: "Connection closed by server", error: DNSError.connectionClosed)
+                            } else {
+                                finish(.failure(DNSError.connectionFailed(recvError)))
+                            }
                             return
                         }
                         guard let lengthData, lengthData.count == 2 else {
@@ -336,7 +355,12 @@ final public actor DNSClient: Sendable {
                         // Get the actual data
                         connection.receive(minimumIncompleteLength: responseLength, maximumLength: responseLength) { responseData, _, _, recvError2 in
                             if let recvError2 {
-                                finish(.failure(DNSError.connectionFailed(recvError2)))
+                                // If the server closed the connection after idle, reconnect and retry transparently
+                                if DNSClient.isConnectionClosedError(recvError2) {
+                                    retryOrFail(reason: "Connection closed by server", error: DNSError.connectionClosed)
+                                } else {
+                                    finish(.failure(DNSError.connectionFailed(recvError2)))
+                                }
                                 return
                             }
                             guard let responseData else {
@@ -464,7 +488,12 @@ final public actor DNSClient: Sendable {
                     // Only call receive after send succeeds
                     connection.receive(minimumIncompleteLength: 1, maximumLength: 512) { responseData, _, _, recvError in
                         if let recvError {
-                            finish(.failure(DNSError.connectionFailed(recvError)))
+                            // If the server closed the connection after idle, reconnect and retry transparently
+                            if DNSClient.isConnectionClosedError(recvError) {
+                                retryOrFail(reason: "Connection closed by server", error: DNSError.connectionClosed)
+                            } else {
+                                finish(.failure(DNSError.connectionFailed(recvError)))
+                            }
                             return
                         }
                         guard let responseData else {

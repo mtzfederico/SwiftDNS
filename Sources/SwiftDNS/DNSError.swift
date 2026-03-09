@@ -14,6 +14,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
     case noDataReceived
     /// The conenction failed
     case connectionFailed(Error)
+    /// The server closed the connection, usually happens after an idle timeout. The client will retry automatically.
+    case connectionClosed
     /// Unknown connection state
     case unknownState(NWConnection.State?)
     /// A parsing error occurred when procesing the response
@@ -43,6 +45,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
             let errorDesc = error.localizedDescription
             let format = NSLocalizedString("DNSError.connectionFailed %@", bundle: .module, comment: "")
             return String(format: format, errorDesc)
+        case .connectionClosed:
+            return NSLocalizedString("DNSError.connectionClosed", bundle: .module, comment: "")
         case .unknownState(let state):
             let stateDesc = state.debugDescription
             let format = NSLocalizedString("DNSError.unknownState %@", bundle: .module, comment: "")
@@ -95,7 +99,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return lhsGot == rhsGot && lhsExpected == rhsExpected
         case (.namePointerLoop(let lhsAt, let lhsTo), .namePointerLoop(let rhsAt, let rhsTo)):
             return lhsAt == rhsAt && lhsTo == rhsTo
-        case (.noDataReceived, .noDataReceived), (.invalidDomainName, .invalidDomainName), (.connectionTypeMismatch, .connectionTypeMismatch):
+        case (.noDataReceived, .noDataReceived), (.invalidDomainName, .invalidDomainName), (.connectionTypeMismatch, .connectionTypeMismatch), (.connectionClosed, .connectionClosed):
             return true
         case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil), (.responseTruncated, .responseTruncated):
             return true
