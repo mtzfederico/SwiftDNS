@@ -93,6 +93,8 @@ final public actor DNSClient: Sendable {
     
     // MARK: - Connection state
     
+    /// Used to set the value of isConnected.
+    /// Consider using `closeConnections` instead
     private func setConnected(_ value: Bool) {
         self.isConnected = value
     }
@@ -310,10 +312,10 @@ final public actor DNSClient: Sendable {
                     switch state {
                     case .failed(let error):
                         self.logger.info("[sendTCP] Connection failed while idle", metadata: ["error": "\(error.localizedDescription)"])
-                        Task { await self.setConnected(false) }
+                        Task { await self.closeConnections(createNewConnection: true) }
                     case .cancelled:
                         self.logger.debug("[sendTCP] Connection cancelled while idle.")
-                        Task { await self.setConnected(false) }
+                        Task { await setConnected(false) }
                     default:
                         break
                     }
@@ -358,8 +360,14 @@ final public actor DNSClient: Sendable {
                             }
                             return
                         }
-                        guard let lengthData, lengthData.count == 2 else {
-                            finish(.failure(DNSError.invalidData(msg: "Failed to parse response length prefix", data: lengthData)))
+                        guard let lengthData else {
+                            #warning("Test this")
+                            retryOrFail(reason: "Invalid lengthData", error: DNSError.invalidData(msg: "No Response length prefix received", data: lengthData))
+                            return
+                        }
+                        
+                        guard lengthData.count == 2 else {
+                            finish(.failure(DNSError.invalidData(msg: "Response length prefix has an invalid length: \(lengthData.count)", data: lengthData)))
                             return
                         }
                         
@@ -377,7 +385,7 @@ final public actor DNSClient: Sendable {
                                 return
                             }
                             guard let responseData else {
-                                finish(.failure(DNSError.invalidData(msg: "Response body is empty", data: responseData)))
+                                finish(.failure(DNSError.invalidData(msg: "Response body is empty", data: nil)))
                                 return
                             }
                             
@@ -474,10 +482,10 @@ final public actor DNSClient: Sendable {
                     switch state {
                     case .failed(let error):
                         self.logger.info("[sendUDP] Connection failed while idle", metadata: ["error": "\(error.localizedDescription)"])
-                        Task { await self.setConnected(false) }
+                        Task { await self.closeConnections(createNewConnection: true) }
                     case .cancelled:
                         self.logger.debug("[sendUDP] Connection cancelled while idle.")
-                        Task { await self.setConnected(false) }
+                        Task { await setConnected(false) }
                     default:
                         break
                     }
