@@ -32,6 +32,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
     case connectionTypeMismatch
     /// UDP response was truncated (TC bit set). You should retry over TCP
     case responseTruncated
+    /// A DNS name contains a compression loop
+    case namePointerLoop(at: Int, to: Int)
     
     public var errorDescription: String? {
         switch self {
@@ -57,8 +59,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
             let format = NSLocalizedString("DNSError.invalidData %@", bundle: .module, comment: "")
             return String(format: format, value)
         case .IDMismatch(let got, let expected):
-            #warning("this needs to be changed for UInt16")
-            let format = NSLocalizedString("DNSError.IDMismatch %u %u", bundle: .module, comment: "")
+            let format = NSLocalizedString("DNSError.IDMismatch %hu %hu", bundle: .module, comment: "")
             return String(format: format, got, expected)
         case .invalidDomainName:
             return NSLocalizedString("DNSError.invalidDomainName", bundle: .module, comment: "")
@@ -66,6 +67,9 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return NSLocalizedString("DNSError.connectionTypeMismatch", bundle: .module, comment: "")
         case .responseTruncated:
             return NSLocalizedString("DNSError.responseTruncated", bundle: .module, comment: "")
+        case .namePointerLoop(let at, let to):
+            let format = NSLocalizedString("DNSError.IDMismatch %ld %ld", bundle: .module, comment: "")
+            return String(format: format, at, to)
         }
     }
     
@@ -89,6 +93,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return lhsValue == rhsValue
         case (.IDMismatch(let lhsGot, let lhsExpected), .IDMismatch(let rhsGot, let rhsExpected)):
             return lhsGot == rhsGot && lhsExpected == rhsExpected
+        case (.namePointerLoop(let lhsAt, let lhsTo), .namePointerLoop(let rhsAt, let rhsTo)):
+            return lhsAt == rhsAt && lhsTo == rhsTo
         case (.noDataReceived, .noDataReceived), (.invalidDomainName, .invalidDomainName), (.connectionTypeMismatch, .connectionTypeMismatch):
             return true
         case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil), (.responseTruncated, .responseTruncated):
@@ -98,3 +104,41 @@ public enum DNSError: Error, Equatable, LocalizedError {
         }
     }
 }
+
+/*
+ Strings & Objects
+
+ %@ — String, NSObject (most Swift objects via \(interpolation))
+
+ Integers
+
+ %d or %i — Int, Int32 (signed)
+ %u — UInt, UInt32 (unsigned)
+ %ld — Int64, long (signed), Swift Int
+ %lu — UInt64, unsigned long
+ %hi — Int16 (signed short)
+ %hu — UInt16 (unsigned short) ← relevant for your IDMismatch #warning
+ %hhi — Int8 (signed char)
+ %hhu — UInt8 (unsigned char)
+
+ Floating Point
+
+ %f — Double, Float (decimal notation)
+ %e — scientific notation (e.g. 1.23e+4)
+ %g — uses %f or %e whichever is shorter
+
+ Other
+
+ %c — Character (C char)
+ %p — pointer address
+ %x — unsigned hex (lowercase, e.g. ff)
+ %X — unsigned hex (uppercase, e.g. FF)
+ %o — octal
+
+ Modifiers
+
+ %05d — pad with zeros to width 5
+ %+d — always show sign
+ %.2f — 2 decimal places
+ %1$@, %2$d — positional arguments (important for localization, lets translators reorder)
+ */

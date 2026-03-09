@@ -46,6 +46,13 @@ final public actor DNSClient: Sendable {
     private var isConnected: Bool = false
     /// Maximum number of times sendTCP/sendUDP will retry on transient connection errors
     private let maxRetries: Int = 3
+    /// Pending queries waiting to be sent once the current in-flight query completes.
+    ///
+    /// This prevents concurrent queries from overwriting each other's stateUpdateHandler and racing on connection.receive().
+    /// HTTPS queries bypass this queue entirely since URLSession handles concurrency on its own.
+    private var pendingQueries: [(DNSMessage, @Sendable (Result<DNSMessage, Error>) -> Void)] = []
+    /// True while a TCP or UDP query is currently in-flight on the shared NWConnection
+    private var isQueryInFlight: Bool = false
     
     // MARK: - Init
     
@@ -124,7 +131,7 @@ final public actor DNSClient: Sendable {
     ///   - Class: The class to query
     ///   - EDNS: An opptional EDNSMessage to send
     ///   - completion: The DNS response or an Error
-    public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet, EDNS: EDNSMessage? = nil, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+    public func query(host: String, type: DNSRecordType, Class: DNSClass = .internet, EDNS: EDNSMessage? = nil, completion: @escaping @Sendable (Result<DNSMessage, Error>) -> ()) {
         do {
             guard !host.isEmpty, host.isDNSSafe else {
                 completion(.failure(DNSError.invalidDomainName))
@@ -132,7 +139,7 @@ final public actor DNSClient: Sendable {
             }
             
             let id = UInt16.random(in: 0...UInt16.max)
-            let flags = try DNSHeader.DNSFlags(qr: 0, opcode: 0, aa: 0, tc: 0, rd: 1, ra: 0, rcode: 0)
+            let flags = try DNSHeader.DNSFlags(qr: false, opcode: 0, aa: false, tc: false, rd: true, ra: false, rcode: 0)
             let header = DNSHeader(id: id, flags: flags, QDCOUNT: 1, ANCOUNT: 0, NSCOUNT: 0, ARCOUNT: EDNS != nil ? 1 : 0)
             
             let question = QuestionSection(host: host, type: type, CLASS: Class)
@@ -147,15 +154,59 @@ final public actor DNSClient: Sendable {
     /// - Parameters:
     ///   - message: The DNS Message to send
     ///   - completion: The DNS response or an Error
-    public func query(message: DNSMessage, completion: @escaping @Sendable (sending Result<DNSMessage, Error>) -> ()) {
+    public func query(message: DNSMessage, completion: @escaping @Sendable (Result<DNSMessage, Error>) -> ()) {
         switch connectionType {
-        case .dnsOverTLS, .dnsOverTCP:
-            sendTCP(message: message, retryCount: 0, completion: completion)
-        case .dnsOverUDP:
-            sendUDP(message: message, retryCount: 0, completion: completion)
+        case .dnsOverTLS, .dnsOverTCP, .dnsOverUDP:
+            // Use the serialization queue so concurrent callers don't overwrite each other's stateUpdateHandler or race on receive()
+            enqueueQuery(message: message, completion: completion)
         case .dnsOverHTTPS:
+            // HTTPS uses URLSession which handles concurrency internally
             sendHTTPS(message: message, completion: completion)
         }
+    }
+    
+    // MARK: - Query serialization queue
+    
+    /// Enqueues a query and dispatches it immediately if no other query is in-flight.
+    /// If a query is already running on the shared NWConnection, the new query is
+    /// held in pendingQueries until the current one completes.
+    private func enqueueQuery(message: DNSMessage, completion: @escaping @Sendable (Result<DNSMessage, Error>) -> Void) {
+        if isQueryInFlight {
+            logger.debug("[enqueueQuery] Query in-flight, queuing. Pending: \(pendingQueries.count + 1)")
+            pendingQueries.append((message, completion))
+            return
+        }
+        dispatchQuery(message: message, completion: completion)
+    }
+    
+    /// Marks a query as in-flight and dispatches it to the appropriate send function.
+    private func dispatchQuery(message: DNSMessage, completion: @escaping @Sendable (Result<DNSMessage, Error>) -> Void) {
+        isQueryInFlight = true
+        
+        // Wrap the completion so that when it finishes, the next pending query is dispatched
+        let wrappedCompletion: @Sendable (Result<DNSMessage, Error>) -> Void = { [weak self] result in
+            completion(result)
+            Task { await self?.dequeueNextQuery() }
+        }
+        
+        switch connectionType {
+        case .dnsOverTLS, .dnsOverTCP:
+            sendTCP(message: message, retryCount: 0, completion: wrappedCompletion)
+        case .dnsOverUDP:
+            sendUDP(message: message, retryCount: 0, completion: wrappedCompletion)
+        case .dnsOverHTTPS:
+            // Should not be reached. HTTPS bypasses the queue in query(message:completion:)
+            completion(.failure(DNSError.connectionTypeMismatch))
+        }
+    }
+    
+    /// Called when a query completes. Dispatches the next pending query, if any.
+    private func dequeueNextQuery() {
+        isQueryInFlight = false
+        guard !pendingQueries.isEmpty else { return }
+        let (message, completion) = pendingQueries.removeFirst()
+        logger.debug("[dequeueNextQuery] Dispatching next query. Remaining: \(pendingQueries.count)")
+        dispatchQuery(message: message, completion: completion)
     }
     
     // MARK: - helper functions
@@ -192,6 +243,9 @@ final public actor DNSClient: Sendable {
         do {
             let id = message.header.id
             let query = try message.toData()
+            
+            // TCP has a 2-byte prefix with the length because it is a stream of data and it needs to know how long all of it is
+            // In UDP, the whole packet is a single request. In TCP (and TLS) the data can go over multiple packets/frames
             let length = UInt16(query.count)
             let data: Data = Data(withUnsafeBytes(of: length.bigEndian, Array.init)) + query
             
@@ -268,7 +322,6 @@ final public actor DNSClient: Sendable {
                                             "sent": "0x\(String(format:"%02x", id))",
                                             "received": "0x\(String(format:"%02x", result.header.id))"
                                         ])
-                                        
                                         finish(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
                                         return
                                     }
@@ -324,6 +377,27 @@ final public actor DNSClient: Sendable {
                 "data": "\(data.hexEncodedString())"
             ])
             
+            /// Clears the handler and calls completion exactly once.
+            @Sendable func finish(_ result: Result<DNSMessage, Error>) {
+                connection.stateUpdateHandler = nil
+                completion(result)
+            }
+            
+            /// Retries up to maxRetries times, then fails.
+            @Sendable func retryOrFail(reason: String, error: Error) {
+                if retryCount < maxRetries {
+                    logger.error("[sendUDP: retryOrFail] \(reason). Retrying (\(retryCount + 1)/\(maxRetries))", metadata: ["error": "\(error.localizedDescription)"])
+                    Task {
+                        await self.closeConnections()
+                        await self.sendUDP(message: message, retryCount: retryCount + 1, completion: completion)
+                    }
+                } else {
+                    logger.error("[sendUDP: retryOrFail] \(reason). Max retries reached.", metadata: ["error": "\(error.localizedDescription)"])
+                    finish(.failure(error))
+                }
+            }
+            
+            // Set handler before calling startConnection()
             connection.stateUpdateHandler = { [weak self] state in
                 guard let self else { return }
                 switch state {
@@ -332,18 +406,18 @@ final public actor DNSClient: Sendable {
                     
                     connection.send(content: data, completion: .contentProcessed { sendError in
                         if let sendError {
-                            completion(.failure(DNSError.connectionFailed(sendError)))
+                            retryOrFail(reason: "Send failed", error: DNSError.connectionFailed(sendError))
                             return
                         }
                         
                         // Only call receive after send succeeds
                         connection.receive(minimumIncompleteLength: 1, maximumLength: 512) { responseData, _, _, recvError in
                             if let recvError {
-                                completion(.failure(DNSError.connectionFailed(recvError)))
+                                finish(.failure(DNSError.connectionFailed(recvError)))
                                 return
                             }
                             guard let responseData else {
-                                completion(.failure(DNSError.noDataReceived))
+                                finish(.failure(DNSError.noDataReceived))
                                 return
                             }
                             
@@ -356,37 +430,37 @@ final public actor DNSClient: Sendable {
                                         "sent": "0x\(String(format:"%02x", id))",
                                         "received": "0x\(String(format:"%02x", result.header.id))"
                                     ])
-                                    completion(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
+                                    finish(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
                                     return
                                 }
                                 
-                                // Detect truncated responses (TC bit). tc is 1 when the response was truncated.
-                                if result.header.flags.tc == 1 {
-                                    completion(.failure(DNSError.responseTruncated))
+                                // Detect truncated responses (TC bit). tc is true/1 when the response was truncated.
+                                if result.header.flags.tc {
+                                    finish(.failure(DNSError.responseTruncated))
                                     return
                                 }
                                 
-                                completion(.success(result))
-                            } catch {
-                                completion(.failure(DNSError.parsingError(error)))
+                                finish(.success(result))
+                            } catch(let error) {
+                                finish(.failure(DNSError.parsingError(error)))
                             }
                         }
                     })
                     
                 case .failed(let error):
-                    completion(.failure(DNSError.connectionFailed(error)))
+                    retryOrFail(reason: "Connection failed", error: DNSError.connectionFailed(error))
                 case .waiting(let error):
-                    self.logger.info("[sendUDP] Connection waiting",
-                                     metadata: ["error": "\(error.localizedDescription)"])
+                    self.logger.info("[sendUDP] Connection waiting", metadata: ["error": "\(error.localizedDescription)"])
                 case .preparing:
                     self.logger.debug("[sendUDP] Connection preparing...")
                 default:
-                    completion(.failure(DNSError.unknownState(state)))
+                    finish(.failure(DNSError.unknownState(state)))
                 }
             }
-            logger.debug("[sendUDP] Starting connection...")
-            connection.start(queue: dnsQueue)
             
+            logger.debug("[sendUDP] Starting connection...")
+            // Use startConnection() to avoid calling start() on an already-running connection
+            try startConnection()
         } catch(let error) {
             completion(.failure(error))
         }
