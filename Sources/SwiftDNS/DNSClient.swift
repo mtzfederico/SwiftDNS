@@ -237,7 +237,7 @@ final public actor DNSClient: Sendable {
     /// Starts the NWConnection if it isn't already running.
     private func startConnection() throws {
         guard !isConnected else {
-            logger.trace("[startConnection] Connection already started")
+            logger.trace("[startConnection] Connection already started.")
             return
         }
         
@@ -308,65 +308,71 @@ final public actor DNSClient: Sendable {
                 }
             }
             
-            // Set handler before calling startConnection().
+            /// Sends the data and waits for the response.
+            /// Called either from the .ready handler (first connection) or directly when the connection is already established (subsequent queries).
+            @Sendable func performTCPSend() {
+                connection.send(content: data, completion: .contentProcessed { sendError in
+                    if let sendError {
+                        retryOrFail(reason: "Send failed", error: DNSError.connectionFailed(sendError))
+                        return
+                    }
+                    
+                    // Get the 2-byte length prefix first
+                    connection.receive(minimumIncompleteLength: 2, maximumLength: 2) { lengthData, _, _, recvError in
+                        if let recvError {
+                            finish(.failure(DNSError.connectionFailed(recvError)))
+                            return
+                        }
+                        guard let lengthData, lengthData.count == 2 else {
+                            finish(.failure(DNSError.invalidData("Failed to parse response length prefix")))
+                            return
+                        }
+                        
+                        let responseLength = Int(lengthData.withUnsafeBytes { $0.load(as: UInt16.self).bigEndian })
+                        
+                        // Get the actual data
+                        connection.receive(minimumIncompleteLength: responseLength, maximumLength: responseLength) { responseData, _, _, recvError2 in
+                            if let recvError2 {
+                                finish(.failure(DNSError.connectionFailed(recvError2)))
+                                return
+                            }
+                            guard let responseData else {
+                                finish(.failure(DNSError.invalidData("Response body is empty")))
+                                return
+                            }
+                            
+                            self.logger.trace("[sendTCP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
+                            
+                            do {
+                                let result = try DNSMessage(data: responseData)
+                                guard result.header.id == id else {
+                                    self.logger.trace("[sendTCP] ID mismatch", metadata: [
+                                        "sent": "0x\(String(format:"%02x", id))",
+                                        "received": "0x\(String(format:"%02x", result.header.id))"
+                                    ])
+                                    finish(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
+                                    return
+                                }
+                                finish(.success(result))
+                            } catch {
+                                finish(.failure(error))
+                            }
+                        }
+                    }
+                })
+            }
+            
+            // The stateUpdateHandler only fires on state transitions.
+            // On the first query it fires .ready, but on subsequent queries the connection is already ready so it never fires again.
+            // performTCPSend() is called directly for already-connected queries to handle this.
             connection.stateUpdateHandler = { [weak self] state in
                 guard let self else { return }
                 switch state {
                 case .ready:
-                    // Only set isConnected after the connection is confirmed usable
+                    // Only set isConnected here, after the connection is confirmed usable
                     Task { await self.setConnected(true) }
                     self.logger.debug("[sendTCP] Connection ready, sending data...")
-                    
-                    connection.send(content: data, completion: .contentProcessed { sendError in
-                        if let sendError {
-                            retryOrFail(reason: "Send failed", error: DNSError.connectionFailed(sendError))
-                            return
-                        }
-                        
-                        // Get the 2-byte length prefix first
-                        connection.receive(minimumIncompleteLength: 2, maximumLength: 2) { lengthData, _, _, recvError in
-                            if let recvError {
-                                finish(.failure(DNSError.connectionFailed(recvError)))
-                                return
-                            }
-                            guard let lengthData, lengthData.count == 2 else {
-                                finish(.failure(DNSError.invalidData("Failed to parse response length prefix")))
-                                return
-                            }
-                            
-                            let responseLength = Int(lengthData.withUnsafeBytes { $0.load(as: UInt16.self).bigEndian })
-                            
-                            // Get the actual data
-                            connection.receive(minimumIncompleteLength: responseLength, maximumLength: responseLength) { responseData, _, _, recvError2 in
-                                if let recvError2 {
-                                    finish(.failure(DNSError.connectionFailed(recvError2)))
-                                    return
-                                }
-                                guard let responseData else {
-                                    finish(.failure(DNSError.invalidData("Response body is empty")))
-                                    return
-                                }
-                                
-                                self.logger.trace("[sendTCP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
-                                
-                                do {
-                                    let result = try DNSMessage(data: responseData)
-                                    guard result.header.id == id else {
-                                        self.logger.trace("[sendTCP] ID mismatch", metadata: [
-                                            "sent": "0x\(String(format:"%02x", id))",
-                                            "received": "0x\(String(format:"%02x", result.header.id))"
-                                        ])
-                                        finish(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
-                                        return
-                                    }
-                                    finish(.success(result))
-                                } catch {
-                                    finish(.failure(error))
-                                }
-                            }
-                        }
-                    })
-                    
+                    performTCPSend()
                 case .failed(let error):
                     retryOrFail(reason: "Connection failed", error: DNSError.connectionFailed(error))
                 case .cancelled:
@@ -382,7 +388,14 @@ final public actor DNSClient: Sendable {
             }
             
             logger.debug("[sendTCP] Starting connection...")
-            try startConnection()
+            if isConnected {
+                // Connection is already ready, .ready will not fire again, so send directly
+                logger.debug("[sendTCP] Connection already ready, sending directly...")
+                performTCPSend()
+            } else {
+                // The stateUpdateHandler will call .ready
+                try startConnection()
+            }
         } catch(let error) {
             completion(.failure(error))
         }
@@ -431,58 +444,64 @@ final public actor DNSClient: Sendable {
                 }
             }
             
-            // Set handler before calling startConnection()
+            /// Sends the data and waits for the response. Called either from the .ready handler
+            /// (first connection) or directly when the connection is already established (subsequent queries).
+            @Sendable func performUDPSend() {
+                connection.send(content: data, completion: .contentProcessed { sendError in
+                    if let sendError {
+                        retryOrFail(reason: "Send failed", error: DNSError.connectionFailed(sendError))
+                        return
+                    }
+                    
+                    // Only call receive after send succeeds
+                    connection.receive(minimumIncompleteLength: 1, maximumLength: 512) { responseData, _, _, recvError in
+                        if let recvError {
+                            finish(.failure(DNSError.connectionFailed(recvError)))
+                            return
+                        }
+                        guard let responseData else {
+                            finish(.failure(DNSError.noDataReceived))
+                            return
+                        }
+                        
+                        self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
+                        do {
+                            let result = try DNSMessage(data: responseData)
+                            
+                            guard result.header.id == id else {
+                                self.logger.trace("[sendUDP] ID mismatch", metadata: [
+                                    "sent": "0x\(String(format:"%02x", id))",
+                                    "received": "0x\(String(format:"%02x", result.header.id))"
+                                ])
+                                finish(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
+                                return
+                            }
+                            
+                            // Detect truncated responses (TC bit). tc is true/1 when the response was truncated.
+                            if result.header.flags.tc {
+                                finish(.failure(DNSError.responseTruncated))
+                                return
+                            }
+                            
+                            finish(.success(result))
+                        } catch(let error) {
+                            finish(.failure(DNSError.parsingError(error)))
+                        }
+                    }
+                })
+            }
+            
+            // The stateUpdateHandler only fires on state transitions.
+            // On the first query it fires .ready, but on subsequent queries the connection is already ready so it never fires again.
+            // performUDPSend() is called directly for already-connected queries to handle this.
             connection.stateUpdateHandler = { [weak self] state in
                 guard let self else { return }
                 switch state {
                 case .ready:
-                    // Only set isConnected after the connection is confirmed usable
+                    // Only set isConnected here, after the connection is confirmed usable
                     Task { await self.setConnected(true) }
                     self.logger.debug("[sendUDP] Connection ready, sending data...")
-                    
-                    connection.send(content: data, completion: .contentProcessed { sendError in
-                        if let sendError {
-                            retryOrFail(reason: "Send failed", error: DNSError.connectionFailed(sendError))
-                            return
-                        }
-                        
-                        // Only call receive after send succeeds
-                        connection.receive(minimumIncompleteLength: 1, maximumLength: 512) { responseData, _, _, recvError in
-                            if let recvError {
-                                finish(.failure(DNSError.connectionFailed(recvError)))
-                                return
-                            }
-                            guard let responseData else {
-                                finish(.failure(DNSError.noDataReceived))
-                                return
-                            }
-                            
-                            self.logger.trace("[sendUDP] Received DNS response", metadata: ["data": "\(responseData.hexEncodedString())"])
-                            do {
-                                let result = try DNSMessage(data: responseData)
-                                
-                                guard result.header.id == id else {
-                                    self.logger.trace("[sendUDP] ID mismatch", metadata: [
-                                        "sent": "0x\(String(format:"%02x", id))",
-                                        "received": "0x\(String(format:"%02x", result.header.id))"
-                                    ])
-                                    finish(.failure(DNSError.IDMismatch(got: result.header.id, expected: id)))
-                                    return
-                                }
-                                
-                                // Detect truncated responses (TC bit). tc is true/1 when the response was truncated.
-                                if result.header.flags.tc {
-                                    finish(.failure(DNSError.responseTruncated))
-                                    return
-                                }
-                                
-                                finish(.success(result))
-                            } catch(let error) {
-                                finish(.failure(DNSError.parsingError(error)))
-                            }
-                        }
-                    })
-                    
+                    performUDPSend()
                 case .failed(let error):
                     retryOrFail(reason: "Connection failed", error: DNSError.connectionFailed(error))
                 case .waiting(let error):
@@ -495,8 +514,15 @@ final public actor DNSClient: Sendable {
             }
             
             logger.debug("[sendUDP] Starting connection...")
-            // Use startConnection() to avoid calling start() on an already-running connection
-            try startConnection()
+            if isConnected {
+                // Connection is already ready. .ready will not fire again, so send directly
+                logger.debug("[sendUDP] Connection already ready, sending directly...")
+                performUDPSend()
+            } else {
+                // Use startConnection() to avoid calling start() on an already-running connection
+                // The stateUpdateHandler will call .ready
+                try startConnection()
+            }
         } catch(let error) {
             completion(.failure(error))
         }
