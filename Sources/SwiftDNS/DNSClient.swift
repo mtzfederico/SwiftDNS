@@ -303,8 +303,21 @@ final public actor DNSClient: Sendable {
             ])
             
             /// Clears the handler and calls completion exactly once.
+            /// Adds an idle handler so connection state changes are logged even while no query is in-flight.
             @Sendable func finish(_ result: Result<DNSMessage, Error>) {
-                connection.stateUpdateHandler = nil
+                connection.stateUpdateHandler = { [weak self] state in
+                    guard let self else { return }
+                    switch state {
+                    case .failed(let error):
+                        self.logger.info("[sendTCP] Connection failed while idle", metadata: ["error": "\(error.localizedDescription)"])
+                        Task { await self.setConnected(false) }
+                    case .cancelled:
+                        self.logger.debug("[sendTCP] Connection cancelled while idle.")
+                        Task { await self.setConnected(false) }
+                    default:
+                        break
+                    }
+                }
                 completion(result)
             }
             
@@ -454,8 +467,21 @@ final public actor DNSClient: Sendable {
             ])
             
             /// Clears the handler and calls completion exactly once.
+            /// Adds an idle handler so connection state changes are logged even while no query is in-flight.
             @Sendable func finish(_ result: Result<DNSMessage, Error>) {
-                connection.stateUpdateHandler = nil
+                connection.stateUpdateHandler = { [weak self] state in
+                    guard let self else { return }
+                    switch state {
+                    case .failed(let error):
+                        self.logger.info("[sendUDP] Connection failed while idle", metadata: ["error": "\(error.localizedDescription)"])
+                        Task { await self.setConnected(false) }
+                    case .cancelled:
+                        self.logger.debug("[sendUDP] Connection cancelled while idle.")
+                        Task { await self.setConnected(false) }
+                    default:
+                        break
+                    }
+                }
                 completion(result)
             }
             
