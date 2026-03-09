@@ -404,6 +404,8 @@ final public actor DNSClient: Sendable {
     // MARK: - UDP
     
     /// Sends a DNS request to the server using UDP
+    ///
+    /// When the response is truncated, it wil throw the error `DNSError.responseTruncated`.
     /// - Parameters:
     ///   - message: The DNSMessage to send to the server
     ///   - retryCount: The number of times to try again
