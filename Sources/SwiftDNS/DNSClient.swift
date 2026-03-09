@@ -34,15 +34,18 @@ final public actor DNSClient: Sendable {
     private let dnsQueue: DispatchQueue
     /// The logger used
     private let logger: Logger
-    /// The NWConnection used to send UDP, TCP, and TLS queries. HTTP queries use URLSession.shared
-    private let connection: NWConnection?
+    /// The NWConnection used to send UDP, TCP, and TLS queries. HTTP queries use URLSession.shared.
+    /// Declared as var so it can be recreated after cancellation (e.g. after a failed retry).
+    private var connection: NWConnection?
     /// The connection type used to send the request
     private let connectionType: DNSConnectionType
     /// The server used to send the query to
     private let server: String
     /// The URL Session used when sending queries over HTTPS
     private var urlSession: URLSession?
-    
+    /// Indicates whether the connection is connected to a server or not
+    ///
+    /// Only set to true when the .ready state fires, because start() is asynchronous and the connection may not be usable immediately.
     private var isConnected: Bool = false
     /// Maximum number of times sendTCP/sendUDP will retry on transient connection errors
     private let maxRetries: Int = 3
@@ -92,6 +95,26 @@ final public actor DNSClient: Sendable {
     
     private func setConnected(_ value: Bool) {
         self.isConnected = value
+    }
+    
+    /// Creates a fresh NWConnection for the current server and connectionType.
+    /// Called by closeConnections() so the next startConnection() has a usable connection.
+    /// NWConnection cannot be restarted once cancelled, so a new one must be created.
+    private func makeConnection() -> NWConnection {
+        switch connectionType {
+        case .dnsOverTLS:
+            let parameters = NWParameters.tls
+            parameters.serviceClass = .responsiveData
+            parameters.expiredDNSBehavior = .allow
+            return NWConnection(to: .hostPort(host: .name(server, nil), port: 853), using: parameters)
+        case .dnsOverUDP:
+            return NWConnection(host: .name(server, nil), port: 53, using: .udp)
+        case .dnsOverTCP:
+            return NWConnection(host: .name(server, nil), port: 53, using: .tcp)
+        case .dnsOverHTTPS:
+            // Should never be called for HTTPS since connection is nil for that type
+            fatalError("makeConnection() should not be called for dnsOverHTTPS")
+        }
     }
     
     // MARK: - Public query API
@@ -220,13 +243,19 @@ final public actor DNSClient: Sendable {
         
         guard let connection else { throw DNSError.connectionIsNil }
         connection.start(queue: dnsQueue)
-        setConnected(true)
     }
     
-    /// Closes all connections gracefully.
-    public func closeConnections() {
+    /// Closes the current connection gracefully and optionally creates a new NWConnection ready for the next attempt.
+    ///
+    /// A cancelled NWConnection cannot be restarted, so a new one must be created here.
+    /// - Parameter createNewConnection: When true, creates a new NWConnection for the next connection attempt
+    public func closeConnections(createNewConnection: Bool = false) {
         logger.trace("Closing Connection")
         connection?.cancel()
+        if createNewConnection {
+            // Replace the cancelled connection with a fresh one so the next startConnection() call works
+            connection = makeConnection()
+        }
         setConnected(false)
     }
     
@@ -270,7 +299,7 @@ final public actor DNSClient: Sendable {
                 if retryCount < maxRetries {
                     logger.error("[sendTCP: retryOrFail] \(reason). Retrying (\(retryCount + 1)/\(maxRetries))", metadata: ["error": "\(error.localizedDescription)"])
                     Task {
-                        await self.closeConnections()
+                        await self.closeConnections(createNewConnection: true)
                         await self.sendTCP(message: message, retryCount: retryCount + 1, completion: completion)
                     }
                 } else {
@@ -284,6 +313,7 @@ final public actor DNSClient: Sendable {
                 guard let self else { return }
                 switch state {
                 case .ready:
+                    // Only set isConnected after the connection is confirmed usable
                     Task { await self.setConnected(true) }
                     self.logger.debug("[sendTCP] Connection ready, sending data...")
                     
@@ -392,7 +422,7 @@ final public actor DNSClient: Sendable {
                 if retryCount < maxRetries {
                     logger.error("[sendUDP: retryOrFail] \(reason). Retrying (\(retryCount + 1)/\(maxRetries))", metadata: ["error": "\(error.localizedDescription)"])
                     Task {
-                        await self.closeConnections()
+                        await self.closeConnections(createNewConnection: true)
                         await self.sendUDP(message: message, retryCount: retryCount + 1, completion: completion)
                     }
                 } else {
@@ -406,6 +436,8 @@ final public actor DNSClient: Sendable {
                 guard let self else { return }
                 switch state {
                 case .ready:
+                    // Only set isConnected after the connection is confirmed usable
+                    Task { await self.setConnected(true) }
                     self.logger.debug("[sendUDP] Connection ready, sending data...")
                     
                     connection.send(content: data, completion: .contentProcessed { sendError in
