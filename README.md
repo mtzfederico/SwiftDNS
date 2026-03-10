@@ -40,3 +40,23 @@ Task {
 }
 ```
 
+# Logging
+To get logs from SwiftDNS, you can add this to your AppDelegate's didFinishLaunchingWithOptions function.
+```swift
+import Logging
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Set logging used by SwiftDNS
+        LoggingSystem.bootstrap { label in
+            var handler = StreamLogHandler.standardOutput(label: label)
+            handler.logLevel = .trace
+            return handler
+        }
+        ...
+        return true
+    }
+    ...
+}
+```
