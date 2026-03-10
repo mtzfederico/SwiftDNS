@@ -3,7 +3,7 @@
 SwiftDNS is a DNS client library written in Swift. It is able to decode, encode, and send DNS requests using UDP, TCP, DoH, and DoT.
 
 > [!NOTE]
-> Currently the only method that is reliably working is DNS over HTTPS. If you have experience with NWConnection, I would gladly accept PRs.
+> The library is still being tested and the API may change at any point. All 4 connection types are working well. 
 
 # Installation
 
