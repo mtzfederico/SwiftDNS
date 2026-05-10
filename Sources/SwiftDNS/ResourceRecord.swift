@@ -1035,11 +1035,11 @@ public struct ResourceRecord: Sendable, Equatable, LosslessStringConvertible, Ha
     }
     
     public static func ==(lhs: ResourceRecord, rhs: ResourceRecord) -> Bool {
-        return lhs.name == rhs.name && lhs.ttl == rhs.ttl && lhs.Class == rhs.Class && lhs.type == rhs.type && lhs.value == rhs.value
+        return lhs.name.lowercased() == rhs.name.lowercased() && lhs.ttl == rhs.ttl && lhs.Class == rhs.Class && lhs.type == rhs.type && lhs.value == rhs.value
     }
     
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(name)
+        hasher.combine(name.lowercased())
         hasher.combine(ttl)
         hasher.combine(Class)
         hasher.combine(type)

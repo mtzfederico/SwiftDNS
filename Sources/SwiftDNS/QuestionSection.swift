@@ -86,11 +86,11 @@ public struct QuestionSection: Sendable, Equatable, Hashable, LosslessStringConv
     }
     
     public static func == (lhs: QuestionSection, rhs: QuestionSection) -> Bool {
-        return lhs.QNAME == rhs.QNAME && lhs.QTYPE == rhs.QTYPE && lhs.QCLASS == rhs.QCLASS
+        return lhs.QNAME.lowercased() == rhs.QNAME.lowercased() && lhs.QTYPE == rhs.QTYPE && lhs.QCLASS == rhs.QCLASS
     }
     
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(QNAME)
+        hasher.combine(QNAME.lowercased())
         hasher.combine(QTYPE)
         hasher.combine(QCLASS)
     }
