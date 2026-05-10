@@ -1719,4 +1719,40 @@ struct TestDNSMessage {
         #expect(parsedAnswer.Additional.count == 0)
         
     }
+    
+    /// Tests
+    @Test func generatePTR() throws {
+        let testData: [String: String?] = [
+            "": nil,
+            "192.168.1.34": "34.1.168.192.in-addr.arpa.",
+            "9.9.9.9": "9.9.9.9.in-addr.arpa.",
+            ".": nil,
+            "182.168.1" : nil,
+            "182.168.1.2.3" : nil,
+            "2620:fe::fe": "e.f.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.e.f.0.0.0.2.6.2.ip6.arpa.",
+            "::1": "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa.",
+            "::": "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa.",
+            "4321:fe:0:0:0:0:0:fe": "e.f.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.e.f.0.0.1.2.3.4.ip6.arpa.",
+            "2a11:f2c0:fff7::": "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.f.f.f.0.c.2.f.1.1.a.2.ip6.arpa.",
+            "1234:fe:0000:000:00:0:00:fe": "e.f.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.e.f.0.0.4.3.2.1.ip6.arpa.",
+            "beef:0fe:0000:000:00:0:00:fe": "e.f.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.e.f.0.0.f.e.e.b.ip6.arpa.",
+            "2001:4860:4860::8844": "4.4.8.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.6.8.4.0.6.8.4.1.0.0.2.ip6.arpa.",
+            "2001:4860:4860:0000:0000:0000:0000:8844": "4.4.8.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.6.8.4.0.6.8.4.1.0.0.2.ip6.arpa.",
+            "2001:db8:e757:9db8:cddf:13f5:1ebd:cc1a": "a.1.c.c.d.b.e.1.5.f.3.1.f.d.d.c.8.b.d.9.7.5.7.e.8.b.d.0.1.0.0.2.ip6.arpa.",
+            "aabcd:bbbb:cccc:ddd:eee:ff:77:111": nil,
+            "aaaa:bbbb:cccc:ddd:eee:ff:77::111": nil,
+            "aaaa:bbbb:cccc:ddd:eee:ff:77:887:111": nil,
+            "abcd:bbbb:cccc::ddd:eee:ff:77:887:111": nil
+        ]
+        
+        for (address, expected) in testData {
+            let result = DNSMessage.generatePTR(for: address)
+            #expect(result == expected)
+        }
+        
+    }
+    
+    @Test func veryLongLabel() throws {
+        
+    }
 }

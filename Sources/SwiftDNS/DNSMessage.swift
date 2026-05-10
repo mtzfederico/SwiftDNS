@@ -321,4 +321,59 @@ public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible
         // If there is only one item and it *is* an empty string, add a trailing dot
         return (labels.joined(separator: ".") + (labels.count == 1 && labels.first == "" ? "." : ""), consumed)
     }
+    
+    /// Generates a PTR record Name for Reverse DNS
+    /// - Parameter IPAddress: The IPv4 or IPv6 address
+    /// - Returns: A string with the PTR record Name
+    /// 
+    /// Examles:
+    /// 
+    /// 2001:db8:e757:9db8:cddf:13f5:1ebd:cc1a --> a.1.c.c.d.b.e.1.5.f.3.1.f.d.d.c.8.b.d.9.7.5.7.e.8.b.d.0.1.0.0.2.ip6.arpa.
+    /// 
+    /// 192.168.1.34 --> 34.1.168.192.in-addr.arpa.
+    public static func generatePTR(for IPAddress: String) -> String? {
+        if IPAddress.contains(".") {
+            // IPv4 Address
+            let a = IPAddress.split(separator: ".").reversed()
+            guard a.count == 4 else { return nil }
+            return "\(a.joined(separator: ".")).in-addr.arpa."
+        } else if IPAddress.contains(":") {
+            // IPv6 Address
+            var address = IPAddress.components(separatedBy: ":")
+            guard address.count <= 8 else { return nil }
+            
+            // Expand the Address if needed
+            // Get location of ::. It is an empty string because of the separatedBy: ":".
+            if let doubleColon = address.firstIndex(of: "") {
+                // substract by 9 because of the empty string (::) taking up one missing nibble
+                let missingParts = 9-address.count
+                guard missingParts > 0 else { return nil }
+                // Expand the Address
+                // if missingParts != 0 {
+                let zeros: [String] = Array(repeating: "0000", count: missingParts)
+                // Append the groups of 0s missing where the empty string (::) was,
+                address.replaceSubrange(doubleColon...doubleColon, with: zeros)
+                // }
+            }
+            
+            // Make sure every part of the address has 4 characters,
+            // if it doesn't, append the ammount of missing 0s at the begining
+            for (index, part) in address.enumerated() {
+                let len = part.count
+                guard len <= 4 else { return nil }
+                if len != 4 {
+                    address[index] = String(repeating: "0", count: 4 - len) + part
+                }
+            }
+            
+            let reversedAddress = address.joined(separator: "")
+                .reversed()
+                .map { String($0) }
+                .joined(separator: ".") + ".ip6.arpa."
+            
+            // print("----\nInput: \(IPAddress)\naddress: \(address)\nfullAddress: \(address.joined(separator: ":"))\nreversedAddress: \(reversedAddress)\n----")
+            return reversedAddress
+        }
+        return nil
+    }
 }
