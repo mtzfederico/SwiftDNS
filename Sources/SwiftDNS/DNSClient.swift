@@ -135,6 +135,17 @@ final public actor DNSClient: Sendable {
     
     // MARK: - Public query API
     
+    /// Sends a reverse DNS query
+    /// - Parameter IPAddress: The IP Address to get the reverse DNS for.
+    /// - Returns: The response DNS message
+    @available(macOS 10.15, iOS 13.0, *)
+    public func reverseDNSQuery(IPAddress: String, EDNS: EDNSMessage? = nil) async throws -> DNSMessage {
+        guard let ptr = DNSMessage.generatePTR(for: IPAddress) else {
+            throw DNSError.InvalidIPAddress
+        }
+        return try await query(host: ptr, type: .PTR, Class: .internet, EDNS: EDNS)
+    }
+    
     /// Sends a DNS request to the server using the connection type of the DNSClient
     /// - Parameters:
     ///   - host: The host to query, the QNAME.

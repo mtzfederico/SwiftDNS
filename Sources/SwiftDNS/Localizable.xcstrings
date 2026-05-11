@@ -113,6 +113,22 @@
         }
       }
     },
+    "DNSError.InvalidIPAddress" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid IP Address"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dirección IP invalida"
+          }
+        }
+      }
+    },
     "DNSError.invalidServerAddress" : {
       "localizations" : {
         "en" : {

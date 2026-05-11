@@ -327,7 +327,7 @@ public struct DNSMessage: Sendable, Equatable, Hashable, CustomStringConvertible
     /// - Returns: A string with the PTR record Name
     /// 
     /// Examles:
-    /// 
+    ///
     /// 2001:db8:e757:9db8:cddf:13f5:1ebd:cc1a --> a.1.c.c.d.b.e.1.5.f.3.1.f.d.d.c.8.b.d.9.7.5.7.e.8.b.d.0.1.0.0.2.ip6.arpa.
     /// 
     /// 192.168.1.34 --> 34.1.168.192.in-addr.arpa.

@@ -22,6 +22,7 @@ struct TestDNSError {
         #expect(DNSError.noDataReceived == DNSError.noDataReceived)
         #expect(DNSError.IDMismatch(got: 0xab, expected: 0xba) == DNSError.IDMismatch(got: 0xab, expected: 0xba))
         #expect(DNSError.invalidDomainName == DNSError.invalidDomainName)
+        #expect(DNSError.InvalidIPAddress == DNSError.InvalidIPAddress)
         #expect(DNSError.connectionIsNil == DNSError.connectionIsNil)
         #expect(DNSError.invalidServerAddress == DNSError.invalidServerAddress)
         #expect(DNSError.connectionFailed(DNSError.noDataReceived) == DNSError.connectionFailed(DNSError.noDataReceived))
@@ -54,6 +55,7 @@ struct TestDNSError {
         let noDataReceived = DNSError.noDataReceived
         let idMismatch = DNSError.IDMismatch(got: 0, expected: 0)
         let invalidDomainName = DNSError.invalidDomainName
+        let invalidIPAddress = DNSError.InvalidIPAddress
         let connectionIsNil = DNSError.connectionIsNil
         let invalidServerAddr = DNSError.invalidServerAddress
         let connectionFailed = DNSError.connectionFailed(DNSError.noDataReceived)
@@ -77,6 +79,7 @@ struct TestDNSError {
         #expect(invalidData != responseTruncated)
         #expect(invalidData != namePointerLoop)
         #expect(invalidData != connectionClosed)
+        #expect(invalidData != invalidIPAddress)
         // #expect(invalidData != newError)
         
         #expect(unknownState != noDataReceived)
@@ -90,6 +93,7 @@ struct TestDNSError {
         #expect(unknownState != responseTruncated)
         #expect(unknownState != namePointerLoop)
         #expect(unknownState != connectionClosed)
+        #expect(unknownState != invalidIPAddress)
         
         #expect(noDataReceived != idMismatch)
         #expect(noDataReceived != invalidDomainName)
@@ -101,6 +105,7 @@ struct TestDNSError {
         #expect(noDataReceived != responseTruncated)
         #expect(noDataReceived != namePointerLoop)
         #expect(noDataReceived != connectionClosed)
+        #expect(noDataReceived != invalidIPAddress)
         
         #expect(idMismatch != invalidDomainName)
         #expect(idMismatch != connectionIsNil)
@@ -111,6 +116,7 @@ struct TestDNSError {
         #expect(idMismatch != responseTruncated)
         #expect(idMismatch != namePointerLoop)
         #expect(idMismatch != connectionClosed)
+        #expect(idMismatch != invalidIPAddress)
         
         #expect(invalidDomainName != connectionIsNil)
         #expect(invalidDomainName != invalidServerAddr)
@@ -120,6 +126,7 @@ struct TestDNSError {
         #expect(invalidDomainName != responseTruncated)
         #expect(invalidDomainName != namePointerLoop)
         #expect(invalidDomainName != connectionClosed)
+        #expect(invalidDomainName != invalidIPAddress)
         
         #expect(connectionIsNil != invalidServerAddr)
         #expect(connectionIsNil != connectionFailed)
@@ -128,6 +135,7 @@ struct TestDNSError {
         #expect(connectionIsNil != responseTruncated)
         #expect(connectionIsNil != namePointerLoop)
         #expect(connectionIsNil != connectionClosed)
+        #expect(connectionIsNil != invalidIPAddress)
         
         #expect(invalidServerAddr != connectionFailed)
         #expect(invalidServerAddr != parsingError)
@@ -135,24 +143,29 @@ struct TestDNSError {
         #expect(invalidServerAddr != responseTruncated)
         #expect(invalidServerAddr != namePointerLoop)
         #expect(invalidServerAddr != connectionClosed)
+        #expect(invalidServerAddr != invalidIPAddress)
         
         #expect(connectionFailed != parsingError)
         #expect(connectionFailed != connTypeMismatch)
         #expect(connectionFailed != responseTruncated)
         #expect(connectionFailed != namePointerLoop)
         #expect(connectionFailed != connectionClosed)
+        #expect(connectionFailed != invalidIPAddress)
         
         #expect(parsingError != connTypeMismatch)
         #expect(parsingError != responseTruncated)
         #expect(parsingError != namePointerLoop)
         #expect(parsingError != connectionClosed)
+        #expect(parsingError != invalidIPAddress)
         
         #expect(connTypeMismatch != responseTruncated)
         #expect(connTypeMismatch != namePointerLoop)
         #expect(connTypeMismatch != connectionClosed)
+        #expect(connTypeMismatch != invalidIPAddress)
         
         #expect(responseTruncated != namePointerLoop)
         #expect(responseTruncated != connectionClosed)
+        #expect(responseTruncated != invalidIPAddress)
     }
 }
 

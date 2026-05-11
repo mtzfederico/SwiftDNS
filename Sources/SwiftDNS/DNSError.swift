@@ -30,6 +30,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
     case IDMismatch(got: UInt16, expected: UInt16)
     /// The domain name used in the query is invalid
     case invalidDomainName
+    /// The IP Address entered is invalid
+    case InvalidIPAddress
     /// The connection type attempted doesn't match the one of the DNSClient
     case connectionTypeMismatch
     /// UDP response was truncated (TC bit set). You should retry over TCP
@@ -67,6 +69,8 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return String(format: format, got, expected)
         case .invalidDomainName:
             return NSLocalizedString("DNSError.invalidDomainName", bundle: .module, comment: "")
+        case .InvalidIPAddress:
+            return NSLocalizedString("DNSError.InvalidIPAddress", bundle: .module, comment: "")
         case .connectionTypeMismatch:
             return NSLocalizedString("DNSError.connectionTypeMismatch", bundle: .module, comment: "")
         case .responseTruncated:
@@ -101,7 +105,7 @@ public enum DNSError: Error, Equatable, LocalizedError {
             return lhsAt == rhsAt && lhsTo == rhsTo
         case (.noDataReceived, .noDataReceived), (.invalidDomainName, .invalidDomainName), (.connectionTypeMismatch, .connectionTypeMismatch), (.connectionClosed, .connectionClosed):
             return true
-        case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil), (.responseTruncated, .responseTruncated):
+        case (.invalidServerAddress, .invalidServerAddress), (.connectionIsNil, .connectionIsNil), (.responseTruncated, .responseTruncated), (.InvalidIPAddress, .InvalidIPAddress):
             return true
         default:
             return false
